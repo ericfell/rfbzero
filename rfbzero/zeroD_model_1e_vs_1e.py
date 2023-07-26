@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Oct 29 15:15:35 2021
 
-@author: erico
-"""
 
 from math import log, isclose
 import scipy.constants as spc
