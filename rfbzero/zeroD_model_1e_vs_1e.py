@@ -5,8 +5,8 @@ import scipy.constants as spc
 from scipy.optimize import fsolve #, brentq
 #from model_code.zeroD_model_degradations import degradation_mechanism
 #from model_code.zeroD_model_crossover import crossover_mechanism
-from .zeroD_model_degradations import degradation_mechanism
-from .zeroD_model_crossover import crossover_mechanism
+from zeroD_model_degradations import degradation_mechanism
+from zeroD_model_crossover import crossover_mechanism
 
 F = spc.physical_constants['Faraday constant'][0]
 R = spc.R
