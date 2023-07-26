@@ -1,10 +1,8 @@
 
 
-from math import log, isclose
+from math import log, isclose # can remove these at some point? using numpy?
 import scipy.constants as spc
-from scipy.optimize import fsolve #, brentq
-#from model_code.zeroD_model_degradations import degradation_mechanism
-#from model_code.zeroD_model_crossover import crossover_mechanism
+from scipy.optimize import fsolve
 from zeroD_model_degradations import degradation_mechanism
 from zeroD_model_crossover import crossover_mechanism
 
@@ -14,7 +12,7 @@ R = spc.R
 TEMPERATURE = 298  # kelvin
 NERNST_CONST = (R*TEMPERATURE) / F
 
-# concentration cutoff
+# concentration cutoff.. maybe remove and ensure conc>0
 CONC_CUTOFF = 0.0#1e-17#1e-11  # should be function of timestep coulombs perhaps???
 
 
@@ -70,19 +68,19 @@ class ZeroDModelSingleVsSingle:
     ###############################################################
     # Section: Overpotential functions
 
-    def i_exchange_current(self, k_0, c_red, c_ox, alpha):
+    def i_exchange_current(self, k_0: float, c_red: float, c_ox: float, alpha: float) -> float:
         # div by 1000 for conversion from mol/L to mol/cm^3
         i_ex = (self.const_i_ex * k_0 * (c_red**alpha)
                 * (c_ox**(1-alpha)) * 0.001)
         return i_ex
 
-    def i_limiting(self, c_lim):
+    def i_limiting(self, c_lim: float) -> float:
         # div by 1000 for conversion from mol/L to mol/cm^3
         return F*self.k_mt*c_lim*self.geometric_area*0.001
 
-    def limiting_reactant_selecter(self, charge,
-                                   conc_ox_now_CLS, conc_red_now_CLS,
-                                   conc_ox_now_NCLS, conc_red_now_NCLS):
+    def limiting_reactant_selecter(self, charge: bool,
+                                   conc_ox_now_CLS: float, conc_red_now_CLS: float,
+                                   conc_ox_now_NCLS: float, conc_red_now_NCLS: float) -> tuple[float, float]:
         if self.CLS_negolyte:  # CLS is negolyte
             if charge:
                 i_lim_cls_t = self.i_limiting(conc_ox_now_CLS)
@@ -101,15 +99,15 @@ class ZeroDModelSingleVsSingle:
 
         return i_lim_cls_t, i_lim_ncls_t
 
-    def n_activation(self, current, i_0_cls, i_0_ncls):
+    def n_activation(self, current: float, i_0_cls: float, i_0_ncls: float) -> float:
         z_cls = abs(current) / (2*i_0_cls)
         z_ncls = abs(current) / (2*i_0_ncls)
         n_act = NERNST_CONST*(log(z_ncls + ((z_ncls**2) + 1)**0.5)
                               + log(z_cls + ((z_cls**2) + 1)**0.5))
         return n_act
 
-    def n_mass_transport(self, charge, current, c_red_cls, c_ox_cls,
-                         c_red_ncls, c_ox_ncls, i_lim_cls, i_lim_ncls):
+    def n_mass_transport(self, charge: bool, current: float, c_red_cls: float, c_ox_cls: float,
+                         c_red_ncls: float, c_ox_ncls: float, i_lim_cls: float, i_lim_ncls: float) -> float:
 
         assert c_red_cls > 0, "c_red_cls is less than 0"
         assert c_ox_cls > 0, "c_ox_cls is less than 0"
@@ -153,8 +151,8 @@ class ZeroDModelSingleVsSingle:
                                                    + (c_red_ncls*current)))))
         return n_mt
 
-    def v_losses(self, current, charge, c_red_cls, c_ox_cls, 
-                 c_red_ncls, c_ox_ncls, i_lim_cls, i_lim_ncls):
+    def v_losses(self, current: float, charge: bool, c_red_cls: float, c_ox_cls: float,
+                 c_red_ncls: float, c_ox_ncls: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
         
         i_0_cls = self.i_exchange_current(self.k_0_CLS, c_red_cls, c_ox_cls, 
                                           self.alpha_CLS) 
@@ -172,7 +170,7 @@ class ZeroDModelSingleVsSingle:
             n_loss = n_act + n_mt - n_ohmic 
         return n_loss, n_act, n_mt
     ##################################################################
-    def nernst_OCV_full(self, conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS):
+    def nernst_OCV_full(self, conc_ox_CLS: float, conc_red_CLS: float, conc_ox_NCLS: float, conc_red_NCLS: float) -> float:
         
         assert conc_red_CLS > 0, "CLS [red] is less than 0, nernst_OCV_full call"
         assert conc_ox_CLS > 0, "CLS [ox] is less than 0, nernst_OCV_full call"
@@ -189,7 +187,7 @@ class ZeroDModelSingleVsSingle:
                    - (NERNST_CONST*log(conc_ox_NCLS / conc_red_NCLS)))
         return OCV
     ############################################################# 
-    def cell_voltage(self, OCV, losses, charge):
+    def cell_voltage(self, OCV: float, losses: float, charge: bool) -> float:
         return OCV + losses if charge else OCV - losses
     #############################################################
     def coulomb_counter(self, current, volume, concentration_0_ox, 
