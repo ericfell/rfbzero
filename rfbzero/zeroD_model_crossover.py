@@ -27,7 +27,7 @@ def crossover_mechanism(conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS,
 # membrane_const is geo Area divide by membrane thickness
 def crossover(conc_ox_t_CLS, conc_red_t_CLS, 
                    conc_ox_t_NCLS, conc_red_t_NCLS,
-                   timestep, membrane_const=1, P_ox=1, P_red=1, 
+                   timestep, membrane_const=1, P_ox=0.0, P_red=0.0,
                    vol_CLS=1, vol_NCLS=1):
 
     # skip all this if no crossover is desired

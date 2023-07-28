@@ -8,7 +8,7 @@ area = 5
 CLS_vol = 0.020
 NCLS_vol = 0.040
 CLS_nego = False
-duration = 1e4
+#duration = 1e4
 t_step = 0.1
 rough = 26
 #
