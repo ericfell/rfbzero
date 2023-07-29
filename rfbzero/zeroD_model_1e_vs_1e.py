@@ -1,6 +1,6 @@
 
 
-from math import log, isclose # can remove isclose?
+from math import log #, isclose # can remove isclose?
 import scipy.constants as spc
 from scipy.optimize import fsolve
 from zeroD_model_degradations import degradation_mechanism
@@ -13,7 +13,7 @@ TEMPERATURE = 298  # kelvin
 NERNST_CONST = (R*TEMPERATURE) / F # should have n_electrons input option
 
 # concentration cutoff.. maybe remove and ensure conc>0
-CONC_CUTOFF = 0.0 # 1e-17#1e-11  # should be function of timestep coulombs perhaps???
+#CONC_CUTOFF = 0.0 # 1e-17#1e-11  # should be function of timestep coulombs perhaps???
 
 
 class ZeroDModelSingleVsSingle:
@@ -30,11 +30,23 @@ class ZeroDModelSingleVsSingle:
         """Makes current positive for charge, negative for discharge"""
         return 1 if charge else -1
 
+    @staticmethod
+    def SOC(conc_ox_CLS: float, conc_red_CLS: float, conc_ox_NCLS: float, conc_red_NCLS: float) -> tuple[float, float]:
+        soc_CLS = (conc_red_CLS / (conc_ox_CLS + conc_red_CLS)) * 100
+        # this could be defined differently i.e., cell vs reservoir definition of SOC
+        soc_NCLS = (conc_red_NCLS / (conc_ox_NCLS + conc_red_NCLS)) * 100
+        return soc_CLS, soc_NCLS
+
+    @staticmethod
+    def negative_concentrations(conc_ox_CLS: float, conc_red_CLS: float, conc_ox_NCLS: float, conc_red_NCLS: float) -> bool:
+        """Check for negative concentrations"""
+        return any(x < 0.0 for x in [conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS])
+
     def __init__(self, geometric_area, resistance, CLS_volume, NCLS_volume,
                  CLS_start_conc_ox, CLS_start_conc_red, NCLS_start_conc_ox,
-                 NCLS_start_conc_red, CLS_negolyte, duration, time_increment,
+                 NCLS_start_conc_red, duration, time_increment,
                  standard_E, k_mt, roughness_factor, k_0_CLS, k_0_NCLS,
-                 alpha_CLS, alpha_NCLS, mechanism_list=None, mechanism_params=None,
+                 alpha_CLS, alpha_NCLS, CLS_negolyte=True, mechanism_list=None, mechanism_params=None,
                  crossover_list=None, crossover_params=None): # need type hints
         """Parameters to define the  setup"""
 
@@ -46,9 +58,6 @@ class ZeroDModelSingleVsSingle:
         self.CLS_start_conc_red = CLS_start_conc_red  # start [red] in CLS (M)
         self.NCLS_start_conc_ox = NCLS_start_conc_ox  # start [ox] in NCLS (M)
         self.NCLS_start_conc_red = NCLS_start_conc_red  # start [ox] in CLS (M)
-        #self.CLS = True
-        #self.NCLS = False
-        self.CLS_negolyte = CLS_negolyte  # True: negolyte = CLS, False: posolyte = CLS
         self.duration = duration  # time of experiment to simulate (sec)
         self.time_increment = time_increment  # time steps for simulation (sec)
         self.standard_E = standard_E  # OCV of cell with equal concentrations?
@@ -57,19 +66,19 @@ class ZeroDModelSingleVsSingle:
         self.k_0_NCLS = k_0_NCLS  # echem rate constant, NCLS chemistry (cm/s)
         self.alpha_CLS = alpha_CLS      # charge transfer coefficient of CLS
         self.alpha_NCLS = alpha_NCLS    # charge transfer coefficient of NCLS
+        self.CLS_negolyte = CLS_negolyte  # True: negolyte = CLS, False: posolyte = CLS
         self.mechanism_list = mechanism_list  # list of degradation functions
         self.mechanism_params = mechanism_params  # parameters for functions
         self.crossover_list = crossover_list
         self.crossover_params = crossover_params
         self.const_i_ex = F*roughness_factor*self.geometric_area
 
+    #could this be @property  ?
     def experiment_time(self) -> list:
         steps = int((self.duration / self.time_increment)) + 1
         times = [0.0 + (x*self.time_increment) for x in range(steps)]
         return times
 
-    ###############################################################
-    # Section: Overpotential functions
     def i_exchange_current(self, k_CLS: float, k_NCLS: float, c_ox_CLS: float, c_red_CLS: float,
                            c_ox_NCLS: float, c_red_NCLS: float, a_CLS: float, a_NCLS: float) -> tuple[float, float]:
         """
@@ -170,7 +179,8 @@ class ZeroDModelSingleVsSingle:
 
     def v_losses(self, current: float, charge: bool, c_red_cls: float, c_ox_cls: float,
                  c_red_ncls: float, c_ox_ncls: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
-        
+
+        # *(^(*^ need to check if current comes in with/without sign ???
         """
         needs docstring
         """
@@ -272,6 +282,7 @@ class ZeroDModelSingleVsSingle:
     ###########################################################################
     ##### Section: Cycling models
     ###########################################################################
+
     def CC_experiment(self, voltage_cutoff_charge: float, voltage_cutoff_discharge: float,
                       current: float, charge_first: bool) -> object: # edit the return type soon
 
@@ -299,15 +310,17 @@ class ZeroDModelSingleVsSingle:
         i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(charge, 
                                         conc_ox_now_CLS, conc_red_now_CLS, 
                                         conc_ox_now_NCLS, conc_red_now_NCLS)
-    
-        #assert current <= (i_lim_cls_t*2), "Cannot maintain desired current (i> CLS limiting current)"
-        #assert current <= (i_lim_ncls_t*2), "Cannot maintain desired current (i> NCLS limiting current)"
+        # why the *2 ?? should it be <  ?
+        assert current <= (i_lim_cls_t*2), "Cannot maintain desired current (i> CLS limiting current)"
+        assert current <= (i_lim_ncls_t*2), "Cannot maintain desired current (i> NCLS limiting current)"
+        """
         assert isclose(current, (i_lim_cls_t*2)) or (current < (i_lim_cls_t*2)), \
             "Cannot maintain desired current (i> CLS limiting current)"
         assert isclose(current, (i_lim_ncls_t*2)) or (current < (i_lim_ncls_t*2)), \
             "Cannot maintain desired current (i> NCLS limiting current)"
+        """
         
-        i = self.current_direction(charge)*current
+        i = ZeroDModelSingleVsSingle.current_direction(charge)*current
         
         losses,_,_ = self.v_losses(i, charge, conc_red_now_CLS, conc_ox_now_CLS, 
                                     conc_red_now_NCLS, conc_ox_now_NCLS, 
@@ -317,15 +330,17 @@ class ZeroDModelSingleVsSingle:
                                    conc_ox_now_NCLS, conc_red_now_NCLS)
     
         cell_V = self.cell_voltage(OCV, losses, charge)
-        #assert voltage_cutoff_discharge <= cell_V <= voltage_cutoff_charge, "won't cycle, overpotential is outside voltage cutoffs"
+        assert voltage_cutoff_discharge <= cell_V <= voltage_cutoff_charge, "won't cycle, overpotential is outside voltage cutoffs"
+        """
         assert isclose(voltage_cutoff_discharge, cell_V) or (voltage_cutoff_discharge < cell_V), \
                 "won't cycle, overpotential is outside voltage cutoffs"
         assert isclose(voltage_cutoff_charge, cell_V) or (voltage_cutoff_charge > cell_V), \
                 "won't cycle, overpotential is outside voltage cutoffs"
+        """
         
         while count != datapoints:
             # set current
-            i = self.current_direction(charge)*current
+            i = ZeroDModelSingleVsSingle.current_direction(charge)*current #self.cu
 
             # need to do this for CCCV method below too
             (concentration_ox_CLS,
@@ -336,8 +351,11 @@ class ZeroDModelSingleVsSingle:
                                                          conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
 
             # EDGE CASE where voltage limits never reached i.e straight CC cycling until concentration runs out
-            if ((concentration_ox_CLS < CONC_CUTOFF) or (concentration_red_CLS < CONC_CUTOFF) 
-                    or (concentration_ox_NCLS < CONC_CUTOFF) or (concentration_red_NCLS < CONC_CUTOFF)):
+            #if ((concentration_ox_CLS < CONC_CUTOFF) or (concentration_red_CLS < CONC_CUTOFF)
+            #        or (concentration_ox_NCLS < CONC_CUTOFF) or (concentration_red_NCLS < CONC_CUTOFF)):
+
+            if ZeroDModelSingleVsSingle.negative_concentrations(concentration_ox_CLS, concentration_red_CLS,
+                                                                concentration_ox_NCLS, concentration_red_NCLS):
                 # record capacity here
                 cycle_capacity.append(cap)
                 ############### Break out of loop if cpacity approaches zero
@@ -372,8 +390,8 @@ class ZeroDModelSingleVsSingle:
             cell_V = self.cell_voltage(OCV, losses, charge)
     
             # did it hit voltage limit ?
-            #if (cell_V >= voltage_cutoff_charge) or (cell_V <= voltage_cutoff_discharge):
-            if (isclose(cell_V, voltage_cutoff_charge) or (cell_V > voltage_cutoff_charge)) or (isclose(cell_V, voltage_cutoff_discharge) or (cell_V < voltage_cutoff_discharge)):
+            if (cell_V >= voltage_cutoff_charge) or (cell_V <= voltage_cutoff_discharge):
+                #if (isclose(cell_V, voltage_cutoff_charge) or (cell_V > voltage_cutoff_charge)) or (isclose(cell_V, voltage_cutoff_discharge) or (cell_V < voltage_cutoff_discharge)):
                 # record capacity here
                 cycle_capacity.append(cap)
                 #####################
@@ -399,18 +417,18 @@ class ZeroDModelSingleVsSingle:
                 pass
     
             # assert these so that an initial overpotential, when switched to charge/discharge, will still let you cycle
-            #assert voltage_cutoff_discharge <= (OCV - losses), "won't cycle, overpotential is outside lower voltage cutoff"
-            #assert voltage_cutoff_charge >= (OCV + losses), "won't cycle, overpotential is outside upper voltage cutoff"
+            assert voltage_cutoff_discharge <= (OCV - losses), "won't cycle, overpotential is outside lower voltage cutoff"
+            assert voltage_cutoff_charge >= (OCV + losses), "won't cycle, overpotential is outside upper voltage cutoff"
+            """
             assert isclose(voltage_cutoff_discharge, (OCV - losses)) or (voltage_cutoff_discharge < (OCV - losses)), \
                     "won't cycle, overpotential is outside lower voltage cutoff"
             assert isclose(voltage_cutoff_charge, (OCV + losses)) or (voltage_cutoff_charge > (OCV + losses)), \
                     "won't cycle, overpotential is outside upper voltage cutoff"
+            """
             
             # calculate SOC (local, in this case) ** for CLS make this a function, can be other file
-            soc_CLS = (concentration_red_CLS / (concentration_ox_CLS 
-                                                + concentration_red_CLS))*100
-            soc_NCLS = (concentration_red_NCLS / (concentration_ox_NCLS 
-                                                  + concentration_red_NCLS))*100
+            soc_CLS, soc_NCLS = ZeroDModelSingleVsSingle.SOC(concentration_ox_CLS, concentration_red_CLS,
+                                                             concentration_ox_NCLS, concentration_red_NCLS)
             # update capacity
             cap += abs(i*self.time_increment)
             # update concentrations
@@ -481,11 +499,11 @@ class ZeroDModelSingleVsSingle:
         i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(charge, conc_ox_now_CLS,
                                    conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
      
-        i = self.current_direction(charge)*current
+        i = ZeroDModelSingleVsSingle.current_direction(charge)*current
         ##### check if need to go straight to CV
-        # *** if going back to below line, typo, second thing should be for ncls, not cls
-        #if (current >= (i_lim_cls_t*2)) or (current >= (i_lim_cls_t*2)): # allow option to say 0 current for straight CV?
-        if (isclose(current, (i_lim_cls_t*2)) or (current > (i_lim_cls_t*2))) or (isclose(current, (i_lim_ncls_t*2)) or (current > (i_lim_ncls_t*2))):
+        # allow option to say 0 current for straight CV?
+        if (current >= (i_lim_cls_t*2)) or (current >= (i_lim_ncls_t*2)):
+            #if (isclose(current, (i_lim_cls_t*2)) or (current > (i_lim_cls_t*2))) or (isclose(current, (i_lim_ncls_t*2)) or (current > (i_lim_ncls_t*2))):
             CC_mode = False
             CV_only = True
             print("Goes straight to CV cycling")
@@ -497,8 +515,8 @@ class ZeroDModelSingleVsSingle:
             OCV = self.nernst_OCV_full(conc_ox_now_CLS, conc_red_now_CLS, 
                                        conc_ox_now_NCLS, conc_red_now_NCLS)
             cell_V = self.cell_voltage(OCV, losses, charge)
-            #if (cell_V >= voltage_limit_charge) or (cell_V <= voltage_limit_discharge):
-            if (isclose(cell_V, voltage_limit_charge) or (cell_V > voltage_limit_charge)) or (isclose(cell_V, voltage_limit_discharge) or (cell_V < voltage_limit_discharge)):
+            if (cell_V >= voltage_limit_charge) or (cell_V <= voltage_limit_discharge):
+                #if (isclose(cell_V, voltage_limit_charge) or (cell_V > voltage_limit_charge)) or (isclose(cell_V, voltage_limit_discharge) or (cell_V < voltage_limit_discharge)):
                 CC_mode = False
                 CV_only = True
                 print("Goes straight to CV cycling")
@@ -509,7 +527,7 @@ class ZeroDModelSingleVsSingle:
             # check if in CC or CV mode
             if CC_mode: 
                 # set current
-                i = self.current_direction(charge)*current
+                i = ZeroDModelSingleVsSingle.current_direction(charge)*current
 
                 # testing improved coulomb counter/degradation/crossover combo
                 (concentration_ox_CLS,
@@ -520,8 +538,11 @@ class ZeroDModelSingleVsSingle:
                                                              conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
 
                 # EDGE CASE where voltage limits never reached i.e straight CC cycling
-                if ((concentration_ox_CLS < CONC_CUTOFF) or (concentration_red_CLS < CONC_CUTOFF) or
-                    (concentration_ox_NCLS < CONC_CUTOFF) or (concentration_red_NCLS < CONC_CUTOFF)):
+                #if ((concentration_ox_CLS < CONC_CUTOFF) or (concentration_red_CLS < CONC_CUTOFF) or
+                #    (concentration_ox_NCLS < CONC_CUTOFF) or (concentration_red_NCLS < CONC_CUTOFF)):
+
+                if ZeroDModelSingleVsSingle.negative_concentrations(concentration_ox_CLS, concentration_red_CLS,
+                                                                    concentration_ox_NCLS, concentration_red_NCLS):
                     # record capacity here
                     cycle_capacity.append(cap)
                     ############ Break out of loop if capacity near zero
@@ -560,17 +581,14 @@ class ZeroDModelSingleVsSingle:
                 cell_V = self.cell_voltage(OCV, losses, charge)
     
                 # calculate SOC (local, not global if there's loss mechanisms)
-                soc_CLS = (concentration_red_CLS / (concentration_ox_CLS 
-                                                    + concentration_red_CLS))*100
-                soc_NCLS = (concentration_red_NCLS / (concentration_ox_NCLS 
-                                                      + concentration_red_NCLS))*100
-                ##############################
+                soc_CLS, soc_NCLS = ZeroDModelSingleVsSingle.SOC(concentration_ox_CLS, concentration_red_CLS,
+                                                                 concentration_ox_NCLS, concentration_red_NCLS)
                 # update capacity
                 cap += abs(i*self.time_increment)
     
                 #check if V limit is reached? 
-                #if (cell_V >= voltage_limit_charge) or (cell_V <= voltage_limit_discharge):
-                if (isclose(cell_V, voltage_limit_charge) or (cell_V > voltage_limit_charge)) or (isclose(cell_V, voltage_limit_discharge) or (cell_V < voltage_limit_discharge)):
+                if (cell_V >= voltage_limit_charge) or (cell_V <= voltage_limit_discharge):
+                    #if (isclose(cell_V, voltage_limit_charge) or (cell_V > voltage_limit_charge)) or (isclose(cell_V, voltage_limit_discharge) or (cell_V < voltage_limit_discharge)):
                     CC_mode = not CC_mode
                     # at some point maybe record cap here too so you know cap due to CC and due to CV?
                     continue
@@ -619,7 +637,7 @@ class ZeroDModelSingleVsSingle:
                 # calculate the first current value for guess
                 if i_first:
                     if CV_only: # the case where you're straight CV cycling, and an initial current guess is needed at start
-                        i_guess = self.current_direction(charge)*current #??
+                        i_guess = ZeroDModelSingleVsSingle.current_direction(charge)*current #??
                     else:
                         i_guess = i
                         i_first = not i_first
@@ -645,12 +663,12 @@ class ZeroDModelSingleVsSingle:
                 '''
                 ######
                 ######### end testing ############
+                # consider different solver that ensure max allowable current upon swithc to CV ?
                 i_CV = fsolve(self.CV_i_solver, i_guess, args=data)[0]
                 i_guess = i_CV
-    
-                #if ((charge and (i_CV <= current_cutoff_charge)) or 
-                #    (not charge and (i_CV >= current_cutoff_discharge))):
-                if (charge and (isclose(i_CV, current_cutoff_charge) or (i_CV < current_cutoff_charge))) or (not charge and (isclose(i_CV, current_cutoff_discharge) or (i_CV > current_cutoff_discharge))):
+
+                #if (charge and (isclose(i_CV, current_cutoff_charge) or (i_CV < current_cutoff_charge))) or (not charge and (isclose(i_CV, current_cutoff_discharge) or (i_CV > current_cutoff_discharge))):
+                if (charge and (i_CV <= current_cutoff_charge)) or (not charge and (i_CV >= current_cutoff_discharge)):
                 
                     # record capacity here
                     cycle_capacity.append(cap)
@@ -689,8 +707,11 @@ class ZeroDModelSingleVsSingle:
                                                              conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
     
                 # check if any reactant remains
-                if ((concentration_ox_CLS < CONC_CUTOFF) or (concentration_red_CLS < CONC_CUTOFF) or
-                    (concentration_ox_NCLS < CONC_CUTOFF) or (concentration_red_NCLS < CONC_CUTOFF)):
+                #if ((concentration_ox_CLS < CONC_CUTOFF) or (concentration_red_CLS < CONC_CUTOFF) or
+                #    (concentration_ox_NCLS < CONC_CUTOFF) or (concentration_red_NCLS < CONC_CUTOFF)):
+
+                if ZeroDModelSingleVsSingle.negative_concentrations(concentration_ox_CLS, concentration_red_CLS,
+                                                                    concentration_ox_NCLS, concentration_red_NCLS):
                     
                     cycle_capacity.append(cap)
                     ############### Break out of loop if capacity nears zero
@@ -720,10 +741,8 @@ class ZeroDModelSingleVsSingle:
                     pass
     
                 # calculate SOC (local, in this case)
-                soc_CLS = (concentration_red_CLS / (concentration_ox_CLS 
-                                                    + concentration_red_CLS))*100
-                soc_NCLS = (concentration_red_NCLS / (concentration_ox_NCLS 
-                                                      + concentration_red_NCLS))*100
+                soc_CLS, soc_NCLS = ZeroDModelSingleVsSingle.SOC(concentration_ox_CLS, concentration_red_CLS,
+                                                                 concentration_ox_NCLS, concentration_red_NCLS)
                 # update capacity
                 cap += abs(i_CV*self.time_increment)
                 # update concentrations
