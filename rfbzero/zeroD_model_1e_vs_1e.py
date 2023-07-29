@@ -1,19 +1,19 @@
 
 
-from math import log, isclose # can remove these at some point? using numpy?
+from math import log, isclose # can remove isclose?
 import scipy.constants as spc
 from scipy.optimize import fsolve
 from zeroD_model_degradations import degradation_mechanism
 from zeroD_model_crossover import crossover_mechanism
 
-F = spc.physical_constants['Faraday constant'][0]
+F = spc.physical_constants['Faraday constant'][0] # or just input 96485.3321 ? same for R
 R = spc.R
 # make these parameters at some point?
 TEMPERATURE = 298  # kelvin
-NERNST_CONST = (R*TEMPERATURE) / F
+NERNST_CONST = (R*TEMPERATURE) / F # should have n_electrons input option
 
 # concentration cutoff.. maybe remove and ensure conc>0
-CONC_CUTOFF = 0.0#1e-17#1e-11  # should be function of timestep coulombs perhaps???
+CONC_CUTOFF = 0.0 # 1e-17#1e-11  # should be function of timestep coulombs perhaps???
 
 
 class ZeroDModelSingleVsSingle:
@@ -25,22 +25,19 @@ class ZeroDModelSingleVsSingle:
     Electrochemical Society, 168, 2021, 080528.
     """
 
+    @staticmethod
+    def current_direction(charge: bool) -> int:
+        """Makes current positive for charge, negative for discharge"""
+        return 1 if charge else -1
+
     def __init__(self, geometric_area, resistance, CLS_volume, NCLS_volume,
                  CLS_start_conc_ox, CLS_start_conc_red, NCLS_start_conc_ox,
                  NCLS_start_conc_red, CLS_negolyte, duration, time_increment,
                  standard_E, k_mt, roughness_factor, k_0_CLS, k_0_NCLS,
                  alpha_CLS, alpha_NCLS, mechanism_list=None, mechanism_params=None,
-                 crossover_list=None, crossover_params=None): # new crssver items
+                 crossover_list=None, crossover_params=None): # need type hints
         """Parameters to define the  setup"""
 
-        #if mechanism_params is None:
-        #    mechanism_params = {}
-        #if mechanism_list is None:
-        #    mechanism_list = []
-        #if crossover_params is None:
-        #    crossover_params = {}
-        #if crossover_list is None:
-        #    crossover_list = []
         self.geometric_area = geometric_area   # geometric_area of cell (cm**2)
         self.resistance = resistance           # cell resistance (ohms)
         self.CLS_volume = CLS_volume           # volume of CLS (L)
@@ -49,9 +46,9 @@ class ZeroDModelSingleVsSingle:
         self.CLS_start_conc_red = CLS_start_conc_red  # start [red] in CLS (M)
         self.NCLS_start_conc_ox = NCLS_start_conc_ox  # start [ox] in NCLS (M)
         self.NCLS_start_conc_red = NCLS_start_conc_red  # start [ox] in CLS (M)
-        self.CLS = True
-        self.NCLS = False
-        self.CLS_negolyte = True  # True: negolyte = CLS, False: posolyte = CLS
+        #self.CLS = True
+        #self.NCLS = False
+        self.CLS_negolyte = CLS_negolyte  # True: negolyte = CLS, False: posolyte = CLS
         self.duration = duration  # time of experiment to simulate (sec)
         self.time_increment = time_increment  # time steps for simulation (sec)
         self.standard_E = standard_E  # OCV of cell with equal concentrations?
@@ -66,28 +63,40 @@ class ZeroDModelSingleVsSingle:
         self.crossover_params = crossover_params
         self.const_i_ex = F*roughness_factor*self.geometric_area
 
-    def experiment_time(self):
+    def experiment_time(self) -> list:
         steps = int((self.duration / self.time_increment)) + 1
-        times = [0.0 + x*self.time_increment for x in range(steps)]
+        times = [0.0 + (x*self.time_increment) for x in range(steps)]
         return times
 
-    def current_direction(self, charge: bool) -> int:
-        return 1 if charge else -1
     ###############################################################
     # Section: Overpotential functions
+    def i_exchange_current(self, k_CLS: float, k_NCLS: float, c_ox_CLS: float, c_red_CLS: float,
+                           c_ox_NCLS: float, c_red_NCLS: float, a_CLS: float, a_NCLS: float) -> tuple[float, float]:
+        """
+        Function for calculating exchange current of redox couple in the CLS and NCLS.
 
-    def i_exchange_current(self, k_0: float, c_red: float, c_ox: float, alpha: float) -> float:
-        # div by 1000 for conversion from mol/L to mol/cm^3
-        i_ex = (self.const_i_ex * k_0 * (c_red**alpha)
-                * (c_ox**(1-alpha)) * 0.001)
-        return i_ex
+        Parameters
+        ----------
+        k_CLS: float
+            Electrochemical rate constant for CLS redox couple
+
+
+        Returns
+        -------
+        i_ex_CLS : float
+            Exchange current for CLS (amps)
+
+        """
+        # division by 1000 for conversion from mol/L to mol/cm^3
+        i_ex_CLS = (self.const_i_ex * k_CLS * (c_red_CLS**a_CLS) * (c_ox_CLS**(1 - a_CLS)) * 0.001)
+        i_ex_NCLS = (self.const_i_ex * k_NCLS * (c_red_NCLS ** a_NCLS) * (c_ox_NCLS ** (1 - a_NCLS)) * 0.001)
+        return i_ex_CLS, i_ex_NCLS
 
     def i_limiting(self, c_lim: float) -> float:
         # div by 1000 for conversion from mol/L to mol/cm^3
         return F*self.k_mt*c_lim*self.geometric_area*0.001
 
-    def limiting_reactant_selecter(self, charge: bool,
-                                   conc_ox_now_CLS: float, conc_red_now_CLS: float,
+    def limiting_reactant_selecter(self, charge: bool, conc_ox_now_CLS: float, conc_red_now_CLS: float,
                                    conc_ox_now_NCLS: float, conc_red_now_NCLS: float) -> tuple[float, float]:
         if self.CLS_negolyte:  # CLS is negolyte
             if charge:
@@ -162,15 +171,15 @@ class ZeroDModelSingleVsSingle:
     def v_losses(self, current: float, charge: bool, c_red_cls: float, c_ox_cls: float,
                  c_red_ncls: float, c_ox_ncls: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
         
-        i_0_cls = self.i_exchange_current(self.k_0_CLS, c_red_cls, c_ox_cls, 
-                                          self.alpha_CLS) 
-        i_0_ncls = self.i_exchange_current(self.k_0_NCLS, c_red_ncls, c_ox_ncls, 
-                                           self.alpha_NCLS)
+        """
+        needs docstring
+        """
+        i_0_cls, i_0_ncls = self.i_exchange_current(self.k_0_CLS, self.k_0_NCLS, c_ox_cls, c_red_cls,
+                                                    c_ox_ncls, c_red_ncls, self.alpha_CLS, self.alpha_NCLS)
         #
         n_ohmic = current*self.resistance
         n_act = self.n_activation(current, i_0_cls, i_0_ncls)
-        n_mt = self.n_mass_transport(charge, current, c_red_cls, c_ox_cls, 
-                                c_red_ncls, c_ox_ncls, i_lim_cls, i_lim_ncls)
+        n_mt = self.n_mass_transport(charge, current, c_red_cls, c_ox_cls, c_red_ncls, c_ox_ncls, i_lim_cls, i_lim_ncls)
         
         if charge:
             n_loss = n_act + n_mt + n_ohmic
@@ -250,43 +259,6 @@ class ZeroDModelSingleVsSingle:
         return conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS, delta_ox, delta_red
 
 
-
-    """
-    def coulomb_counter(self, current: float, volume: float, concentration_0_ox: float,
-                        concentration_0_red: float, CLS: bool) -> tuple[float, float]:
-
-        direction = 1 if self.CLS_negolyte else -1
-        delta = ((self.time_increment*current) / (F*volume))*direction
-
-        if CLS: # this is the CLS
-            concentration_ox = concentration_0_ox - delta 
-            concentration_red = concentration_0_red + delta  
-        else: # this is the NCLS
-            concentration_ox = concentration_0_ox + delta  
-            concentration_red = concentration_0_red - delta 
-
-        # testing this for combined check of degradation and/or crossover
-        if (self.mechanism_list is None) and (self.crossover_list is None): # no degrade/crossover
-            return concentration_ox, concentration_red
-        elif (self.mechanism_list is not None) and (self.crossover_list is None): # degrade/ no crossover
-            concentration_ox, concentration_red = degradation_mechanism(
-                concentration_ox, concentration_red, self.time_increment,
-                *self.mechanism_list, **self.mechanism_params)
-        elif (self.mechanism_list is None) and (self.crossover_list is not None): # no degrade/ crossover
-            (concentration_ox_CLS, concentration_red_CLS, concentration_ox_NCLS, concentration_red_NCLS, delta_ox,
-             delta_red) = crossover_mechanism(concentration_ox_CLS, concentration_red_CLS, concentration_ox_NCLS,
-                                              concentration_red_NCLS, self.time_increment, *self.crossover_list,
-                                              **self.crossover_params)
-
-
-        # now apply possible degradations
-        # this assumes symmetric cell, must adapt into above for full cell
-        concentration_ox, concentration_red = degradation_mechanism(
-                concentration_ox, concentration_red, self.time_increment,
-                *self.mechanism_list, **self.mechanism_params)
-        
-        return concentration_ox, concentration_red    
-    """
     #############################################################
     # is below proper *args unpacking naming style?
     def CV_i_solver(self, curr: float, *data: object) -> float:
@@ -300,8 +272,8 @@ class ZeroDModelSingleVsSingle:
     ###########################################################################
     ##### Section: Cycling models
     ###########################################################################
-    def CC_experiment(self, voltage_cutoff_charge, voltage_cutoff_discharge, 
-                      current, charge_first):
+    def CC_experiment(self, voltage_cutoff_charge: float, voltage_cutoff_discharge: float,
+                      current: float, charge_first: bool) -> object: # edit the return type soon
 
         (current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, cell_V_profile, 
          soc_profile_CLS, ocv_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile, 
@@ -362,26 +334,7 @@ class ZeroDModelSingleVsSingle:
              concentration_red_NCLS,
              delta_ox, delta_red) = self.coulomb_counter(i, self.CLS_volume, self.NCLS_volume, conc_ox_now_CLS,
                                                          conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
-            """
-            # determine concentrations by coulomb counting, CLS
-            concentration_ox_CLS, concentration_red_CLS = self.coulomb_counter(
-                i, self.CLS_volume, conc_ox_now_CLS, conc_red_now_CLS, self.CLS)
-            # determine concentrations by coulomb counting, NCLS
-            concentration_ox_NCLS, concentration_red_NCLS = self.coulomb_counter(
-                i, self.NCLS_volume, conc_ox_now_NCLS, conc_red_now_NCLS, self.NCLS)
-            
-            ################# testing ######################
-            # put crossover stuff here
-            (concentration_ox_CLS,
-             concentration_red_CLS, 
-             concentration_ox_NCLS,
-             concentration_red_NCLS,
-             delta_ox, delta_red) = crossover_mechanism(
-                 concentration_ox_CLS, concentration_red_CLS, 
-                 concentration_ox_NCLS, concentration_red_NCLS, 
-                 self.time_increment, *self.crossover_list, **self.crossover_params)
-            ################# end of testing ############################
-            """
+
             # EDGE CASE where voltage limits never reached i.e straight CC cycling until concentration runs out
             if ((concentration_ox_CLS < CONC_CUTOFF) or (concentration_red_CLS < CONC_CUTOFF) 
                     or (concentration_ox_NCLS < CONC_CUTOFF) or (concentration_red_NCLS < CONC_CUTOFF)):
@@ -493,9 +446,9 @@ class ZeroDModelSingleVsSingle:
                 cycle_time, times, act_profile, mt_profile, loss_profile, del_ox, del_red)
     ##########################################################################
     ##########################################################################
-    def CCCV_experiment(self, voltage_limit_charge, voltage_limit_discharge, 
-                        current_cutoff_charge, current_cutoff_discharge, 
-                        current, charge_first):
+    def CCCV_experiment(self, voltage_limit_charge: float, voltage_limit_discharge: float,
+                        current_cutoff_charge: float, current_cutoff_discharge: float,
+                        current: float, charge_first: bool) -> object:
 
         # to dos: if full CV, then should be appending voltage to overpotential
         # data if wanting to plot that too
@@ -513,7 +466,7 @@ class ZeroDModelSingleVsSingle:
         conc_red_now_NCLS = self.NCLS_start_conc_red
         assert current_cutoff_discharge < 0, "invalid discharge current cutoff"
         #
-        charge = True 
+        charge = charge_first #True
         CC_mode = True
         i_first = True
         CV_only = False
@@ -566,28 +519,6 @@ class ZeroDModelSingleVsSingle:
                  delta_ox, delta_red) = self.coulomb_counter(i, self.CLS_volume, self.NCLS_volume, conc_ox_now_CLS,
                                                              conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
 
-                """
-    
-                # determine concentrations by coulomb counting, CLS
-                concentration_ox_CLS, concentration_red_CLS = self.coulomb_counter(i, 
-                self.CLS_volume, conc_ox_now_CLS, conc_red_now_CLS, self.CLS)
-                # determine concentrations by coulomb counting, NCLS
-                concentration_ox_NCLS, concentration_red_NCLS = self.coulomb_counter(i, 
-                self.NCLS_volume, conc_ox_now_NCLS, conc_red_now_NCLS, self.NCLS)
-                ################# testing ######################
-                # put crossover stuff here
-                (concentration_ox_CLS,
-                 concentration_red_CLS, 
-                 concentration_ox_NCLS,
-                 concentration_red_NCLS,
-                 delta_ox, delta_red) = crossover_mechanism(
-                     concentration_ox_CLS, concentration_red_CLS, 
-                     concentration_ox_NCLS, concentration_red_NCLS, 
-                     self.time_increment, *self.crossover_list, **self.crossover_params)
-                ################# end of testing ############################
-                """
-    
-    
                 # EDGE CASE where voltage limits never reached i.e straight CC cycling
                 if ((concentration_ox_CLS < CONC_CUTOFF) or (concentration_red_CLS < CONC_CUTOFF) or
                     (concentration_ox_NCLS < CONC_CUTOFF) or (concentration_red_NCLS < CONC_CUTOFF)):
@@ -756,28 +687,6 @@ class ZeroDModelSingleVsSingle:
                  concentration_red_NCLS,
                  delta_ox, delta_red) = self.coulomb_counter(i_CV, self.CLS_volume, self.NCLS_volume, conc_ox_now_CLS,
                                                              conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
-
-                """
-                # determine concentrations by coulomb counting, CLS
-                concentration_ox_CLS, concentration_red_CLS = self.coulomb_counter(
-                    i_CV, self.CLS_volume, conc_ox_now_CLS, conc_red_now_CLS, self.CLS)
-                # determine concentrations by coulomb counting, NCLS
-                concentration_ox_NCLS, concentration_red_NCLS = self.coulomb_counter(
-                    i_CV, self.NCLS_volume, conc_ox_now_NCLS, conc_red_now_NCLS, self.NCLS)
-    
-    
-                ################# testing ######################
-                # put crossover stuff here
-                (concentration_ox_CLS,
-                 concentration_red_CLS, 
-                 concentration_ox_NCLS,
-                 concentration_red_NCLS,
-                 delta_ox, delta_red) = crossover_mechanism(
-                     concentration_ox_CLS, concentration_red_CLS, 
-                     concentration_ox_NCLS, concentration_red_NCLS, 
-                     self.time_increment, *self.crossover_list, **self.crossover_params)
-                ################# end of testing ############################
-                """
     
                 # check if any reactant remains
                 if ((concentration_ox_CLS < CONC_CUTOFF) or (concentration_red_CLS < CONC_CUTOFF) or
