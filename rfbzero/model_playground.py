@@ -8,10 +8,10 @@ CLS_start_conc_red = 0.01
 NCLS_start_conc_ox = 0.01
 NCLS_start_conc_red = 0.01
 area = 5.0
-CLS_vol = 0.020
-NCLS_vol = 0.040
+CLS_vol = 0.01
+NCLS_vol = 0.050
 #CLS_nego = False
-t_step = 0.1
+t_step = 0.01
 E_redox = 1.0
 rough = 26
 #
@@ -42,8 +42,8 @@ setup = single_e(area, resistance, CLS_vol, NCLS_vol, CLS_start_conc_ox, CLS_sta
 (current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile,
  cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times,  act_profile,
  mt_profile, loss_profile, del_ox, del_red,
-#) = setup.CC_experiment(voltage_limit_charge, voltage_limit_discharge,current, True)
-) = setup.CCCV_experiment(voltage_limit_charge, voltage_limit_discharge, 0.005, -0.005,current, True)
+) = setup.CC_experiment(voltage_limit_charge, voltage_limit_discharge, current, True)
+#) = setup.CCCV_experiment(voltage_limit_charge, voltage_limit_discharge, 0.005, -0.005,current, True)
 
 #print(len(current_profile))
 print(cycle_capacity[:5])
