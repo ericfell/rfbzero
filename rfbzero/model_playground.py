@@ -17,7 +17,7 @@ rough = 26
 #
 voltage_limit_charge = 1.4#0.4
 voltage_limit_discharge = 0.6#-0.4
-current = 0.2
+current = 0.3
 kmt = 0.8
 
 resistance = 1.0
@@ -64,16 +64,17 @@ def structure_data(x, y):
 time_charge, time_discharge, cap_charge, cap_discharge = structure_data(
         cycle_time, cycle_capacity)
 
+g = 0
 fig,ax = plt.subplots(nrows=5,ncols=1,sharex=True)
 ax[0].plot(time_discharge, cap_discharge, 'bo--')
 ax[0].plot(time_charge, cap_charge, 'ro--')
-ax[1].plot(times[1:], current_profile, 'r')
-ax[2].plot(times[1:], cell_V_profile, 'b')
-ax[3].plot(times[1:], ocv_profile, 'k')
-ax[4].plot(times[1:], loss_profile, 'k')
+ax[1].plot(times[g:], current_profile, 'r')
+ax[2].plot(times[g:], cell_V_profile, 'b')
+ax[3].plot(times[g:], ocv_profile, 'k')
+ax[4].plot(times[g:], loss_profile, 'k')
 
-ax[4].plot(times[1:], act_profile, 'r')
-ax[4].plot(times[1:], mt_profile, 'b')
+ax[4].plot(times[g:], act_profile, 'r')
+ax[4].plot(times[g:], mt_profile, 'b')
 
 ax[0].set_ylabel('Capacity')
 ax[1].set_ylabel('Current')

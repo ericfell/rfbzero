@@ -1,28 +1,81 @@
 
 
-from math import log #, isclose # can remove isclose?
+from math import log
 import scipy.constants as spc
 from scipy.optimize import fsolve
 from zeroD_model_degradations import degradation_mechanism
 from zeroD_model_crossover import crossover_mechanism
 
-F = spc.physical_constants['Faraday constant'][0] # or just input 96485.3321 ? same for R
+F = spc.physical_constants['Faraday constant'][0]  # or just input 96485.3321 ? same for R
 R = spc.R
 # make these parameters at some point?
 TEMPERATURE = 298  # kelvin
-NERNST_CONST = (R*TEMPERATURE) / F # should have n_electrons input option
+NERNST_CONST = (R*TEMPERATURE) / F  # should have n_electrons input option
 
-# concentration cutoff.. maybe remove and ensure conc>0
-#CONC_CUTOFF = 0.0 # 1e-17#1e-11  # should be function of timestep coulombs perhaps???
 
 
 class ZeroDModel:
     """
-    Model adapted from:
+    Zero dimensional model for redox flow battery (RFB) cycling.
+    All equations are adapted from:
 
     Modak, S.; Kwabi, D. G. A Zero-Dimensional Model for Electrochemical
     Behavior and Capacity Retention in Organic Flow Cells, Journal of The
     Electrochemical Society, 168, 2021, 080528.
+
+    If ZeroDModel has been significant to your research,
+    please cite the above paper.
+
+    Parameters
+    ----------
+    geometric_area : float
+        Geometric area of cell (cm^2).
+    resistance : float
+        Cell ohmic resistance (ohms).
+    CLS_volume : float
+        Volume of capacity-limiting side (CLS) reservoir (L).
+    NCLS_volume : float
+        Volume of non-capacity-limiting side (NCLS) reservoir (L).
+    CLS_start_conc_ox : float
+        CLS initial concentration of oxidized species (M).
+    CLS_start_conc_red : float
+        CLS initial concentration of reduced species (M).
+    NCLS_start_conc_ox : float
+        NCLS initial concentration of oxidized species (M).
+    NCLS_start_conc_red : float
+        NCLS initial concentration of reduced species (M).
+    duration : int
+        Amount of real time to simulate (s).
+    time_increment : float
+        Simulation time step (s).
+    standard_E : float
+        Cell voltage (formal potentials E_+ - E_-) (V).
+        If voltage > 0 then it's a Full cell.
+        If voltage = 0 then it's a Symmetric cell.
+    k_mt: float
+        Mass transport coefficient (cm/s).
+    roughness_factor: float
+        Roughness factor, dimensionless.
+        Surface area divided by geometric surface area.
+    k_0_CLS: float
+        Electrochemical rate constant, CLS redox couple (cm/s).
+    k_0_NCLS: float
+        Electrochemical rate constant, NCLS redox couple (cm/s).
+    alpha_CLS: float
+        Charge transfer coefficient of CLS redox couple, dimensionless.
+    alpha_NCLS: float
+        Charge transfer coefficient of NCLS redox couple, dimensionless.
+    CLS_negolyte: bool
+        If True, negolyte is the CLS.
+    mechanism_list: list, optional
+        List of degradation mechanisms to include in simulation.
+    mechanism_params: dict, optional
+        Parameters for mechanisms specified in `mechanism_list`.
+    crossover_list: list, optional
+        List of crossover mechanisms to include in simulation.
+    crossover_params: dict, optional
+        Parameters for mechanisms specified in `crossover_list`.
+
     """
 
     @staticmethod
@@ -40,45 +93,45 @@ class ZeroDModel:
 
     @staticmethod
     def negative_concentrations(conc_ox_CLS: float, conc_red_CLS: float, conc_ox_NCLS: float, conc_red_NCLS: float) -> bool:
-        """Check for negative concentrations"""
+        """Return True if any concentration is negative"""
         return any(x < 0.0 for x in [conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS])
 
-    def __init__(self, geometric_area, resistance, CLS_volume, NCLS_volume,
-                 CLS_start_conc_ox, CLS_start_conc_red, NCLS_start_conc_ox,
-                 NCLS_start_conc_red, duration, time_increment,
-                 standard_E, k_mt, roughness_factor, k_0_CLS, k_0_NCLS,
-                 alpha_CLS, alpha_NCLS, CLS_negolyte=True, mechanism_list=None, mechanism_params=None,
-                 crossover_list=None, crossover_params=None): # need type hints
-        """Parameters to define the  setup"""
+    def __init__(self, geometric_area: float, resistance: float, CLS_volume: float, NCLS_volume: float,
+                 CLS_start_conc_ox: float, CLS_start_conc_red: float, NCLS_start_conc_ox: float,
+                 NCLS_start_conc_red: float, duration: int, time_increment: float,
+                 standard_E: float, k_mt: float, roughness_factor: float, k_0_CLS: float, k_0_NCLS: float,
+                 alpha_CLS: float, alpha_NCLS: float, CLS_negolyte: bool = True, mechanism_list: list = None, mechanism_params: dict = None,
+                 crossover_list: list = None, crossover_params: dict = None) -> None:
+        """Inits ZeroDModel"""
 
-        self.geometric_area = geometric_area   # geometric_area of cell (cm**2)
-        self.resistance = resistance           # cell resistance (ohms)
-        self.CLS_volume = CLS_volume           # volume of CLS (L)
-        self.NCLS_volume = NCLS_volume         # volume of NCLS (L)
-        self.CLS_start_conc_ox = CLS_start_conc_ox    # start [ox] in CLS (M)
-        self.CLS_start_conc_red = CLS_start_conc_red  # start [red] in CLS (M)
-        self.NCLS_start_conc_ox = NCLS_start_conc_ox  # start [ox] in NCLS (M)
-        self.NCLS_start_conc_red = NCLS_start_conc_red  # start [ox] in CLS (M)
-        self.duration = duration  # time of experiment to simulate (sec)
-        self.time_increment = time_increment  # time steps for simulation (sec)
-        self.standard_E = standard_E  # OCV of cell with equal concentrations?
-        self.k_mt = k_mt                    # mass transport coefficient (cm/s)
-        self.k_0_CLS = k_0_CLS  # echem rate constant, CLS chemistry (cm/s)
-        self.k_0_NCLS = k_0_NCLS  # echem rate constant, NCLS chemistry (cm/s)
-        self.alpha_CLS = alpha_CLS      # charge transfer coefficient of CLS
-        self.alpha_NCLS = alpha_NCLS    # charge transfer coefficient of NCLS
-        self.CLS_negolyte = CLS_negolyte  # True: negolyte = CLS, False: posolyte = CLS
-        self.mechanism_list = mechanism_list  # list of degradation functions
-        self.mechanism_params = mechanism_params  # parameters for functions
+        self.geometric_area = geometric_area
+        self.resistance = resistance
+        self.CLS_volume = CLS_volume
+        self.NCLS_volume = NCLS_volume
+        self.CLS_start_conc_ox = CLS_start_conc_ox
+        self.CLS_start_conc_red = CLS_start_conc_red
+        self.NCLS_start_conc_ox = NCLS_start_conc_ox
+        self.NCLS_start_conc_red = NCLS_start_conc_red
+        self.duration = duration
+        self.time_increment = time_increment
+        self.standard_E = standard_E
+        self.k_mt = k_mt
+        self.k_0_CLS = k_0_CLS
+        self.k_0_NCLS = k_0_NCLS
+        self.alpha_CLS = alpha_CLS
+        self.alpha_NCLS = alpha_NCLS
+        self.CLS_negolyte = CLS_negolyte
+        self.mechanism_list = mechanism_list
+        self.mechanism_params = mechanism_params
         self.crossover_list = crossover_list
         self.crossover_params = crossover_params
         self.const_i_ex = F*roughness_factor*self.geometric_area
+        self.length_data = int(self.duration / self.time_increment)
+        self.times = [x*self.time_increment for x in range(1, self.length_data + 1)]
+        print(f"{self.duration}s of cycling, {self.time_increment}s timesteps, \
+                      {self.length_data} total datapoints")
 
-    #could this be @property  ?
-    def experiment_time(self) -> list:
-        steps = int((self.duration / self.time_increment)) + 1
-        times = [0.0 + (x*self.time_increment) for x in range(steps)]
-        return times
+    # option for just measuring capacity over time, doesnt need to make all arrays?
 
     def i_exchange_current(self, k_CLS: float, k_NCLS: float, c_ox_CLS: float, c_red_CLS: float,
                            c_ox_NCLS: float, c_red_NCLS: float, a_CLS: float, a_NCLS: float) -> tuple[float, float]:
@@ -156,8 +209,6 @@ class ZeroDModel:
                                                 / ((c_ox_ncls*i_lim_ncls)
                                                    + (c_red_ncls*current)))))
             else:  # discharging
-                # keep the abs() for now, but it's only for the strange
-                # situation where capacity is balanced and sides are ambiguous
                 n_mt = NERNST_CONST*log(((1 - ((c_tot_cls*current)
                                                   / ((c_ox_cls*i_lim_cls)
                                                      + (c_red_cls*current))))
@@ -179,8 +230,7 @@ class ZeroDModel:
                                         * (1 - ((c_tot_ncls*current)
                                                 / ((c_ox_ncls*i_lim_ncls)
                                                    + (c_red_ncls*current)))))
-        # -1* is from definition in cited paper
-        return -1*n_mt # -1*m_t ??
+        return n_mt
 
     def v_losses(self, current: float, charge: bool, c_ox_cls: float, c_red_cls: float,
                  c_ox_ncls: float, c_red_ncls: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
@@ -191,20 +241,12 @@ class ZeroDModel:
         """
         i_0_cls, i_0_ncls = self.i_exchange_current(self.k_0_CLS, self.k_0_NCLS, c_ox_cls, c_red_cls,
                                                     c_ox_ncls, c_red_ncls, self.alpha_CLS, self.alpha_NCLS)
-        #
-        n_ohmic = abs(current)*self.resistance # always positive
-        n_act = self.n_activation(current, i_0_cls, i_0_ncls) # always positive
-        # n_mt always positive
+        # calculate ohmic, activation, mass transport overpotentials
+        n_ohmic = abs(current)*self.resistance
+        n_act = self.n_activation(current, i_0_cls, i_0_ncls)
         n_mt = self.n_mass_transport(charge, current, c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, i_lim_cls, i_lim_ncls)
 
-        # new, made all overpotentials positive, so just need signs on n_loss later
         n_loss = n_ohmic + n_act + n_mt
-        """
-        if charge:
-            n_loss = n_act + n_mt + n_ohmic
-        else: # discharge
-            n_loss = n_act - n_mt + n_ohmic
-        """
         return n_loss, n_act, n_mt
     ##################################################################
     def nernst_OCV_full(self, conc_ox_CLS: float, conc_red_CLS: float, conc_ox_NCLS: float, conc_red_NCLS: float) -> float:
@@ -282,11 +324,11 @@ class ZeroDModel:
 
     #############################################################
     # is below proper *args unpacking naming style?
-    def CV_i_solver(self, curr: float, *data: object) -> float:
-        (cell_V, OCV, charge, c_red_cls, c_ox_cls, c_red_ncls, c_ox_ncls, 
+    def CV_i_solver(self, current: float, *data: float) -> float:
+        (cell_V, OCV, charge, c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
          i_lim_cls, i_lim_ncls) = data
         # curr has sign but v_losses makes it always positive
-        loss_solve,_,_ = self.v_losses(curr, charge, c_ox_cls, c_red_cls,
+        loss_solve,_,_ = self.v_losses(current, charge, c_ox_cls, c_red_cls,
                                        c_ox_ncls, c_red_ncls, i_lim_cls, i_lim_ncls)
         # returns what solver will try to minimize
         return cell_V - OCV - loss_solve if charge else cell_V - OCV + loss_solve
@@ -311,14 +353,13 @@ class ZeroDModel:
         conc_red_now_NCLS = self.NCLS_start_conc_red
         # 
         charge = charge_first #??
-        times = self.experiment_time()
-        datapoints = len(times) - 1
-        print(f"{self.duration} sec of cycling, {self.time_increment} s timesteps, \
-              {datapoints} total datapoints")
+        times = self.times
+
         count = 0
         cap = 0.0
         cap_low = False
-        final_count = datapoints
+        # initialized in case simulation has to stop due to no more capacity
+        final_count = self.length_data
         
         i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(charge, 
                                         conc_ox_now_CLS, conc_red_now_CLS, 
@@ -340,9 +381,9 @@ class ZeroDModel:
         cell_V = self.cell_voltage(OCV, losses, charge)
         assert voltage_cutoff_discharge <= cell_V <= voltage_cutoff_charge, "won't cycle, overpotential is outside voltage cutoffs"
         
-        while count != datapoints:
+        while count != self.length_data:
             # set current
-            i = ZeroDModel.current_direction(charge) * current #self.cu
+            i = ZeroDModel.current_direction(charge) * current
 
             # need to do this for CCCV method below too
             (concentration_ox_CLS,
@@ -360,15 +401,17 @@ class ZeroDModel:
                 ############### Break out of loop if cpacity approaches zero
                 if (cap < 1.0) and (len(cycle_capacity) > 2):
                     print(str(count) + 'count')
+                    print('Simulation stopped, capacity < 1 coulomb')
                     final_count = count
-                    count = datapoints
+                    # break out of while loop
+                    count = self.length_data # not needed?
                     cap_low = True
                     break
                 ##############
                 cap = 0.0
                 # record cycle time
                 cycle_time.append(count*self.time_increment)
-                # switch charge to discharge or viceversa
+                # switch charge to discharge or vice-versa
                 charge = not charge
     
                 # set limiting current for next cycle, with previous allowable concentrations
@@ -397,7 +440,8 @@ class ZeroDModel:
                     print(str(count) + 'count')
                     print('Simulation stopped, capacity < 1 coulomb')
                     final_count = count
-                    count = datapoints
+                    # to break out of while loop
+                    count = self.length_data # not needed?
                     cap_low = True
                     break
                 ##################    
@@ -414,11 +458,7 @@ class ZeroDModel:
                 continue
             else:
                 pass
-    
-            # assert these so that an initial overpotential, when switched to charge/discharge, will still let you cycle
-            #assert voltage_cutoff_discharge <= (OCV - losses), f"initial overpotential of {losses:.3f}V is outside lower voltage cutoff"
-            #assert voltage_cutoff_charge >= (OCV + losses), f"initial overpotential of {losses:.3f}V is outside upper voltage cutoff at OCV {OCV:.3f}V"
-            
+
             # calculate SOC (local, in this case) ** for CLS make this a function, can be other file
             soc_CLS, soc_NCLS = ZeroDModel.SOC(concentration_ox_CLS, concentration_red_CLS,
                                                concentration_ox_NCLS, concentration_red_NCLS)
@@ -463,7 +503,6 @@ class ZeroDModel:
                         current: float, charge_first: bool) -> object:
 
         # to dos: if full CV, then should be appending voltage to overpotential
-        # data if wanting to plot that too
         
         (conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, 
          conc_red_NCLS_profile, cycle_capacity, current_profile, cell_V_profile, 
@@ -482,14 +521,12 @@ class ZeroDModel:
         CC_mode = True
         i_first = True
         CV_only = False
-        times = self.experiment_time()
-        datapoints = len(times) - 1
-        print(f"{self.duration}s of cycling, {self.time_increment}s timesteps, \
-              {datapoints} total datapoints")
+        times = self.times
+
         count = 0
         cap = 0.0
         cap_low = False
-        final_count = datapoints
+        final_count = self.length_data
         
         i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(charge, conc_ox_now_CLS,
                                    conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
@@ -516,13 +553,13 @@ class ZeroDModel:
             else:
                 pass
         ##############
-        while count != datapoints:
+        while count != self.length_data:
             # check if in CC or CV mode
             if CC_mode: 
                 # set current
                 i = ZeroDModel.current_direction(charge) * current
 
-                # testing improved coulomb counter/degradation/crossover combo
+                # calculate species' concentrations
                 (concentration_ox_CLS,
                  concentration_red_CLS,
                  concentration_ox_NCLS,
@@ -539,8 +576,9 @@ class ZeroDModel:
                     ############ Break out of loop if capacity near zero
                     if (cap < 1.0) and (len(cycle_capacity) > 2):
                         print(str(count) + 'count')
+                        print('Simulation stopped, capacity < 1 coulomb')
                         final_count = count
-                        count = datapoints
+                        #count = self.length_data # not needed?
                         cap_low = True
                         break
                     
@@ -617,8 +655,8 @@ class ZeroDModel:
                 OCV = self.nernst_OCV_full(conc_ox_now_CLS, conc_red_now_CLS, 
                                            conc_ox_now_NCLS, conc_red_now_NCLS)
     
-                data = (cell_V, OCV, charge, conc_red_now_CLS, conc_ox_now_CLS, 
-                        conc_red_now_NCLS, conc_ox_now_NCLS, i_lim_cls_t, i_lim_ncls_t)
+                data = (cell_V, OCV, charge, conc_ox_now_CLS, conc_red_now_CLS,
+                        conc_ox_now_NCLS, conc_red_now_NCLS, i_lim_cls_t, i_lim_ncls_t)
                 # adapting the solver's guess to the updated current
                 # calculate the first current value for guess
                 if i_first:
@@ -664,7 +702,7 @@ class ZeroDModel:
                         print(str(count) + 'count')
                         print('Simulation stopped, capacity < 1 coulomb')
                         final_count = count
-                        count = datapoints
+                        #count = self.length_data # not needed?
                         cap_low = True
                         break
                     
@@ -702,8 +740,9 @@ class ZeroDModel:
                     
                     if (cap < 1.0) and (len(cycle_capacity) > 2):
                         print(str(count) + 'count')
+                        print('Simulation stopped, capacity < 1 coulomb')
                         final_count = count
-                        count = datapoints
+                        #count = self.length_data # not needed?
                         cap_low = True
                         break
                     
