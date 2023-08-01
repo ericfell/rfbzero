@@ -13,18 +13,9 @@ TEMPERATURE = 298  # kelvin
 NERNST_CONST = (R*TEMPERATURE) / F  # should have n_electrons input option
 
 
-
 class ZeroDModel:
     """
-    Zero dimensional model for redox flow battery (RFB) cycling.
-    All equations are adapted from:
-
-    Modak, S.; Kwabi, D. G. A Zero-Dimensional Model for Electrochemical
-    Behavior and Capacity Retention in Organic Flow Cells, Journal of The
-    Electrochemical Society, 168, 2021, 080528.
-
-    If ZeroDModel has been significant to your research,
-    please cite the above paper.
+    Zero dimensional model for redox flow battery (RFB) cycling [1].
 
     Parameters
     ----------
@@ -52,30 +43,39 @@ class ZeroDModel:
         Cell voltage (formal potentials E_+ - E_-) (V).
         If voltage > 0 then it's a Full cell.
         If voltage = 0 then it's a Symmetric cell.
-    k_mt: float
+    k_mt : float
         Mass transport coefficient (cm/s).
-    roughness_factor: float
+    roughness_factor : float
         Roughness factor, dimensionless.
         Surface area divided by geometric surface area.
-    k_0_CLS: float
+    k_0_CLS : float
         Electrochemical rate constant, CLS redox couple (cm/s).
-    k_0_NCLS: float
+    k_0_NCLS : float
         Electrochemical rate constant, NCLS redox couple (cm/s).
-    alpha_CLS: float
+    alpha_CLS : float
         Charge transfer coefficient of CLS redox couple, dimensionless.
-    alpha_NCLS: float
+    alpha_NCLS : float
         Charge transfer coefficient of NCLS redox couple, dimensionless.
-    CLS_negolyte: bool
+    CLS_negolyte : bool
         If True, negolyte is the CLS.
-    mechanism_list: list, optional
+    mechanism_list : list, optional
         List of degradation mechanisms to include in simulation.
-    mechanism_params: dict, optional
+    mechanism_params : dict, optional
         Parameters for mechanisms specified in `mechanism_list`.
-    crossover_list: list, optional
+    crossover_list : list, optional
         List of crossover mechanisms to include in simulation.
-    crossover_params: dict, optional
+    crossover_params : dict, optional
         Parameters for mechanisms specified in `crossover_list`.
 
+
+    Notes
+    -----
+    All equations are adapted from [1]. If ZeroDModel has been
+    significant to your research please cite the paper.
+
+    [1] Modak, S.; Kwabi, D. G. A Zero-Dimensional Model for Electrochemical
+    Behavior and Capacity Retention in Organic Flow Cells, Journal of The
+    Electrochemical Society, 168, 2021, 080528.
     """
 
     @staticmethod
@@ -128,58 +128,81 @@ class ZeroDModel:
         self.const_i_ex = F*roughness_factor*self.geometric_area
         self.length_data = int(self.duration / self.time_increment)
         self.times = [x*self.time_increment for x in range(1, self.length_data + 1)]
-        print(f"{self.duration}s of cycling, {self.time_increment}s timesteps, \
-                      {self.length_data} total datapoints")
+        print(f"{self.duration} s of cycling, {self.time_increment} s timesteps,"
+              f"{self.length_data} total datapoints")
 
     # option for just measuring capacity over time, doesnt need to make all arrays?
+    # should all four conc be a list passed into everything?
 
-    def i_exchange_current(self, k_CLS: float, k_NCLS: float, c_ox_CLS: float, c_red_CLS: float,
-                           c_ox_NCLS: float, c_red_NCLS: float, a_CLS: float, a_NCLS: float) -> tuple[float, float]:
+    def i_exchange_current(self, c_ox_CLS: float, c_red_CLS: float,
+                           c_ox_NCLS: float, c_red_NCLS: float) -> tuple[float, float]:
         """
-        Function for calculating exchange current of redox couple in the CLS and NCLS.
+        Calculates exchange current of redox couples in the CLS and NCLS.
 
         Parameters
         ----------
-        k_CLS: float
-            Electrochemical rate constant for CLS redox couple
-
+        c_ox_CLS: float
+            Concentration of oxidized species in CLS
+             at a given timestep (M).
+        c_red_CLS: float
+            Concentration of reduced species in CLS
+             at a given timestep (M).
+        c_ox_NCLS: float
+            Concentration of oxidized species in NCLS
+             at a given timestep (M).
+        c_red_NCLS: float
+            Concentration of reduced species in NCLS
+             at a given timestep (M).
 
         Returns
         -------
         i_ex_CLS : float
-            Exchange current for CLS (amps)
+            Exchange current of CLS redox couple
+            at a given timestep (A).
+        i_ex_NCLS : float
+            Exchange current of NCLS redox couple
+            at a given timestep (A)
 
         """
         # division by 1000 for conversion from mol/L to mol/cm^3
-        i_ex_CLS = (self.const_i_ex * k_CLS * (c_red_CLS**a_CLS) * (c_ox_CLS**(1 - a_CLS)) * 0.001)
-        i_ex_NCLS = (self.const_i_ex * k_NCLS * (c_red_NCLS**a_NCLS) * (c_ox_NCLS**(1 - a_NCLS)) * 0.001)
+        i_ex_CLS = (self.const_i_ex * self.k_0_CLS * (c_red_CLS**self.alpha_CLS) * (c_ox_CLS**(1 - self.alpha_CLS)) * 0.001)
+        i_ex_NCLS = (self.const_i_ex * self.k_0_NCLS * (c_red_NCLS**self.alpha_NCLS) * (c_ox_NCLS**(1 - self.alpha_NCLS)) * 0.001)
         return i_ex_CLS, i_ex_NCLS
 
     def i_limiting(self, c_lim: float) -> float:
+        """Calculates limiting current for a single reservoir.
+        This is equation 6 of [1].
+        """
         # div by 1000 for conversion from mol/L to mol/cm^3
-        return F*self.k_mt*c_lim*self.geometric_area*0.001
+        # requires n electrons param
+        return F * self.k_mt * c_lim * self.geometric_area * 0.001
 
-    def limiting_reactant_selecter(self, charge: bool, conc_ox_now_CLS: float, conc_red_now_CLS: float,
+    def limiting_reactant_selector(self, charge: bool, conc_ox_now_CLS: float, conc_red_now_CLS: float,
                                    conc_ox_now_NCLS: float, conc_red_now_NCLS: float) -> tuple[float, float]:
-        if self.CLS_negolyte:  # CLS is negolyte
-            if charge:
-                i_lim_cls_t = self.i_limiting(conc_ox_now_CLS)
-                i_lim_ncls_t = self.i_limiting(conc_red_now_NCLS)
-            else:  # discharge first
-                i_lim_cls_t = self.i_limiting(conc_red_now_CLS)
-                i_lim_ncls_t = self.i_limiting(conc_ox_now_NCLS)
-
-        else:  # CLS is posolyte
-            if charge:
-                i_lim_cls_t = self.i_limiting(conc_red_now_CLS)
-                i_lim_ncls_t = self.i_limiting(conc_ox_now_NCLS)
-            else:  # discharge first
-                i_lim_cls_t = self.i_limiting(conc_ox_now_CLS)
-                i_lim_ncls_t = self.i_limiting(conc_red_now_NCLS)
+        """Selects limiting concentration and calculates limiting current for CLS and NCLS."""
+        if (self.CLS_negolyte and charge) or (not self.CLS_negolyte and not charge):
+            i_lim_cls_t = self.i_limiting(conc_ox_now_CLS)
+            i_lim_ncls_t = self.i_limiting(conc_red_now_NCLS)
+        else:
+            i_lim_cls_t = self.i_limiting(conc_red_now_CLS)
+            i_lim_ncls_t = self.i_limiting(conc_ox_now_NCLS)
 
         return i_lim_cls_t, i_lim_ncls_t
 
     def n_activation(self, current: float, i_0_cls: float, i_0_ncls: float) -> float:
+        """
+        This is equation 4 of [1].
+        Parameters
+        ----------
+        current
+        i_0_cls
+        i_0_ncls
+
+        Returns
+        -------
+
+        """
+
         z_cls = abs(current) / (2*i_0_cls)
         z_ncls = abs(current) / (2*i_0_ncls)
         n_act = NERNST_CONST*(log(z_ncls + ((z_ncls**2) + 1)**0.5)
@@ -188,6 +211,24 @@ class ZeroDModel:
 
     def n_mass_transport(self, charge: bool, current: float, c_ox_cls: float, c_red_cls: float,
                          c_ox_ncls: float, c_red_ncls: float, i_lim_cls: float, i_lim_ncls: float) -> float:
+        """
+        This is equation 8 of [1].
+
+        Parameters
+        ----------
+        charge
+        current
+        c_ox_cls
+        c_red_cls
+        c_ox_ncls
+        c_red_ncls
+        i_lim_cls
+        i_lim_ncls
+
+        Returns
+        -------
+
+        """
 
         assert c_red_cls > 0, "c_red_cls is less than 0"
         assert c_ox_cls > 0, "c_ox_cls is less than 0"
@@ -197,50 +238,46 @@ class ZeroDModel:
         c_tot_cls = c_red_cls + c_ox_cls
         c_tot_ncls = c_red_ncls + c_ox_ncls
 
-        # new
         current = abs(current)
 
-        if self.CLS_negolyte:
-            if charge:
-                n_mt = NERNST_CONST*log((1 - ((c_tot_cls*current)
-                                              / ((c_red_cls*i_lim_cls)
-                                                 + (c_ox_cls*current))))
-                                        * (1 - ((c_tot_ncls*current)
-                                                / ((c_ox_ncls*i_lim_ncls)
-                                                   + (c_red_ncls*current)))))
-            else:  # discharging
-                n_mt = NERNST_CONST*log(((1 - ((c_tot_cls*current)
-                                                  / ((c_ox_cls*i_lim_cls)
-                                                     + (c_red_cls*current))))
-                                            * (1 - ((c_tot_ncls*current)
-                                                    / ((c_red_ncls*i_lim_ncls)
-                                                       + (c_ox_ncls*current))))))
-        else:  # CLS is posolyte
-            if charge:
-                n_mt = NERNST_CONST*log((1 - ((c_tot_cls*current)
-                                              / ((c_ox_cls*i_lim_cls)
-                                                 + (c_red_cls*current))))
-                                        * (1 - ((c_tot_ncls*current)
-                                                / ((c_red_ncls*i_lim_ncls)
-                                                   + (c_ox_ncls*current)))))
-            else:  # discharging
-                n_mt = NERNST_CONST*log((1 - ((c_tot_cls*current)
-                                              / ((c_red_cls*i_lim_cls)
-                                                 + (c_ox_cls*current))))
-                                        * (1 - ((c_tot_ncls*current)
-                                                / ((c_ox_ncls*i_lim_ncls)
-                                                   + (c_red_ncls*current)))))
+        if (self.CLS_negolyte and charge) or (not self.CLS_negolyte and not charge):
+            n_mt = NERNST_CONST * log((1 - ((c_tot_cls * current)
+                                            / ((c_red_cls * i_lim_cls)
+                                               + (c_ox_cls * current))))
+                                      * (1 - ((c_tot_ncls * current)
+                                              / ((c_ox_ncls * i_lim_ncls)
+                                                 + (c_red_ncls * current)))))
+        else:
+            n_mt = NERNST_CONST * log(((1 - ((c_tot_cls * current)
+                                             / ((c_ox_cls * i_lim_cls)
+                                                + (c_red_cls * current))))
+                                       * (1 - ((c_tot_ncls * current)
+                                               / ((c_red_ncls * i_lim_ncls)
+                                                  + (c_ox_ncls * current))))))
         return n_mt
 
     def v_losses(self, current: float, charge: bool, c_ox_cls: float, c_red_cls: float,
                  c_ox_ncls: float, c_red_ncls: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
+        """
+        This is the overpotentials of equation 2 in [1].
 
-        # *(^(*^ need to check because current comes in signed already
+        Parameters
+        ----------
+        current
+        charge
+        c_ox_cls
+        c_red_cls
+        c_ox_ncls
+        c_red_ncls
+        i_lim_cls
+        i_lim_ncls
+
+        Returns
+        -------
+
         """
-        needs docstring
-        """
-        i_0_cls, i_0_ncls = self.i_exchange_current(self.k_0_CLS, self.k_0_NCLS, c_ox_cls, c_red_cls,
-                                                    c_ox_ncls, c_red_ncls, self.alpha_CLS, self.alpha_NCLS)
+
+        i_0_cls, i_0_ncls = self.i_exchange_current(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls)
         # calculate ohmic, activation, mass transport overpotentials
         n_ohmic = abs(current)*self.resistance
         n_act = self.n_activation(current, i_0_cls, i_0_ncls)
@@ -248,9 +285,23 @@ class ZeroDModel:
 
         n_loss = n_ohmic + n_act + n_mt
         return n_loss, n_act, n_mt
-    ##################################################################
+
     def nernst_OCV_full(self, conc_ox_CLS: float, conc_red_CLS: float, conc_ox_NCLS: float, conc_red_NCLS: float) -> float:
-        
+        """
+        This is equivalent to equation 3 of [1].
+
+        Parameters
+        ----------
+        conc_ox_CLS
+        conc_red_CLS
+        conc_ox_NCLS
+        conc_red_NCLS
+
+        Returns
+        -------
+
+        """
+        # will need n_electrons input
         assert conc_red_CLS > 0, "CLS [red] is less than 0, nernst_OCV_full call"
         assert conc_ox_CLS > 0, "CLS [ox] is less than 0, nernst_OCV_full call"
         assert conc_red_NCLS > 0, "NCLS [red] is less than 0, nernst_OCV_full call"
@@ -265,18 +316,17 @@ class ZeroDModel:
                    - (NERNST_CONST*log(conc_red_CLS / conc_ox_CLS)) 
                    - (NERNST_CONST*log(conc_ox_NCLS / conc_red_NCLS)))
         return OCV
-    ############################################################# 
+
     def cell_voltage(self, OCV: float, losses: float, charge: bool) -> float:
-        # losses is always a + value
+        """If charging, add overpotentials to OCV, else subtract them."""
         return OCV + losses if charge else OCV - losses
-    #############################################################
-    # testing new coulomb counter here
-    def coulomb_counter(self, current: float, volume_CLS: float, volume_NCLS: float, conc_ox_CLS: float,
-                        conc_red_CLS: float, conc_ox_NCLS: float, conc_red_NCLS: float) -> tuple[float, float, float, float, float, float]:
+
+    def coulomb_counter(self, current: float, conc_ox_CLS: float, conc_red_CLS: float,
+                        conc_ox_NCLS: float, conc_red_NCLS: float) -> tuple[float, float, float, float, float, float]:
 
         direction = 1 if self.CLS_negolyte else -1
-        delta_CLS = ((self.time_increment * current) / (F * volume_CLS)) * direction
-        delta_NCLS = ((self.time_increment * current) / (F * volume_NCLS)) * direction
+        delta_CLS = ((self.time_increment * current) / (F * self.CLS_volume)) * direction
+        delta_NCLS = ((self.time_increment * current) / (F * self.NCLS_volume)) * direction
 
         # update CLS concentrations
         conc_ox_CLS = conc_ox_CLS - delta_CLS
@@ -322,7 +372,6 @@ class ZeroDModel:
         return conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS, delta_ox, delta_red
 
 
-    #############################################################
     # is below proper *args unpacking naming style?
     def CV_i_solver(self, current: float, *data: float) -> float:
         (cell_V, OCV, charge, c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
@@ -332,8 +381,8 @@ class ZeroDModel:
                                        c_ox_ncls, c_red_ncls, i_lim_cls, i_lim_ncls)
         # returns what solver will try to minimize
         return cell_V - OCV - loss_solve if charge else cell_V - OCV + loss_solve
-    ###########################################################################
-    ###########################################################################
+
+
     ##### Section: Cycling models
     ###########################################################################
 
@@ -361,9 +410,9 @@ class ZeroDModel:
         # initialized in case simulation has to stop due to no more capacity
         final_count = self.length_data
         
-        i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(charge, 
-                                        conc_ox_now_CLS, conc_red_now_CLS, 
-                                        conc_ox_now_NCLS, conc_red_now_NCLS)
+        i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selector(charge,
+                                                                    conc_ox_now_CLS, conc_red_now_CLS,
+                                                                    conc_ox_now_NCLS, conc_red_now_NCLS)
         # why the *2 ??
         assert current < (i_lim_cls_t*2), "Cannot maintain desired current (i> CLS limiting current)"
         assert current < (i_lim_ncls_t*2), "Cannot maintain desired current (i> NCLS limiting current)"
@@ -390,7 +439,7 @@ class ZeroDModel:
              concentration_red_CLS,
              concentration_ox_NCLS,
              concentration_red_NCLS,
-             delta_ox, delta_red) = self.coulomb_counter(i, self.CLS_volume, self.NCLS_volume, conc_ox_now_CLS,
+             delta_ox, delta_red) = self.coulomb_counter(i, conc_ox_now_CLS,
                                                          conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
 
             # EDGE CASE where voltage limits never reached i.e straight CC cycling until concentration runs out
@@ -415,7 +464,7 @@ class ZeroDModel:
                 charge = not charge
     
                 # set limiting current for next cycle, with previous allowable concentrations
-                i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(
+                i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selector(
                     charge, conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS, 
                     conc_red_now_NCLS)
                 continue
@@ -452,7 +501,7 @@ class ZeroDModel:
                 charge = not charge
     
                 # set limiting current for next cycle
-                i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(
+                i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selector(
                     charge, conc_ox_now_CLS, conc_red_now_CLS, 
                     conc_ox_now_NCLS, conc_red_now_NCLS)
                 continue
@@ -528,8 +577,8 @@ class ZeroDModel:
         cap_low = False
         final_count = self.length_data
         
-        i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(charge, conc_ox_now_CLS,
-                                   conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
+        i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selector(charge, conc_ox_now_CLS,
+                                                                    conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
      
         i = ZeroDModel.current_direction(charge) * current
         ##### check if need to go straight to CV
@@ -564,7 +613,7 @@ class ZeroDModel:
                  concentration_red_CLS,
                  concentration_ox_NCLS,
                  concentration_red_NCLS,
-                 delta_ox, delta_red) = self.coulomb_counter(i, self.CLS_volume, self.NCLS_volume, conc_ox_now_CLS,
+                 delta_ox, delta_red) = self.coulomb_counter(i, conc_ox_now_CLS,
                                                              conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
 
                 # EDGE CASE where voltage limits never reached i.e straight CC cycling
@@ -590,7 +639,7 @@ class ZeroDModel:
                     charge = not charge
                     
                     # set limiting current for next cycle
-                    i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(
+                    i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selector(
                         charge, conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS, 
                         conc_red_now_NCLS)
                     continue
@@ -716,7 +765,7 @@ class ZeroDModel:
                     i_first = True
     
                     # set limiting current for next cycle
-                    i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(
+                    i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selector(
                         charge, conc_ox_now_CLS, conc_red_now_CLS, 
                         conc_ox_now_NCLS, conc_red_now_NCLS) 
                     continue
@@ -728,7 +777,7 @@ class ZeroDModel:
                  concentration_red_CLS,
                  concentration_ox_NCLS,
                  concentration_red_NCLS,
-                 delta_ox, delta_red) = self.coulomb_counter(i_CV, self.CLS_volume, self.NCLS_volume, conc_ox_now_CLS,
+                 delta_ox, delta_red) = self.coulomb_counter(i_CV, conc_ox_now_CLS,
                                                              conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
     
                 # check if any reactant remains
@@ -756,7 +805,7 @@ class ZeroDModel:
                     i_first = True # not sure if this would be needed
     
                     # set limiting current for next cycle
-                    i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selecter(
+                    i_lim_cls_t, i_lim_ncls_t = self.limiting_reactant_selector(
                         charge, conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS, 
                         conc_red_now_NCLS)         
                     continue
