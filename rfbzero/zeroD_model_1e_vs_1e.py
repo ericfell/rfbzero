@@ -4,12 +4,12 @@ from math import log
 import scipy.constants as spc
 from scipy.optimize import fsolve
 from zeroD_model_degradations import degradation_mechanism
-from zeroD_model_crossover import crossover_mechanism
+from zeroD_model_crossover import crossover
 
 F = spc.physical_constants['Faraday constant'][0]  # or just input 96485.3321 ? same for R
-R = spc.R
+R = spc.R  # Molar gas constant, J/K/mol
 # make these parameters at some point?
-TEMPERATURE = 298  # kelvin
+TEMPERATURE = 298  # Kelvins, for S.T.P.
 NERNST_CONST = (R*TEMPERATURE) / F  # should have n_electrons input option
 
 
@@ -36,7 +36,7 @@ class ZeroDModel:
     NCLS_start_conc_red : float
         NCLS initial concentration of reduced species (M).
     duration : int
-        Amount of real time to simulate (s).
+        Amount of experiment time to simulate (s).
     time_increment : float
         Simulation time step (s).
     standard_E : float
@@ -62,10 +62,8 @@ class ZeroDModel:
         List of degradation mechanisms to include in simulation.
     mechanism_params : dict, optional
         Parameters for mechanisms specified in `mechanism_list`.
-    crossover_list : list, optional
-        List of crossover mechanisms to include in simulation.
-    crossover_params : dict, optional
-        Parameters for mechanisms specified in `crossover_list`.
+    crossover_params : list, optional
+        List of parameters for crossover mechanism.
 
 
     Notes
@@ -80,7 +78,7 @@ class ZeroDModel:
 
     @staticmethod
     def current_direction(charge: bool) -> int:
-        """Makes current positive for charge, negative for discharge"""
+        """Make current positive for charge, negative for discharge"""
         return 1 if charge else -1
 
     @staticmethod
@@ -96,12 +94,17 @@ class ZeroDModel:
         """Return True if any concentration is negative"""
         return any(x < 0.0 for x in [conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS])
 
+    @staticmethod
+    def cell_voltage(OCV: float, losses: float, charge: bool) -> float:
+        """If charging, add overpotentials to OCV, else subtract them."""
+        return OCV + losses if charge else OCV - losses
+
     def __init__(self, geometric_area: float, resistance: float, CLS_volume: float, NCLS_volume: float,
                  CLS_start_conc_ox: float, CLS_start_conc_red: float, NCLS_start_conc_ox: float,
-                 NCLS_start_conc_red: float, duration: int, time_increment: float,
-                 standard_E: float, k_mt: float, roughness_factor: float, k_0_CLS: float, k_0_NCLS: float,
-                 alpha_CLS: float, alpha_NCLS: float, CLS_negolyte: bool = True, mechanism_list: list = None, mechanism_params: dict = None,
-                 crossover_list: list = None, crossover_params: dict = None) -> None:
+                 NCLS_start_conc_red: float, duration: int, time_increment: float, standard_E: float,
+                 k_mt: float, roughness_factor: float, k_0_CLS: float, k_0_NCLS: float, alpha_CLS: float,
+                 alpha_NCLS: float, CLS_negolyte: bool = True, mechanism_list: list = None,
+                 mechanism_params: dict = None, crossover_params: list = None) -> None:
         """Inits ZeroDModel"""
 
         self.geometric_area = geometric_area
@@ -114,7 +117,7 @@ class ZeroDModel:
         self.NCLS_start_conc_red = NCLS_start_conc_red
         self.duration = duration
         self.time_increment = time_increment
-        self.standard_E = standard_E
+        self.standard_E = standard_E # rename
         self.k_mt = k_mt
         self.k_0_CLS = k_0_CLS
         self.k_0_NCLS = k_0_NCLS
@@ -123,7 +126,6 @@ class ZeroDModel:
         self.CLS_negolyte = CLS_negolyte
         self.mechanism_list = mechanism_list
         self.mechanism_params = mechanism_params
-        self.crossover_list = crossover_list
         self.crossover_params = crossover_params
         self.const_i_ex = F*roughness_factor*self.geometric_area
         self.length_data = int(self.duration / self.time_increment)
@@ -165,8 +167,10 @@ class ZeroDModel:
 
         """
         # division by 1000 for conversion from mol/L to mol/cm^3
-        i_ex_CLS = (self.const_i_ex * self.k_0_CLS * (c_red_CLS**self.alpha_CLS) * (c_ox_CLS**(1 - self.alpha_CLS)) * 0.001)
-        i_ex_NCLS = (self.const_i_ex * self.k_0_NCLS * (c_red_NCLS**self.alpha_NCLS) * (c_ox_NCLS**(1 - self.alpha_NCLS)) * 0.001)
+        i_ex_CLS = (self.const_i_ex * self.k_0_CLS * (c_red_CLS**self.alpha_CLS)
+                    * (c_ox_CLS**(1 - self.alpha_CLS)) * 0.001)
+        i_ex_NCLS = (self.const_i_ex * self.k_0_NCLS * (c_red_NCLS**self.alpha_NCLS)
+                     * (c_ox_NCLS**(1 - self.alpha_NCLS)) * 0.001)
         return i_ex_CLS, i_ex_NCLS
 
     def i_limiting(self, c_lim: float) -> float:
@@ -174,7 +178,7 @@ class ZeroDModel:
         This is equation 6 of [1].
         """
         # div by 1000 for conversion from mol/L to mol/cm^3
-        # requires n electrons param
+        # will require n electrons param
         return F * self.k_mt * c_lim * self.geometric_area * 0.001
 
     def limiting_reactant_selector(self, charge: bool, conc_ox_now_CLS: float, conc_red_now_CLS: float,
@@ -284,9 +288,11 @@ class ZeroDModel:
         n_mt = self.n_mass_transport(charge, current, c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, i_lim_cls, i_lim_ncls)
 
         n_loss = n_ohmic + n_act + n_mt
+
         return n_loss, n_act, n_mt
 
-    def nernst_OCV_full(self, conc_ox_CLS: float, conc_red_CLS: float, conc_ox_NCLS: float, conc_red_NCLS: float) -> float:
+    def nernst_OCV_full(self, conc_ox_CLS: float, conc_red_CLS: float,
+                        conc_ox_NCLS: float, conc_red_NCLS: float) -> float:
         """
         This is equivalent to equation 3 of [1].
 
@@ -317,10 +323,6 @@ class ZeroDModel:
                    - (NERNST_CONST*log(conc_ox_NCLS / conc_red_NCLS)))
         return OCV
 
-    def cell_voltage(self, OCV: float, losses: float, charge: bool) -> float:
-        """If charging, add overpotentials to OCV, else subtract them."""
-        return OCV + losses if charge else OCV - losses
-
     def coulomb_counter(self, current: float, conc_ox_CLS: float, conc_red_CLS: float,
                         conc_ox_NCLS: float, conc_red_NCLS: float) -> tuple[float, float, float, float, float, float]:
 
@@ -340,10 +342,10 @@ class ZeroDModel:
         delta_red = 0.0
 
         # allow for degradations and/or crossover
-        if (self.mechanism_list is None) and (self.crossover_list is None):  # no degrade/ no crossover
+        if (self.mechanism_list is None) and (self.crossover_params is None):  # no degrade/ no crossover
             pass
 
-        elif (self.mechanism_list is not None) and (self.crossover_list is None): # degrade/ no crossover
+        elif (self.mechanism_list is not None) and (self.crossover_params is None): # degrade/ no crossover
             # possible CLS degradation
             conc_ox_CLS, conc_red_CLS = degradation_mechanism(conc_ox_CLS, conc_red_CLS, self.time_increment,
                 *self.mechanism_list, **self.mechanism_params)
@@ -351,10 +353,10 @@ class ZeroDModel:
             conc_ox_NCLS, conc_red_NCLS = degradation_mechanism(conc_ox_NCLS, conc_red_NCLS, self.time_increment,
                                                               *self.mechanism_list, **self.mechanism_params)
 
-        elif (self.mechanism_list is None) and (self.crossover_list is not None): # no degrade/ crossover
+        elif (self.mechanism_list is None) and (self.crossover_params is not None): # no degrade/ crossover
             (conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS, delta_ox,
-             delta_red) = crossover_mechanism(conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS,
-                                              self.time_increment, *self.crossover_list, **self.crossover_params)
+             delta_red) = crossover(conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS, self.time_increment,
+                                    self.CLS_volume, self.NCLS_volume, *self.crossover_params)
 
         else: # degrade AND crossover
             # CLS degradation
@@ -363,11 +365,10 @@ class ZeroDModel:
             # NCLS degradation
             conc_ox_NCLS, conc_red_NCLS = degradation_mechanism(conc_ox_NCLS, conc_red_NCLS, self.time_increment,
                                                                 *self.mechanism_list, **self.mechanism_params)
-
             # crossover
             (conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS, delta_ox,
-             delta_red) = crossover_mechanism(conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS,
-                                              self.time_increment, *self.crossover_list, **self.crossover_params)
+             delta_red) = crossover(conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS, self.time_increment,
+                                    self.CLS_volume, self.NCLS_volume, *self.crossover_params)
 
         return conc_ox_CLS, conc_red_CLS, conc_ox_NCLS, conc_red_NCLS, delta_ox, delta_red
 
@@ -377,14 +378,13 @@ class ZeroDModel:
         (cell_V, OCV, charge, c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
          i_lim_cls, i_lim_ncls) = data
         # curr has sign but v_losses makes it always positive
-        loss_solve,_,_ = self.v_losses(current, charge, c_ox_cls, c_red_cls,
-                                       c_ox_ncls, c_red_ncls, i_lim_cls, i_lim_ncls)
+        loss_solve, _, _ = self.v_losses(current, charge, c_ox_cls, c_red_cls,
+                                         c_ox_ncls, c_red_ncls, i_lim_cls, i_lim_ncls)
         # returns what solver will try to minimize
         return cell_V - OCV - loss_solve if charge else cell_V - OCV + loss_solve
 
 
     ##### Section: Cycling models
-    ###########################################################################
 
     def CC_experiment(self, voltage_cutoff_charge: float, voltage_cutoff_discharge: float,
                       current: float, charge_first: bool) -> object: # edit the return type soon
@@ -428,7 +428,8 @@ class ZeroDModel:
                                    conc_ox_now_NCLS, conc_red_now_NCLS)
     
         cell_V = self.cell_voltage(OCV, losses, charge)
-        assert voltage_cutoff_discharge <= cell_V <= voltage_cutoff_charge, "won't cycle, overpotential is outside voltage cutoffs"
+        assert voltage_cutoff_discharge <= cell_V <= voltage_cutoff_charge, (
+            "won't cycle, overpotential is outside voltage cutoffs")
         
         while count != self.length_data:
             # set current
