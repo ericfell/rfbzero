@@ -1,6 +1,5 @@
 from zeroD_model_1e_vs_1e import ZeroDModel as single_e
 from zeroD_model_degradations import chemical_degradation
-from zeroD_model_crossover import crossover
 import matplotlib.pyplot as plt
 
 CLS_start_conc_ox = 0.01
@@ -27,16 +26,17 @@ duration = 5000
 mechanism_list = [chemical_degradation] #<< this is imported, probably should change
 mechanism_params = {'red_degrade': ['red', 1, 2e-5]}
 
+
+
+# for crossover
 membrane_thickness = 183/10000 # cm, nafion 117
 membrane_constant = area / membrane_thickness
 p_ox = 1.0e-6 # cm^2/s
 p_red = 1.0e-6 # cm^2/s
 
-#crossover_list = [crossover] #<< this is imported, probably should change
-#crossover_params = {'red_crosses': [membrane_constant, p_ox, p_red, CLS_vol, NCLS_vol]}
+crossover_params = [membrane_constant, p_ox, p_red]
 
-crossover_params = [membrane_constant, p_ox, p_red] #, CLS_vol, NCLS_vol]
-
+# setup cycling procedure
 setup = single_e(area, resistance, CLS_vol, NCLS_vol, CLS_start_conc_ox, CLS_start_conc_red, NCLS_start_conc_ox,
                  NCLS_start_conc_red, duration, t_step, E_redox, kmt, rough, k_species, k_species, 0.5, 0.5,True,
                  mechanism_list=None, mechanism_params=None, crossover_params=None)#crossover_params)
@@ -44,7 +44,7 @@ setup = single_e(area, resistance, CLS_vol, NCLS_vol, CLS_start_conc_ox, CLS_sta
 (current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile,
  cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times,  act_profile,
  mt_profile, loss_profile, del_ox, del_red,
-) = setup.CC_experiment(voltage_limit_charge, voltage_limit_discharge, current, True)
+) = setup.cc_experiment(voltage_limit_charge, voltage_limit_discharge, current, True)
 #) = setup.CCCV_experiment(voltage_limit_charge, voltage_limit_discharge, 0.005, -0.005,current, True)
 
 #print(len(current_profile))
