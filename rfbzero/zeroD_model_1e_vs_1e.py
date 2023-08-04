@@ -3,7 +3,7 @@
 from math import log
 import scipy.constants as spc
 from scipy.optimize import fsolve
-from zeroD_model_degradations import degradation_mechanism
+from zeroD_model_degradations import degradation_mechanism, DegradationMechanism
 from zeroD_model_crossover import crossover
 
 # Faraday constant (C/mol)
