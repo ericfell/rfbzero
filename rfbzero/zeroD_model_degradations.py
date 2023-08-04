@@ -3,6 +3,45 @@
 DEGRADATION FUNCTIONS CALLED BY ZeroDmodel CLASS
 """
 
+# DEGRADATION FUNCTION CALLED BY ZERO-D MAIN CLASS
+
+from abc import ABC, abstractmethod
+
+class DegradationMechanism(ABC):
+    @abstractmethod
+    def degrade(self, conc_ox: float, conc_red: float, timestep: int) -> tuple[float, float]:
+        raise NotImplementedError
+
+
+class ChemicalDegradation(DegradationMechanism):
+
+    def __init__(self, rate_order: int, rate: float):
+        self.rate_order = rate_order
+        self.rate = rate
+
+    def degrade(self, conc_ox: float, conc_red: float, timestep: int):
+        pass
+
+
+class AutoOxidation(DegradationMechanism):
+    def __init__(self, rate: float):
+        self.rate = rate
+
+    def degrade(self, conc_ox: float, conc_red: float, timestep: int):
+        pass
+
+
+class MultiDegradationMechanism(DegradationMechanism):
+    def __init__(self, mechanisms: list[DegradationMechanism]):
+        self.mechanisms = mechanisms
+
+    def degrade(self, conc_ox: float, conc_red: float, timestep: int):
+        for mechanism in self.mechanisms:
+            conc_ox, conc_red = mechanism.degrade(conc_ox, conc_red, timestep)
+
+        return conc_ox, conc_red
+
+
 def degradation_mechanism(conc_ox, conc_red, timestep, *args, **kwargs):
     if not args:
         return conc_ox, conc_red
