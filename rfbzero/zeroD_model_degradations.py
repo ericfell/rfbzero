@@ -3,45 +3,62 @@
 DEGRADATION FUNCTIONS CALLED BY ZeroDmodel CLASS
 """
 
-# DEGRADATION FUNCTION CALLED BY ZERO-D MAIN CLASS
 
 from abc import ABC, abstractmethod
 
+
 class DegradationMechanism(ABC):
     @abstractmethod
-    def degrade(self, conc_ox: float, conc_red: float, timestep: int) -> tuple[float, float]:
+    def degrade(self, conc_ox: float, conc_red: float, timestep: float) -> tuple[float, float]:
         raise NotImplementedError
 
 
 class ChemicalDegradation(DegradationMechanism):
 
-    def __init__(self, rate_order: int, rate: float):
+    def __init__(self, rate_order: int, rate: float, species: str = 'red'):
         self.rate_order = rate_order
         self.rate = rate
+        self.species = species
 
-    def degrade(self, conc_ox: float, conc_red: float, timestep: int):
-        pass
+    def degrade(self, conc_ox: float, conc_red: float, timestep: float) -> tuple[float, float]:
+        #pass
+        if self.rate == 0.0:
+            return conc_ox, conc_red
+
+        if self.species == 'red':
+            concentration_red = conc_red - (timestep * self.rate * (conc_red**self.rate_order))
+            return conc_ox, concentration_red
+        else:
+            concentration_ox = conc_ox - (timestep * self.rate * (conc_ox**self.rate_order))
+            return concentration_ox, conc_red
 
 
 class AutoOxidation(DegradationMechanism):
     def __init__(self, rate: float):
         self.rate = rate
 
-    def degrade(self, conc_ox: float, conc_red: float, timestep: int):
-        pass
+    def degrade(self, conc_ox: float, conc_red: float, timestep: float) -> tuple[float, float]:
+        #pass
+        delta_conc = timestep * self.rate * conc_red
+
+        concentration_red = conc_red - delta_conc
+        concentration_ox = conc_ox + delta_conc
+        return concentration_ox, concentration_red
 
 
 class MultiDegradationMechanism(DegradationMechanism):
     def __init__(self, mechanisms: list[DegradationMechanism]):
         self.mechanisms = mechanisms
 
-    def degrade(self, conc_ox: float, conc_red: float, timestep: int):
+    def degrade(self, conc_ox: float, conc_red: float, timestep: float) -> tuple[float, float]:
         for mechanism in self.mechanisms:
             conc_ox, conc_red = mechanism.degrade(conc_ox, conc_red, timestep)
 
         return conc_ox, conc_red
 
-
+#####################
+##################
+###############
 def degradation_mechanism(conc_ox, conc_red, timestep, *args, **kwargs):
     if not args:
         return conc_ox, conc_red

@@ -334,11 +334,18 @@ class ZeroDModel:
         # degradation / no crossover
         elif (self.mechanism_list is not None) and (self.crossover_params is None):
             # possible CLS degradation
+            """
             c_ox_cls, c_red_cls = degradation_mechanism(c_ox_cls, c_red_cls, self.time_increment,
                                                         *self.mechanism_list, **self.mechanism_params)
             # possible NCLS degradation
             c_ox_ncls, c_red_ncls = degradation_mechanism(c_ox_ncls, c_red_ncls, self.time_increment,
                                                           *self.mechanism_list, **self.mechanism_params)
+            """
+            # testing abstract method class
+            #c_ox_cls, c_red_cls = NEW_DEG.degrade(c_ox_cls, c_red_cls, self.time_increment)
+            #c_ox_ncls, c_red_ncls = NEW_DEG.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
+            c_ox_cls, c_red_cls = self.mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment)
+            c_ox_ncls, c_red_ncls = self.mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
 
         # no degradation / crossover
         elif (self.mechanism_list is None) and (self.crossover_params is not None):
