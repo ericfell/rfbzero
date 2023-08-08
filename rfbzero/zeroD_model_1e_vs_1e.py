@@ -4,7 +4,7 @@ from math import log
 import scipy.constants as spc
 from scipy.optimize import fsolve
 from zeroD_model_degradations import DegradationMechanism #degradation_mechanism,
-from zeroD_model_crossover import crossover
+from zeroD_model_crossover import Crossover
 
 
 # Faraday constant (C/mol)
@@ -86,7 +86,7 @@ class ZeroDModel:
                  duration: int, time_increment: float, init_ocv: float, k_mt: float, roughness_factor: float,
                  k_0_cls: float, k_0_ncls: float, alpha_cls: float, alpha_ncls: float, cls_negolyte: bool = True,
                  #mechanism_list: DegradationMechanism = None, mechanism_params: dict = None, crossover_params: list = None) -> None:
-                 mechanism_list: DegradationMechanism = None, crossover_params: list = None) -> None:
+                 mechanism_list: DegradationMechanism = None, crossover_params: Crossover = None) -> None:
         """Inits ZeroDModel"""
 
         self.geometric_area = geometric_area
@@ -349,9 +349,15 @@ class ZeroDModel:
 
         # no degradation / crossover
         elif (self.mechanism_list is None) and (self.crossover_params is not None):
+            """
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
              delta_red) = crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,
                                     self.cls_volume, self.ncls_volume, *self.crossover_params)
+            """
+
+            (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
+             delta_red) = self.crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
+                                                          self.time_increment, self.cls_volume, self.ncls_volume)
 
         # degradation AND crossover
         else:
@@ -368,9 +374,14 @@ class ZeroDModel:
             c_ox_ncls, c_red_ncls = self.mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
 
             # crossover
+            """
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
              delta_red) = crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,
                                     self.cls_volume, self.ncls_volume, *self.crossover_params)
+            """
+            (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
+             delta_red) = self.crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
+                                                          self.time_increment, self.cls_volume, self.ncls_volume)
 
         return c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox, delta_red
 
