@@ -1,5 +1,4 @@
 from zeroD_model_1e_vs_1e import ZeroDModel as single_e
-# from zeroD_model_degradations import chemical_degradation
 import matplotlib.pyplot as plt
 from zeroD_model_degradations import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism
 from zeroD_model_crossover import Crossover
@@ -16,18 +15,15 @@ t_step = 0.01
 E_redox = 1.0
 rough = 26
 #
-voltage_limit_charge = 1.4#0.4
-voltage_limit_discharge = 0.6#-0.4
+voltage_limit_charge = 1.4 #0.4
+voltage_limit_discharge = 0.6 #-0.4
 current = 0.3
 kmt = 0.8
 
 resistance = 1.0
 k_species = 2.2e-3
 duration = 5000
-
-#mechanism_list = [chemical_degradation] #<< this is imported, probably should change
-#mechanism_params = {'red_degrade': ['red', 1, 1e-5]}
-
+######################################
 
 
 # for crossover
@@ -35,14 +31,12 @@ membrane_thickness = 183/10000 # cm, nafion 117
 membrane_c = area / membrane_thickness
 p_ox = 1.0e-5 # cm^2/s
 p_red = 1.0e-5 # cm^2/s
-crossover_f = Crossover(membrane_constant=membrane_c, perm_ox=p_ox, perm_red=p_red)
-#crossover_params = [membrane_c, p_ox, p_red]
+crossover_f = Crossover(membrane_constant=membrane_c, permeability_ox=p_ox, permeability_red=p_red)
 
 ## testing of abstract method classes
 
 test_fade = ChemicalDegradation(rate_order=1, rate=9e-5, species='red')
 test_fade2 = AutoOxidation(rate=9e-5)
-#gg =CROSSOVER(2,3,5)
 mechanism_list = test_fade
 mechanism_list2 = MultiDegradationMechanism([test_fade2, test_fade]) # maybe have multi do *args
 ###############################
@@ -50,8 +44,7 @@ mechanism_list2 = MultiDegradationMechanism([test_fade2, test_fade]) # maybe hav
 # setup cycling procedure
 setup = single_e(area, resistance, CLS_vol, NCLS_vol, CLS_start_conc_ox, CLS_start_conc_red, NCLS_start_conc_ox,
                  NCLS_start_conc_red, duration, t_step, E_redox, kmt, rough, k_species, k_species, 0.5, 0.5,True,
-                 mechanism_list=mechanism_list, crossover_params=crossover_f)
-#                 mechanism_list=mechanism_list, mechanism_params=mechanism_params, crossover_params=None)#crossover_params)
+                 mechanism_list=mechanism_list2, crossover_params=crossover_f)
 
 (current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile,
  cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times,  act_profile,

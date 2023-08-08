@@ -3,7 +3,7 @@
 from math import log
 import scipy.constants as spc
 from scipy.optimize import fsolve
-from zeroD_model_degradations import DegradationMechanism #degradation_mechanism,
+from zeroD_model_degradations import DegradationMechanism
 from zeroD_model_crossover import Crossover
 
 
@@ -63,12 +63,10 @@ class ZeroDModel:
         Charge transfer coefficient of NCLS redox couple, dimensionless.
     cls_negolyte : bool
         If True, negolyte is the CLS.
-    mechanism_list : list, optional
-        List of degradation mechanisms to include in simulation.
-    ###### mechanism_params : dict, optional
-    #####    Parameters for mechanisms specified in `mechanism_list`.
-    crossover_params : list, optional
-        List of parameters for crossover mechanism.
+    mechanism_list : DegradationMechanism, optional
+        Degradation mechanism(s) to include in simulation.
+    crossover_params : Crossover, optional
+        Crossover mechanism to include in simulation.
 
 
     Notes
@@ -85,7 +83,6 @@ class ZeroDModel:
                  cls_start_c_ox: float, cls_start_c_red: float, ncls_start_c_ox: float, ncls_start_c_red: float,
                  duration: int, time_increment: float, init_ocv: float, k_mt: float, roughness_factor: float,
                  k_0_cls: float, k_0_ncls: float, alpha_cls: float, alpha_ncls: float, cls_negolyte: bool = True,
-                 #mechanism_list: DegradationMechanism = None, mechanism_params: dict = None, crossover_params: list = None) -> None:
                  mechanism_list: DegradationMechanism = None, crossover_params: Crossover = None) -> None:
         """Inits ZeroDModel"""
 
@@ -106,8 +103,7 @@ class ZeroDModel:
         self.alpha_cls = alpha_cls
         self.alpha_ncls = alpha_ncls
         self.cls_negolyte = cls_negolyte
-        self.mechanism_list = mechanism_list  # need to rename
-        # self.mechanism_params = mechanism_params
+        self.mechanism_list = mechanism_list
         self.crossover_params = crossover_params
         self.const_i_ex = F * roughness_factor * self.geometric_area
         self.length_data = int(self.duration / self.time_increment)
@@ -336,49 +332,25 @@ class ZeroDModel:
         # degradation / no crossover
         elif (self.mechanism_list is not None) and (self.crossover_params is None):
             # possible CLS degradation
-            """
-            c_ox_cls, c_red_cls = degradation_mechanism(c_ox_cls, c_red_cls, self.time_increment,
-                                                        *self.mechanism_list, **self.mechanism_params)
-            # possible NCLS degradation
-            c_ox_ncls, c_red_ncls = degradation_mechanism(c_ox_ncls, c_red_ncls, self.time_increment,
-                                                          *self.mechanism_list, **self.mechanism_params)
-            """
-            # testing abstract method class
             c_ox_cls, c_red_cls = self.mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment)
+            # possible NCLS degradation
             c_ox_ncls, c_red_ncls = self.mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
 
         # no degradation / crossover
         elif (self.mechanism_list is None) and (self.crossover_params is not None):
-            """
-            (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,
-                                    self.cls_volume, self.ncls_volume, *self.crossover_params)
-            """
-
+            # possible crossover mechanism
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
              delta_red) = self.crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
                                                           self.time_increment, self.cls_volume, self.ncls_volume)
 
         # degradation AND crossover
         else:
-            """
-            # CLS degradation
-            c_ox_cls, c_red_cls = degradation_mechanism(c_ox_cls, c_red_cls, self.time_increment,
-                                                        *self.mechanism_list, **self.mechanism_params)
-            # NCLS degradation
-            c_ox_ncls, c_red_ncls = degradation_mechanism(c_ox_ncls, c_red_ncls, self.time_increment,
-                                                          *self.mechanism_list, **self.mechanism_params)
-            """
-            # testing abstract method class
+            # possible CLS degradation
             c_ox_cls, c_red_cls = self.mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment)
+            # possible NCLS degradation
             c_ox_ncls, c_red_ncls = self.mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
 
-            # crossover
-            """
-            (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,
-                                    self.cls_volume, self.ncls_volume, *self.crossover_params)
-            """
+            # possible crossover mechanism
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
              delta_red) = self.crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
                                                           self.time_increment, self.cls_volume, self.ncls_volume)

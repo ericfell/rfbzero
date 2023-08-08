@@ -106,7 +106,6 @@ def auto_red_test(conc_ox_t, conc_red_t, timestep, extra_ratio=1, rate=0):
 
 # def potential_dependent(potential, conc_ox_t, conc_red_t, timestep, rate=0):
 """
-"""
+
 if __name__ == '__main__':
     print('testing')
-"""

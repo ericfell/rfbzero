@@ -3,13 +3,10 @@
 CROSSOVER FUNCTIONS CALLED BY ZeroDmodel CLASS
 """
 
-# membrane_const is geo Area divide by membrane thickness
-# could change that so just thickness is input, geo area already in model
-
 
 class Crossover:
     """
-    Provides crossover mechanism for RFBzero model
+    Provides crossover mechanism for optional use in ZeroDModel
 
     Parameters
     ----------
@@ -26,8 +23,8 @@ class Crossover:
         self.p_ox = permeability_ox
         self.p_red = permeability_red
 
-    def crossover(self, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float,
-                  timestep: float, vol_cls: float, vol_ncls: float) -> tuple[float, float, float, float, float, float]:
+    def crossover(self, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float, timestep: float,
+                  vol_cls: float, vol_ncls: float) -> tuple[float, float, float, float, float, float]:
         # skip all this if no crossover is desired
         if self.p_ox == 0.0 and self.p_red == 0.0:
             return c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, 0.0, 0.0
@@ -44,10 +41,8 @@ class Crossover:
             volume_ox = vol_cls * 1000  # converts liters to cm^3
 
         # amount added/subtracted from concentrations, units of deltas are mol/L
-        delta_red = (timestep * (self.p_red * self.membrane_constant / volume_red)
-                     * (c_red_cls - c_red_ncls))
-        delta_ox = (timestep * (self.p_ox * self.membrane_constant / volume_ox)
-                    * (c_ox_cls - c_ox_ncls))
+        delta_red = (timestep * (self.p_red * self.membrane_constant / volume_red) * (c_red_cls - c_red_ncls))
+        delta_ox = (timestep * (self.p_ox * self.membrane_constant / volume_ox) * (c_ox_cls - c_ox_ncls))
 
         # update concentrations based on permeation
         concentration_red_cls = c_red_cls - delta_red
@@ -60,3 +55,6 @@ class Crossover:
                 concentration_ox_ncls, concentration_red_ncls,
                 delta_ox, delta_red)
 
+
+if __name__ == '__main__':
+    print('testing')
