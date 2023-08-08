@@ -3,8 +3,9 @@
 from math import log
 import scipy.constants as spc
 from scipy.optimize import fsolve
-from zeroD_model_degradations import degradation_mechanism, DegradationMechanism
+from zeroD_model_degradations import DegradationMechanism #degradation_mechanism,
 from zeroD_model_crossover import crossover
+
 
 # Faraday constant (C/mol)
 F = spc.value('Faraday constant')
@@ -64,8 +65,8 @@ class ZeroDModel:
         If True, negolyte is the CLS.
     mechanism_list : list, optional
         List of degradation mechanisms to include in simulation.
-    mechanism_params : dict, optional
-        Parameters for mechanisms specified in `mechanism_list`.
+    ###### mechanism_params : dict, optional
+    #####    Parameters for mechanisms specified in `mechanism_list`.
     crossover_params : list, optional
         List of parameters for crossover mechanism.
 
@@ -84,7 +85,8 @@ class ZeroDModel:
                  cls_start_c_ox: float, cls_start_c_red: float, ncls_start_c_ox: float, ncls_start_c_red: float,
                  duration: int, time_increment: float, init_ocv: float, k_mt: float, roughness_factor: float,
                  k_0_cls: float, k_0_ncls: float, alpha_cls: float, alpha_ncls: float, cls_negolyte: bool = True,
-                 mechanism_list: list = None, mechanism_params: dict = None, crossover_params: list = None) -> None:
+                 #mechanism_list: DegradationMechanism = None, mechanism_params: dict = None, crossover_params: list = None) -> None:
+                 mechanism_list: DegradationMechanism = None, crossover_params: list = None) -> None:
         """Inits ZeroDModel"""
 
         self.geometric_area = geometric_area
@@ -104,8 +106,8 @@ class ZeroDModel:
         self.alpha_cls = alpha_cls
         self.alpha_ncls = alpha_ncls
         self.cls_negolyte = cls_negolyte
-        self.mechanism_list = mechanism_list
-        self.mechanism_params = mechanism_params
+        self.mechanism_list = mechanism_list  # need to rename
+        # self.mechanism_params = mechanism_params
         self.crossover_params = crossover_params
         self.const_i_ex = F * roughness_factor * self.geometric_area
         self.length_data = int(self.duration / self.time_increment)
@@ -342,8 +344,6 @@ class ZeroDModel:
                                                           *self.mechanism_list, **self.mechanism_params)
             """
             # testing abstract method class
-            #c_ox_cls, c_red_cls = NEW_DEG.degrade(c_ox_cls, c_red_cls, self.time_increment)
-            #c_ox_ncls, c_red_ncls = NEW_DEG.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
             c_ox_cls, c_red_cls = self.mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment)
             c_ox_ncls, c_red_ncls = self.mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
 
@@ -355,12 +355,18 @@ class ZeroDModel:
 
         # degradation AND crossover
         else:
+            """
             # CLS degradation
             c_ox_cls, c_red_cls = degradation_mechanism(c_ox_cls, c_red_cls, self.time_increment,
                                                         *self.mechanism_list, **self.mechanism_params)
             # NCLS degradation
             c_ox_ncls, c_red_ncls = degradation_mechanism(c_ox_ncls, c_red_ncls, self.time_increment,
                                                           *self.mechanism_list, **self.mechanism_params)
+            """
+            # testing abstract method class
+            c_ox_cls, c_red_cls = self.mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment)
+            c_ox_ncls, c_red_ncls = self.mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
+
             # crossover
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
              delta_red) = crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,

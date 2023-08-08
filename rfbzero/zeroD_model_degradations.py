@@ -21,7 +21,18 @@ class ChemicalDegradation(DegradationMechanism):
         self.species = species
 
     def degrade(self, conc_ox: float, conc_red: float, timestep: float) -> tuple[float, float]:
-        #pass
+        """
+
+        Parameters
+        ----------
+        conc_ox
+        conc_red
+        timestep
+
+        Returns
+        -------
+
+        """
         if self.rate == 0.0:
             return conc_ox, conc_red
 
@@ -46,6 +57,19 @@ class AutoOxidation(DegradationMechanism):
         return concentration_ox, concentration_red
 
 
+class AutoReduction(DegradationMechanism):
+    def __init__(self, rate: float):
+        self.rate = rate
+
+    def degrade(self, conc_ox: float, conc_red: float, timestep: float) -> tuple[float, float]:
+
+        delta_conc = timestep * self.rate * conc_ox
+
+        concentration_red = conc_red + delta_conc
+        concentration_ox = conc_ox - delta_conc
+        return concentration_ox, concentration_red
+
+
 class MultiDegradationMechanism(DegradationMechanism):
     def __init__(self, mechanisms: list[DegradationMechanism]):
         self.mechanisms = mechanisms
@@ -56,9 +80,7 @@ class MultiDegradationMechanism(DegradationMechanism):
 
         return conc_ox, conc_red
 
-#####################
-##################
-###############
+"""
 def degradation_mechanism(conc_ox, conc_red, timestep, *args, **kwargs):
     if not args:
         return conc_ox, conc_red
@@ -66,8 +88,7 @@ def degradation_mechanism(conc_ox, conc_red, timestep, *args, **kwargs):
     for func, params in zip(args, kwargs.values()):
         conc_ox, conc_red = func(conc_ox, conc_red, timestep, *params)
     return conc_ox, conc_red
-##############################################################################
-##############################################################################
+
 
 
 def chemical_degradation(conc_ox_t: float, conc_red_t: float, timestep: float, species: str = 'red',
@@ -106,7 +127,7 @@ def auto_reduction(conc_ox_t: float, conc_red_t: float, timestep: float,
     return concentration_ox, concentration_red
 
 
-"""
+
 def auto_red_test(conc_ox_t, conc_red_t, timestep, extra_ratio=1, rate=0):
     # assumes first order process: ox --> red
     delta_conc = timestep*rate*conc_ox_t*extra_ratio
