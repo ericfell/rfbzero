@@ -3,27 +3,29 @@
 DEGRADATION FUNCTIONS CALLED BY ZeroDmodel CLASS
 """
 
-
 from abc import ABC, abstractmethod
 
 
 class DegradationMechanism(ABC):
     @abstractmethod
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, timestep: float, is_cls: bool) -> tuple[float, float]:
         raise NotImplementedError
 
 
 class ChemicalDegradation(DegradationMechanism):
     """
-
+    to-do
     """
 
-    def __init__(self, rate_order: int, rate: float, species: str = 'red'):
+    def __init__(self, rate_order: int, rate: float, species: str = 'red', reservoir: str = 'both'):
         self.rate_order = rate_order
         self.rate = rate
         self.species = species
+        self.reservoir = reservoir
+        if self.reservoir not in ['both', 'cls', 'ncls']:
+            raise ValueError("Options: 'both', 'cls', or 'ncls' ")
 
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, timestep: float, is_cls: bool) -> tuple[float, float]:
         """
         nth order chemical degradation of n[species] --> [redox-inactive species]
 
@@ -32,12 +34,14 @@ class ChemicalDegradation(DegradationMechanism):
         c_ox
         c_red
         timestep
+        is_cls
 
         Returns
         -------
 
         """
-        if self.rate == 0.0:
+        # checks if degradation is applied to ClS, NCLS, or both reservoirs
+        if (self.reservoir == 'cls' and not is_cls) or (self.reservoir == 'ncls' and is_cls):
             return c_ox, c_red
 
         if self.species == 'red':
@@ -49,11 +53,22 @@ class ChemicalDegradation(DegradationMechanism):
 
 
 class AutoOxidation(DegradationMechanism):
-    def __init__(self, rate: float):
+    """
+    to-dos
+    """
+    def __init__(self, rate: float, reservoir: str = 'both'):
         self.rate = rate
+        self.reservoir = reservoir
+        if self.reservoir not in ['both', 'cls', 'ncls']:
+            raise ValueError("Options: 'both', 'cls', or 'ncls' ")
 
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, timestep: float, is_cls: bool) -> tuple[float, float]:
         """assumes first order process: red --> ox"""
+        # checks if degradation is applied to ClS, NCLS, or both reservoirs
+
+        if (self.reservoir == 'cls' and not is_cls) or (self.reservoir == 'ncls' and is_cls):
+            return c_ox, c_red
+
         delta_concentration = timestep * self.rate * c_red
 
         concentration_red = c_red - delta_concentration
@@ -62,11 +77,22 @@ class AutoOxidation(DegradationMechanism):
 
 
 class AutoReduction(DegradationMechanism):
-    def __init__(self, rate: float):
+    """
+    to-dos
+    """
+    def __init__(self, rate: float, reservoir: str = 'both'):
         self.rate = rate
+        self.reservoir = reservoir
+        if self.reservoir not in ['both', 'cls', 'ncls']:
+            raise ValueError("Options: 'both', 'cls', or 'ncls' ")
 
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, timestep: float, is_cls: bool) -> tuple[float, float]:
         """assumes first order process: ox --> red"""
+        # checks if degradation is applied to ClS, NCLS, or both reservoirs
+
+        if (self.reservoir == 'cls' and not is_cls) or (self.reservoir == 'ncls' and is_cls):
+            return c_ox, c_red
+
         delta_concentration = timestep * self.rate * c_ox
 
         concentration_red = c_red + delta_concentration
@@ -75,24 +101,22 @@ class AutoReduction(DegradationMechanism):
 
 
 class MultiDegradationMechanism(DegradationMechanism):
+    """
+    to-dos
+    """
     def __init__(self, mechanisms: list[DegradationMechanism]):
         self.mechanisms = mechanisms
 
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, timestep: float, is_cls: bool) -> tuple[float, float]:
+
         for mechanism in self.mechanisms:
-            c_ox, c_red = mechanism.degrade(c_ox, c_red, timestep)
+            c_ox, c_red = mechanism.degrade(c_ox, c_red, timestep, is_cls)
 
         return c_ox, c_red
 
+
 """
-def degradation_mechanism(conc_ox, conc_red, timestep, *args, **kwargs):
-    if not args:
-        return conc_ox, conc_red
-
-    for func, params in zip(args, kwargs.values()):
-        conc_ox, conc_red = func(conc_ox, conc_red, timestep, *params)
-    return conc_ox, conc_red
-
+# to-dos
 def auto_red_test(conc_ox_t, conc_red_t, timestep, extra_ratio=1, rate=0):
     # assumes first order process: ox --> red
     delta_conc = timestep*rate*conc_ox_t*extra_ratio
