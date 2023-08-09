@@ -2,6 +2,7 @@ from zeroD_model_1e_vs_1e import ZeroDModel as single_e
 import matplotlib.pyplot as plt
 from zeroD_model_degradations import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism
 from zeroD_model_crossover import Crossover
+from cycle_protocol import ConstantCurrent, ConstantCurrentConstantVoltage
 
 CLS_start_conc_ox = 0.01
 CLS_start_conc_red = 0.01
@@ -20,7 +21,7 @@ voltage_limit_discharge = 0.6 #-0.4
 current = 0.3
 kmt = 0.8
 
-resistance = 1.0
+resistance = 2.0
 k_species = 2.2e-3
 duration = 5000
 ######################################
@@ -35,22 +36,39 @@ crossover_f = Crossover(membrane_constant=membrane_c, permeability_ox=p_ox, perm
 
 ## testing of abstract method classes
 
-test_fade = ChemicalDegradation(rate_order=1, rate=9e-5, species='red')
-test_fade2 = AutoOxidation(rate=9e-5)
-mechanism_list = test_fade
-mechanism_list2 = MultiDegradationMechanism([test_fade2, test_fade]) # maybe have multi do *args
+test_f1 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
+test_f2 = AutoOxidation(rate=9e-5)
+mechanism_list = test_f1
+mechanism_list2 = MultiDegradationMechanism([test_f2, test_f1]) # maybe have multi do *args
 ###############################
 
 # setup cycling procedure
 setup = single_e(area, resistance, CLS_vol, NCLS_vol, CLS_start_conc_ox, CLS_start_conc_red, NCLS_start_conc_ox,
-                 NCLS_start_conc_red, duration, t_step, E_redox, kmt, rough, k_species, k_species, 0.5, 0.5,True,
-                 mechanism_list=mechanism_list2, crossover_params=crossover_f)
+                 NCLS_start_conc_red, duration, t_step, E_redox, kmt, rough, k_species, k_species, 0.5, 0.5,True,)
+#                 mechanism_list=mechanism_list2, crossover_params=crossover_f)
+"""
+bbb = ConstantCurrent(voltage_cutoff_charge=voltage_limit_charge, voltage_cutoff_discharge=voltage_limit_discharge,
+                      current=current, charge_first=True)
+"""
+bbb = ConstantCurrentConstantVoltage(voltage_limit_charge=voltage_limit_charge,
+                                     voltage_limit_discharge=voltage_limit_discharge,
+                                     current_cutoff_charge=0.005, current_cutoff_discharge=-0.005,
+                                     current=current, charge_first=True)
 
+(current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile,
+ cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times, act_profile,
+ mt_profile, loss_profile, del_ox, del_red,
+ ) = bbb.run(cell_model=setup, degradation=test_f1)#, crossover_params=crossover_f)
+
+
+"""
 (current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile,
  cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times,  act_profile,
  mt_profile, loss_profile, del_ox, del_red,
 ) = setup.cc_experiment(voltage_limit_charge, voltage_limit_discharge, current, True)
 #) = setup.CCCV_experiment(voltage_limit_charge, voltage_limit_discharge, 0.005, -0.005,current, True)
+"""
+
 
 #print(len(current_profile))
 print(cycle_capacity[:5])

@@ -2,7 +2,7 @@
 
 from math import log
 import scipy.constants as spc
-from scipy.optimize import fsolve
+#from scipy.optimize import fsolve
 from zeroD_model_degradations import DegradationMechanism
 from zeroD_model_crossover import Crossover
 
@@ -83,7 +83,8 @@ class ZeroDModel:
                  cls_start_c_ox: float, cls_start_c_red: float, ncls_start_c_ox: float, ncls_start_c_red: float,
                  duration: int, time_increment: float, init_ocv: float, k_mt: float, roughness_factor: float,
                  k_0_cls: float, k_0_ncls: float, alpha_cls: float, alpha_ncls: float, cls_negolyte: bool = True,
-                 mechanism_list: DegradationMechanism = None, crossover_params: Crossover = None) -> None:
+                 ) -> None:
+        #         mechanism_list: DegradationMechanism = None, crossover_params: Crossover = None) -> None:
         """Inits ZeroDModel"""
 
         self.geometric_area = geometric_area
@@ -103,8 +104,8 @@ class ZeroDModel:
         self.alpha_cls = alpha_cls
         self.alpha_ncls = alpha_ncls
         self.cls_negolyte = cls_negolyte
-        self.mechanism_list = mechanism_list
-        self.crossover_params = crossover_params
+        #self.mechanism_list = mechanism_list
+        #self.crossover_params = crossover_params
         self.const_i_ex = F * roughness_factor * self.geometric_area
         self.length_data = int(self.duration / self.time_increment)
         self.times = [x*self.time_increment for x in range(1, self.length_data + 1)]
@@ -112,6 +113,9 @@ class ZeroDModel:
               f"{self.length_data} total datapoints")
 
     # option for just measuring capacity over time, doesn't need to make all arrays?
+    def starting_concentrations(self):
+        return (self.cls_start_c_ox, self.cls_start_c_red,
+                self.ncls_start_c_ox, self.ncls_start_c_red)
 
     @staticmethod
     def _current_direction(charge: bool) -> int:
@@ -305,8 +309,11 @@ class ZeroDModel:
         """If charging, add overpotentials to OCV, else subtract them."""
         return ocv + losses if charge else ocv - losses
 
+    #def coulomb_counter(self, current: float, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float,
+    #                    c_red_ncls: float) -> tuple[float, float, float, float, float, float]:
     def coulomb_counter(self, current: float, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float,
-                        c_red_ncls: float) -> tuple[float, float, float, float, float, float]:
+                        c_red_ncls: float,
+                        mechanism_list: DegradationMechanism = None, crossover_params: Crossover = None) -> tuple[float, float, float, float, float, float]:
 
         direction = 1 if self.cls_negolyte else -1
         delta_cls = ((self.time_increment * current) / (F * self.cls_volume)) * direction
@@ -326,33 +333,33 @@ class ZeroDModel:
         # Now consider effects of user-input degradations and/or crossover
 
         # no degradation / no crossover
-        if (self.mechanism_list is None) and (self.crossover_params is None):
+        if (mechanism_list is None) and (crossover_params is None):
             pass
 
         # degradation / no crossover
-        elif (self.mechanism_list is not None) and (self.crossover_params is None):
+        elif (mechanism_list is not None) and (crossover_params is None):
             # possible CLS degradation
-            c_ox_cls, c_red_cls = self.mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment)
+            c_ox_cls, c_red_cls = mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment)
             # possible NCLS degradation
-            c_ox_ncls, c_red_ncls = self.mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
+            c_ox_ncls, c_red_ncls = mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
 
         # no degradation / crossover
-        elif (self.mechanism_list is None) and (self.crossover_params is not None):
+        elif (mechanism_list is None) and (crossover_params is not None):
             # possible crossover mechanism
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = self.crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
+             delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
                                                           self.time_increment, self.cls_volume, self.ncls_volume)
 
         # degradation AND crossover
         else:
             # possible CLS degradation
-            c_ox_cls, c_red_cls = self.mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment)
+            c_ox_cls, c_red_cls = mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment)
             # possible NCLS degradation
-            c_ox_ncls, c_red_ncls = self.mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
+            c_ox_ncls, c_red_ncls = mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
 
             # possible crossover mechanism
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = self.crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
+             delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
                                                           self.time_increment, self.cls_volume, self.ncls_volume)
 
         return c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox, delta_red
@@ -376,7 +383,7 @@ class ZeroDModel:
 
 
     ##### Section: Cycling models
-
+"""
     def cc_experiment(self, voltage_cutoff_charge: float, voltage_cutoff_discharge: float,
                       current: float, charge_first: bool) -> object: # edit the return type soon
 
@@ -839,7 +846,7 @@ class ZeroDModel:
                 cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times,
                 act_profile, mt_profile, loss_profile, del_ox, del_red)
 
-
+"""
 if __name__ == '__main__':
     print('testing')           
         
