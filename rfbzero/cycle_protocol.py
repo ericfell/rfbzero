@@ -11,6 +11,8 @@ class CyclingProtocol(ABC):
     @abstractmethod
     def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
+            cls_degradation: DegradationMechanism = None,
+            ncls_degradation: DegradationMechanism = None,
             crossover_params: Crossover = None,
             ) -> object:
         raise NotImplementedError
@@ -24,10 +26,27 @@ class ConstantCurrent(CyclingProtocol):
         self.voltage_cutoff_discharge = voltage_cutoff_discharge
         self.current = current
         self.charge_first = charge_first
-
+    """
     def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
             crossover_params: Crossover = None) -> object:
+    """
+    def run(self, duration: int, cell_model: ZeroDModel,
+            degradation: DegradationMechanism = None,
+            cls_degradation: DegradationMechanism = None,
+            ncls_degradation: DegradationMechanism = None,
+            crossover_params: Crossover = None) -> object:
+
+        # new part
+        if degradation and (cls_degradation or ncls_degradation):
+            raise ValueError("Cannot specify both 'degradation' and '(n)cls_degradation'")
+
+        if degradation:
+            cls_degradation = degradation
+            ncls_degradation = degradation
+        #elif not cls_degradation or not ncls_degradation:
+        #    raise ValueError("Both need to be specified")
+
 
         (cls_start_c_ox, cls_start_c_red,
          ncls_start_c_ox, ncls_start_c_red) = cell_model.starting_concentrations()
@@ -90,7 +109,7 @@ class ConstantCurrent(CyclingProtocol):
              concentration_ox_NCLS,
              concentration_red_NCLS,
              delta_ox, delta_red) = cell_model.coulomb_counter(i, conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS,
-                                                         conc_red_now_NCLS, degradation, crossover_params)
+                                                         conc_red_now_NCLS, cls_degradation, ncls_degradation, crossover_params)
 
             # EDGE CASE where voltage limits never reached i.e straight CC cycling until concentration runs out
             if cell_model._negative_concentrations(concentration_ox_CLS, concentration_red_CLS,
@@ -204,9 +223,19 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         self.current = current
         self.charge_first = charge_first
 
-    def run(self,  duration: int, cell_model: ZeroDModel,
+    def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
+            cls_degradation: DegradationMechanism = None,  # new
+            ncls_degradation: DegradationMechanism = None,  # new
             crossover_params: Crossover = None) -> object:
+
+        # new part
+        if degradation and (cls_degradation or ncls_degradation):
+            raise ValueError("Cannot specify both 'degradation' and '(n)cls_degradation'")
+
+        if degradation:
+            cls_degradation = degradation
+            ncls_degradation = degradation
 
         (cls_start_c_ox, cls_start_c_red,
          ncls_start_c_ox, ncls_start_c_red) = cell_model.starting_concentrations()
@@ -280,7 +309,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                  concentration_ox_NCLS,
                  concentration_red_NCLS,
                  delta_ox, delta_red) = cell_model.coulomb_counter(i, conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS,
-                                                             conc_red_now_NCLS, degradation, crossover_params)
+                                                             conc_red_now_NCLS, cls_degradation, ncls_degradation, crossover_params)
 
                 # EDGE CASE where voltage limits never reached i.e straight CC cycling
                 if cell_model._negative_concentrations(concentration_ox_CLS, concentration_red_CLS,
@@ -443,7 +472,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                  concentration_ox_NCLS,
                  concentration_red_NCLS,
                  delta_ox, delta_red) = cell_model.coulomb_counter(i_CV, conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS,
-                                                             conc_red_now_NCLS, degradation, crossover_params)
+                                                             conc_red_now_NCLS, cls_degradation, ncls_degradation, crossover_params)
 
                 # check if any reactant remains
                 if cell_model._negative_concentrations(concentration_ox_CLS, concentration_red_CLS,

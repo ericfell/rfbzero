@@ -292,9 +292,17 @@ class ZeroDModel:
         """If charging, add overpotentials to OCV, else subtract them."""
         return ocv + losses if charge else ocv - losses
 
+    """
     def coulomb_counter(self, current: float, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float,
                         mechanism_list: DegradationMechanism = None,
                         crossover_params: Crossover = None) -> tuple[float, float, float, float, float, float]:
+    """
+
+    def coulomb_counter(self, current: float, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float,
+                        cls_degradation: DegradationMechanism = None,
+                        ncls_degradation: DegradationMechanism = None,
+                        crossover_params: Crossover = None) -> tuple[float, float, float, float, float, float]:
+
 
         direction = 1 if self.cls_negolyte else -1
         delta_cls = ((self.time_increment * current) / (F * self.cls_volume)) * direction
@@ -314,18 +322,46 @@ class ZeroDModel:
         # Now consider effects of user-input degradations and/or crossover
 
         # no degradation / no crossover
-        if (mechanism_list is None) and (crossover_params is None):
-            pass
+        #if (mechanism_list is None) and (crossover_params is None):
+        #if (cls_degradation is None) and (ncls_degradation is None) and (crossover_params is None):
+        #if all(a is None for a in [cls_degradation, ncls_degradation, crossover_params]):
+        #    pass
 
+        #else:
+        if cls_degradation:
+            c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
+
+        if ncls_degradation:
+            c_ox_ncls, c_red_ncls = ncls_degradation.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
+
+        if crossover_params:
+            (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
+             delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
+                                                     self.time_increment,
+                                                     self.cls_volume, self.ncls_volume)
+
+
+
+
+        """
         # degradation / no crossover
-        elif (mechanism_list is not None) and (crossover_params is None):
+        #elif (mechanism_list is not None) and (crossover_params is None):
+        elif ((cls_degradation is not None) or (ncls_degradation is not None)) and (crossover_params is None):
             # possible CLS degradation
+            ""
             c_ox_cls, c_red_cls = mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment, True)
             # possible NCLS degradation
             c_ox_ncls, c_red_ncls = mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment, False)
+            ""
+            if cls_degradation:
+                c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
+            # possible NCLS degradation
+            if ncls_degradation:
+                c_ox_ncls, c_red_ncls = ncls_degradation.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
 
         # no degradation / crossover
-        elif (mechanism_list is None) and (crossover_params is not None):
+        #elif (mechanism_list is None) and (crossover_params is not None):
+        elif (cls_degradation is None) and (ncls_degradation is None) and (crossover_params is not None):
             # possible crossover mechanism
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
              delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,
@@ -334,15 +370,23 @@ class ZeroDModel:
         # degradation AND crossover
         else:
             # possible CLS degradation
+            ""
             c_ox_cls, c_red_cls = mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment, True)
             # possible NCLS degradation
             c_ox_ncls, c_red_ncls = mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment, False)
+            ""
+            c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
+            # possible NCLS degradation
+            c_ox_ncls, c_red_ncls = ncls_degradation.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
+
+
+
 
             # possible crossover mechanism
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
              delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,
                                                      self.cls_volume, self.ncls_volume)
-
+        """
         return c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox, delta_red
 
     @staticmethod
