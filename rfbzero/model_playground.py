@@ -2,7 +2,7 @@ from zeroD_model_1e_vs_1e import ZeroDModel as battery
 import matplotlib.pyplot as plt
 from zeroD_model_degradations import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism
 from zeroD_model_crossover import Crossover
-from cycle_protocol import ConstantCurrent, ConstantCurrentConstantVoltage
+from cycle_protocol import ConstantCurrent#, ConstantCurrentConstantVoltage
 
 CLS_start_conc_ox = 0.01
 CLS_start_conc_red = 0.01
@@ -39,7 +39,7 @@ setup = battery(CLS_vol, NCLS_vol,
                 k_species, k_species)
 
 # define degradation mechanisms
-test_f1 = ChemicalDegradation(rate_order=1, rate=20e-5, species='red')
+test_f1 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
 test_f2 = AutoOxidation(rate=9e-5)
 test_f3 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
 test_f4 = MultiDegradationMechanism([test_f1, test_f2]) # maybe have multi do *args
@@ -61,8 +61,8 @@ bbb = ConstantCurrentConstantVoltage(voltage_limit_charge=voltage_limit_charge,
  mt_profile, loss_profile, del_ox, del_red,
 ) = bbb.run(cell_model=setup,
             #cls_degradation=test_f4,
-            degradation=test_f1,
-            #ncls_degradation=test_f1,
+            #degradation=test_f4,
+            ncls_degradation=test_f4,
             #crossover_params=crossover_f,
             duration=5000)
 
