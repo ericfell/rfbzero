@@ -101,7 +101,7 @@ class ZeroDModel:
         return self.cls_start_c_ox, self.cls_start_c_red, self.ncls_start_c_ox, self.ncls_start_c_red
 
     @staticmethod
-    def _current_direction(charge: bool) -> int:
+    def current_direction(charge: bool) -> int:
         """Make current positive for charge, negative for discharge"""
         return 1 if charge else -1
 
@@ -183,7 +183,7 @@ class ZeroDModel:
         return n_act
 
     @staticmethod
-    def _negative_concentrations(c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float) -> bool:
+    def negative_concentrations(c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float) -> bool:
         """Return True if any concentration is negative"""
         return any(x < 0.0 for x in [c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls])
 
@@ -208,7 +208,7 @@ class ZeroDModel:
 
         """
         # Raise ValueError if a negative concentration is detected
-        if ZeroDModel._negative_concentrations(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls):
+        if ZeroDModel.negative_concentrations(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls):
             raise ValueError('Negative concentration detected')
 
         c_tot_cls = c_red_cls + c_ox_cls
@@ -255,7 +255,7 @@ class ZeroDModel:
 
         return n_loss, n_act, n_mt
 
-    def nernst_OCV_full(self, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float) -> float:
+    def nernst_ocv_full(self, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float) -> float:
         """
         This is equivalent to equation 3 of [1].
 
@@ -272,7 +272,7 @@ class ZeroDModel:
         """
 
         # Raise ValueError if a negative concentration is detected
-        if ZeroDModel._negative_concentrations(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls):
+        if ZeroDModel.negative_concentrations(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls):
             raise ValueError('Negative concentration detected')
 
         # will need n_electrons input
@@ -288,30 +288,23 @@ class ZeroDModel:
         return ocv
 
     @staticmethod
-    def _cell_voltage(ocv: float, losses: float, charge: bool) -> float:
+    def cell_voltage(ocv: float, losses: float, charge: bool) -> float:
         """If charging, add overpotentials to OCV, else subtract them."""
         return ocv + losses if charge else ocv - losses
-
-    """
-    def coulomb_counter(self, current: float, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float,
-                        mechanism_list: DegradationMechanism = None,
-                        crossover_params: Crossover = None) -> tuple[float, float, float, float, float, float]:
-    """
 
     def coulomb_counter(self, current: float, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float,
                         cls_degradation: DegradationMechanism = None,
                         ncls_degradation: DegradationMechanism = None,
                         crossover_params: Crossover = None) -> tuple[float, float, float, float, float, float]:
 
-
+        # Coulomb counting based solely on current
         direction = 1 if self.cls_negolyte else -1
         delta_cls = ((self.time_increment * current) / (F * self.cls_volume)) * direction
         delta_ncls = ((self.time_increment * current) / (F * self.ncls_volume)) * direction
 
-        # update CLS concentrations
+        # update CLS and NCLS concentrations
         c_ox_cls = c_ox_cls - delta_cls
         c_red_cls = c_red_cls + delta_cls
-        # update NCLS concentrations
         c_ox_ncls = c_ox_ncls + delta_ncls
         c_red_ncls = c_red_ncls - delta_ncls
 
@@ -319,78 +312,24 @@ class ZeroDModel:
         delta_ox = 0.0
         delta_red = 0.0
 
-        # Now consider effects of user-input degradations and/or crossover
+        # Coulomb counting from optional degradation/crossover mechanisms
 
-        # no degradation / no crossover
-        #if (mechanism_list is None) and (crossover_params is None):
-        #if (cls_degradation is None) and (ncls_degradation is None) and (crossover_params is None):
-        #if all(a is None for a in [cls_degradation, ncls_degradation, crossover_params]):
-        #    pass
-
-        #else:
-        if cls_degradation:
+        if cls_degradation is not None:
             c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
 
-        if ncls_degradation:
+        if ncls_degradation is not None:
             c_ox_ncls, c_red_ncls = ncls_degradation.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
 
-        if crossover_params:
+        if crossover_params is not None:
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
              delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
                                                      self.time_increment,
                                                      self.cls_volume, self.ncls_volume)
 
-
-
-
-        """
-        # degradation / no crossover
-        #elif (mechanism_list is not None) and (crossover_params is None):
-        elif ((cls_degradation is not None) or (ncls_degradation is not None)) and (crossover_params is None):
-            # possible CLS degradation
-            ""
-            c_ox_cls, c_red_cls = mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment, True)
-            # possible NCLS degradation
-            c_ox_ncls, c_red_ncls = mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment, False)
-            ""
-            if cls_degradation:
-                c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
-            # possible NCLS degradation
-            if ncls_degradation:
-                c_ox_ncls, c_red_ncls = ncls_degradation.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
-
-        # no degradation / crossover
-        #elif (mechanism_list is None) and (crossover_params is not None):
-        elif (cls_degradation is None) and (ncls_degradation is None) and (crossover_params is not None):
-            # possible crossover mechanism
-            (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,
-                                                     self.cls_volume, self.ncls_volume)
-
-        # degradation AND crossover
-        else:
-            # possible CLS degradation
-            ""
-            c_ox_cls, c_red_cls = mechanism_list.degrade(c_ox_cls, c_red_cls, self.time_increment, True)
-            # possible NCLS degradation
-            c_ox_ncls, c_red_ncls = mechanism_list.degrade(c_ox_ncls, c_red_ncls, self.time_increment, False)
-            ""
-            c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
-            # possible NCLS degradation
-            c_ox_ncls, c_red_ncls = ncls_degradation.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
-
-
-
-
-            # possible crossover mechanism
-            (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,
-                                                     self.cls_volume, self.ncls_volume)
-        """
         return c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox, delta_red
 
     @staticmethod
-    def _soc(c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float) -> tuple[float, float]:
+    def soc(c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float) -> tuple[float, float]:
         """Calculate state-of-charge in each reservoir"""
         soc_cls = (c_red_cls / (c_ox_cls + c_red_cls)) * 100
         # this could be defined differently i.e., cell vs reservoir definition of SOC

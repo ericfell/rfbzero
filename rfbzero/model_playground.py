@@ -1,4 +1,4 @@
-from zeroD_model_1e_vs_1e import ZeroDModel as single_e
+from zeroD_model_1e_vs_1e import ZeroDModel as battery
 import matplotlib.pyplot as plt
 from zeroD_model_degradations import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism
 from zeroD_model_crossover import Crossover
@@ -31,20 +31,23 @@ crossover_f = Crossover(membrane_constant=membrane_c, permeability_ox=p_ox, perm
 ## testing of abstract method classes
 
 
-# define the cell design parameters
-setup = single_e(CLS_vol, NCLS_vol, CLS_start_conc_ox, CLS_start_conc_red, NCLS_start_conc_ox,
-                 NCLS_start_conc_red, E_redox, resistance, k_species, k_species)
+# define the battery design parameters
+setup = battery(CLS_vol, NCLS_vol,
+                CLS_start_conc_ox, CLS_start_conc_red,
+                NCLS_start_conc_ox, NCLS_start_conc_red,
+                E_redox, resistance,
+                k_species, k_species)
 
 # define degradation mechanisms
-test_f1 = ChemicalDegradation(rate_order=1, rate=60e-5, species='red')#, reservoir='cls')
+test_f1 = ChemicalDegradation(rate_order=1, rate=20e-5, species='red')
 test_f2 = AutoOxidation(rate=9e-5)
-test_f3 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')#, reservoir='ncls')
-mechanism_list = test_f1
-mechanism_list2 = MultiDegradationMechanism([test_f1, test_f3]) # maybe have multi do *args
+test_f3 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
+test_f4 = MultiDegradationMechanism([test_f1, test_f2]) # maybe have multi do *args
 
 # define cycling protocol and run based on defined cell and optional degradations
 
-bbb = ConstantCurrent(voltage_cutoff_charge=voltage_limit_charge, voltage_cutoff_discharge=voltage_limit_discharge,
+bbb = ConstantCurrent(voltage_cutoff_charge=voltage_limit_charge,
+                      voltage_cutoff_discharge=voltage_limit_discharge,
                       current=current)
 """
 bbb = ConstantCurrentConstantVoltage(voltage_limit_charge=voltage_limit_charge,
@@ -56,15 +59,12 @@ bbb = ConstantCurrentConstantVoltage(voltage_limit_charge=voltage_limit_charge,
 (current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile,
  cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times, act_profile,
  mt_profile, loss_profile, del_ox, del_red,
-#) = bbb.run(cell_model=setup, degradation=mechanism_list2, duration=6000)#, crossover_params=crossover_f)
 ) = bbb.run(cell_model=setup,
-            cls_degradation=test_f1,
-            #degradation=test_f1,
+            #cls_degradation=test_f4,
+            degradation=test_f1,
             #ncls_degradation=test_f1,
             #crossover_params=crossover_f,
-            duration=6000)
-# options of cls_degradation, ncls_degradation, degradation
-
+            duration=5000)
 
 
 ##### PLOTTING BELOW ################
