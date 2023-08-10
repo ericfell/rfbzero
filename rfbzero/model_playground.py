@@ -1,7 +1,8 @@
-from zeroD_model_1e_vs_1e import ZeroDModel as single_e
+from zeroD_model_1e_vs_1e import ZeroDModel as battery
 import matplotlib.pyplot as plt
 from zeroD_model_degradations import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism
 from zeroD_model_crossover import Crossover
+from cycle_protocol import ConstantCurrent, ConstantCurrentConstantVoltage
 
 CLS_start_conc_ox = 0.01
 CLS_start_conc_red = 0.01
@@ -10,20 +11,14 @@ NCLS_start_conc_red = 0.01
 area = 5.0
 CLS_vol = 0.01
 NCLS_vol = 0.050
-#CLS_nego = False
-t_step = 0.01
 E_redox = 1.0
-rough = 26
 #
 voltage_limit_charge = 1.4 #0.4
 voltage_limit_discharge = 0.6 #-0.4
 current = 0.3
-kmt = 0.8
 
 resistance = 1.0
 k_species = 2.2e-3
-duration = 5000
-######################################
 
 
 # for crossover
@@ -35,24 +30,44 @@ crossover_f = Crossover(membrane_constant=membrane_c, permeability_ox=p_ox, perm
 
 ## testing of abstract method classes
 
-test_fade = ChemicalDegradation(rate_order=1, rate=9e-5, species='red')
-test_fade2 = AutoOxidation(rate=9e-5)
-mechanism_list = test_fade
-mechanism_list2 = MultiDegradationMechanism([test_fade2, test_fade]) # maybe have multi do *args
-###############################
 
-# setup cycling procedure
-setup = single_e(area, resistance, CLS_vol, NCLS_vol, CLS_start_conc_ox, CLS_start_conc_red, NCLS_start_conc_ox,
-                 NCLS_start_conc_red, duration, t_step, E_redox, kmt, rough, k_species, k_species, 0.5, 0.5,True,
-                 mechanism_list=mechanism_list2, crossover_params=crossover_f)
+# define the battery design parameters
+setup = battery(CLS_vol, NCLS_vol,
+                CLS_start_conc_ox, CLS_start_conc_red,
+                NCLS_start_conc_ox, NCLS_start_conc_red,
+                E_redox, resistance,
+                k_species, k_species)
 
+# define degradation mechanisms
+test_f1 = ChemicalDegradation(rate_order=1, rate=20e-5, species='red')
+test_f2 = AutoOxidation(rate=9e-5)
+test_f3 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
+test_f4 = MultiDegradationMechanism([test_f1, test_f2]) # maybe have multi do *args
+
+# define cycling protocol and run based on defined cell and optional degradations
+
+bbb = ConstantCurrent(voltage_cutoff_charge=voltage_limit_charge,
+                      voltage_cutoff_discharge=voltage_limit_discharge,
+                      current=current)
+"""
+bbb = ConstantCurrentConstantVoltage(voltage_limit_charge=voltage_limit_charge,
+                                     voltage_limit_discharge=voltage_limit_discharge,
+                                     current_cutoff_charge=0.005, current_cutoff_discharge=-0.005,
+                                     current=current)
+"""
+# run based on defined cell and optional degradations
 (current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile,
- cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times,  act_profile,
+ cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times, act_profile,
  mt_profile, loss_profile, del_ox, del_red,
-) = setup.cc_experiment(voltage_limit_charge, voltage_limit_discharge, current, True)
-#) = setup.CCCV_experiment(voltage_limit_charge, voltage_limit_discharge, 0.005, -0.005,current, True)
+) = bbb.run(cell_model=setup,
+            #cls_degradation=test_f4,
+            degradation=test_f1,
+            #ncls_degradation=test_f1,
+            #crossover_params=crossover_f,
+            duration=5000)
 
-#print(len(current_profile))
+
+##### PLOTTING BELOW ################
 print(cycle_capacity[:5])
 
 
