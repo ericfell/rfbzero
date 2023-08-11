@@ -14,7 +14,7 @@ R = spc.R
 
 # make these parameters at some point?
 TEMPERATURE = 298  # Kelvins, for S.T.P.
-NERNST_CONST = (R*TEMPERATURE) / F  # should have n_electrons input option
+NERNST_CONST = (R * TEMPERATURE) / F  # should have n_electrons input option
 
 
 class ZeroDModel:
@@ -97,34 +97,17 @@ class ZeroDModel:
         self.const_i_ex = F * roughness_factor * self.geometric_area
 
     # option for just measuring capacity over time, doesn't need to make all arrays?
-    #def starting_concentrations(self): # don't need, in the end...
-    #    return self.c_ox_cls, self.c_red_cls, self.c_ox_ncls, self.c_red_ncls
 
     @staticmethod
     def current_direction(charge: bool) -> int:
         """Make current positive for charge, negative for discharge"""
         return 1 if charge else -1
 
-    #def i_exchange_current(self, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float,
-    #                       c_red_ncls: float) -> tuple[float, float]:
-    def i_exchange_current(self) -> tuple[float, float]:
+    def _exchange_current(self) -> tuple[float, float]:
         """
-        Calculates exchange current of redox couples in the CLS and NCLS.
+        Calculates exchange current (i_0) of redox couples in the CLS and NCLS.
+        Value returned is in Amps.
 
-        Parameters
-        ----------
-        c_ox_cls: float
-            Concentration of oxidized species in CLS
-             at a given timestep (M).
-        c_red_cls: float
-            Concentration of reduced species in CLS
-             at a given timestep (M).
-        c_ox_ncls: float
-            Concentration of oxidized species in NCLS
-             at a given timestep (M).
-        c_red_ncls: float
-            Concentration of reduced species in NCLS
-             at a given timestep (M).
 
         Returns
         -------
@@ -143,29 +126,28 @@ class ZeroDModel:
                     * (self.c_ox_ncls ** (1 - self.alpha_ncls)) * 0.001)
         return i_0_cls, i_0_ncls
 
-    def i_limiting(self, c_lim: float) -> float:
-        """Calculates limiting current for a single reservoir.
+    def _limiting_current(self, c_lim: float) -> float:
+        """Calculates limiting current (i_lim) for a single reservoir.
+        Value returned is in Amps.
         This is equation 6 of [1].
         """
         # div by 1000 for conversion from mol/L to mol/cm^3
         # will require n electrons param
         return F * self.k_mt * c_lim * self.geometric_area * 0.001
 
-    #def limiting_reactant_selector(self, charge: bool, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float,
-    #                               c_red_ncls: float) -> tuple[float, float]:
-    def limiting_reactant_selector(self, charge: bool) -> tuple[float, float]:
+    def limiting_concentration(self, charge: bool) -> tuple[float, float]:
         """Selects limiting concentration and calculates limiting current for CLS and NCLS."""
         if (self.cls_negolyte and charge) or (not self.cls_negolyte and not charge):
-            i_lim_cls = self.i_limiting(self.c_ox_cls)
-            i_lim_ncls = self.i_limiting(self.c_red_ncls)
+            i_lim_cls = self._limiting_current(self.c_ox_cls)
+            i_lim_ncls = self._limiting_current(self.c_red_ncls)
         else:
-            i_lim_cls = self.i_limiting(self.c_red_cls)
-            i_lim_ncls = self.i_limiting(self.c_ox_ncls)
+            i_lim_cls = self._limiting_current(self.c_red_cls)
+            i_lim_ncls = self._limiting_current(self.c_ox_ncls)
 
         return i_lim_cls, i_lim_ncls
 
     @staticmethod
-    def n_activation(current: float, i_0_cls: float, i_0_ncls: float) -> float:
+    def _activation_overpotential(current: float, i_0_cls: float, i_0_ncls: float) -> float:
         """
         This is equation 4 of [1].
         Parameters
@@ -184,19 +166,11 @@ class ZeroDModel:
         n_act = NERNST_CONST * (log(z_ncls + ((z_ncls**2) + 1)**0.5) + log(z_cls + ((z_cls**2) + 1)**0.5))
         return n_act
 
-    """
-    @staticmethod
-    def negative_concentrations(c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float) -> bool:
-        ""Return True if any concentration is negative""
-        return any(x < 0.0 for x in [c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls])
-    """
     def negative_concentrations(self) -> bool:
         """Return True if any concentration is negative"""
         return any(x < 0.0 for x in [self.c_ox_cls, self.c_red_cls, self.c_ox_ncls, self.c_red_ncls])
 
-    #def n_mass_transport(self, charge: bool, current: float, c_ox_cls: float, c_red_cls: float,
-    #                     c_ox_ncls: float, c_red_ncls: float, i_lim_cls: float, i_lim_ncls: float) -> float:
-    def n_mass_transport(self, charge: bool, current: float, i_lim_cls: float, i_lim_ncls: float) -> float:
+    def _mass_transport_overpotential(self, charge: bool, current: float, i_lim_cls: float, i_lim_ncls: float) -> float:
         """
         This is equation 8 of [1].
 
@@ -204,10 +178,6 @@ class ZeroDModel:
         ----------
         charge
         current
-        c_ox_cls
-        c_red_cls
-        c_ox_ncls
-        c_red_ncls
         i_lim_cls
         i_lim_ncls
 
@@ -226,13 +196,16 @@ class ZeroDModel:
 
         if (self.cls_negolyte and charge) or (not self.cls_negolyte and not charge):
             n_mt = NERNST_CONST * log((1 - ((c_tot_cls * i) / ((self.c_red_cls * i_lim_cls) + (self.c_ox_cls * i))))
-                                      * (1 - ((c_tot_ncls * i) / ((self.c_ox_ncls * i_lim_ncls) + (self.c_red_ncls * i)))))
+                                      * (1 - ((c_tot_ncls * i) / ((self.c_ox_ncls * i_lim_ncls)
+                                                                  + (self.c_red_ncls * i)))))
         else:
             n_mt = NERNST_CONST * log(((1 - ((c_tot_cls * i) / ((self.c_ox_cls * i_lim_cls) + (self.c_red_cls * i))))
-                                       * (1 - ((c_tot_ncls * i) / ((self.c_red_ncls * i_lim_ncls) + (self.c_ox_ncls * i))))))
+                                       * (1 - ((c_tot_ncls * i) / ((self.c_red_ncls * i_lim_ncls)
+                                                                   + (self.c_ox_ncls * i))))))
         return n_mt
 
-    def v_losses(self, current: float, charge: bool, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
+    def total_overpotential(self, current: float, charge: bool,
+                            i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
         """
         This is the overpotentials of equation 2 in [1].
 
@@ -240,10 +213,6 @@ class ZeroDModel:
         ----------
         current
         charge
-        c_ox_cls
-        c_red_cls
-        c_ox_ncls
-        c_red_ncls
         i_lim_cls
         i_lim_ncls
 
@@ -252,26 +221,20 @@ class ZeroDModel:
 
         """
 
-        i_0_cls, i_0_ncls = self.i_exchange_current()
+        i_0_cls, i_0_ncls = self._exchange_current()
         # calculate ohmic, activation, mass transport overpotentials
         n_ohmic = abs(current)*self.resistance
-        n_act = self.n_activation(current, i_0_cls, i_0_ncls)
-        n_mt = self.n_mass_transport(charge, current, i_lim_cls, i_lim_ncls)
+        n_act = self._activation_overpotential(current, i_0_cls, i_0_ncls)
+        n_mt = self._mass_transport_overpotential(charge, current, i_lim_cls, i_lim_ncls)
 
         n_loss = n_ohmic + n_act + n_mt
 
         return n_loss, n_act, n_mt
 
-    def nernst_ocv_full(self) -> float:
+    def open_circuit_voltage(self) -> float:
         """
+        Nernstian calculation of cell's open circuit voltage.
         This is equivalent to equation 3 of [1].
-
-        Parameters
-        ----------
-        c_ox_cls
-        c_red_cls
-        c_ox_ncls
-        c_red_ncls
 
         Returns
         -------
@@ -286,12 +249,14 @@ class ZeroDModel:
         # CLS is negolyte
         if self.cls_negolyte:
             ocv = (self.init_ocv
-                   + (NERNST_CONST * log(self.c_red_cls / self.c_ox_cls)) + (NERNST_CONST * log(self.c_ox_ncls / self.c_red_ncls)))
+                   + (NERNST_CONST * log(self.c_red_cls / self.c_ox_cls))
+                   + (NERNST_CONST * log(self.c_ox_ncls / self.c_red_ncls)))
 
         # CLS is posolyte
         else:
             ocv = (self.init_ocv
-                   - (NERNST_CONST * log(self.c_red_cls / self.c_ox_cls)) - (NERNST_CONST * log(self.c_ox_ncls / self.c_red_ncls)))
+                   - (NERNST_CONST * log(self.c_red_cls / self.c_ox_cls))
+                   - (NERNST_CONST * log(self.c_ox_ncls / self.c_red_ncls)))
         return ocv
 
     @staticmethod
@@ -302,7 +267,7 @@ class ZeroDModel:
     def coulomb_counter(self, current: float,
                         cls_degradation: DegradationMechanism = None,
                         ncls_degradation: DegradationMechanism = None,
-                        crossover_params: Crossover = None) -> tuple[ float, float]:
+                        crossover_params: Crossover = None) -> tuple[float, float]:
 
         # Coulomb counting based solely on current
         direction = 1 if self.cls_negolyte else -1
@@ -329,11 +294,9 @@ class ZeroDModel:
 
         if crossover_params is not None:
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
-                                                     self.time_increment,
+             delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,
                                                      self.cls_volume, self.ncls_volume)
-
-        # update concs to self
+        # update concentrationss to self
         self.c_ox_cls = c_ox_cls
         self.c_red_cls = c_red_cls
         self.c_ox_ncls = c_ox_ncls
@@ -342,19 +305,18 @@ class ZeroDModel:
         return delta_ox, delta_red
 
     @staticmethod
-    def soc(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls) -> tuple[float, float]:
+    def state_of_charge(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls) -> tuple[float, float]:
         """Calculate state-of-charge in each reservoir"""
         soc_cls = (c_red_cls / (c_ox_cls + c_red_cls)) * 100
-        # this could be defined differently i.e., cell vs reservoir definition of SOC
         soc_ncls = (c_red_ncls / (c_ox_ncls + c_red_ncls)) * 100
         return soc_cls, soc_ncls
 
     # is below proper *args unpacking naming style?
     def cv_current_solver(self, current: float, *data: float) -> float:
         (cell_v, ocv, charge, i_lim_cls, i_lim_ncls) = data
-        # curr has sign but v_losses makes it always positive
-        loss_solve, _, _ = self.v_losses(current, charge, i_lim_cls,
-                                         i_lim_ncls)
+        # curr has sign but total_overpotential makes it always positive
+        loss_solve, _, _ = self.total_overpotential(current, charge, i_lim_cls,
+                                                    i_lim_ncls)
         # returns what solver will try to minimize
         return cell_v - ocv - loss_solve if charge else cell_v - ocv + loss_solve
 
