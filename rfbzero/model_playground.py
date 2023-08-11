@@ -2,7 +2,7 @@ from zeroD_model_1e_vs_1e import ZeroDModel as battery
 import matplotlib.pyplot as plt
 from zeroD_model_degradations import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism
 from zeroD_model_crossover import Crossover
-from cycle_protocol import ConstantCurrent#, ConstantCurrentConstantVoltage
+from cycle_protocol import ConstantCurrent, ConstantCurrentConstantVoltage
 
 CLS_start_conc_ox = 0.01
 CLS_start_conc_red = 0.01
@@ -10,7 +10,7 @@ NCLS_start_conc_ox = 0.01
 NCLS_start_conc_red = 0.01
 area = 5.0
 CLS_vol = 0.01
-NCLS_vol = 0.050
+NCLS_vol = 0.05
 E_redox = 1.0
 #
 voltage_limit_charge = 1.4 #0.4
@@ -40,7 +40,7 @@ setup = battery(CLS_vol, NCLS_vol,
 
 # define degradation mechanisms
 test_f1 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
-test_f2 = AutoOxidation(rate=9e-5)
+test_f2 = AutoOxidation(rate=30e-5)
 test_f3 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
 test_f4 = MultiDegradationMechanism([test_f1, test_f2]) # maybe have multi do *args
 
@@ -60,16 +60,15 @@ bbb = ConstantCurrentConstantVoltage(voltage_limit_charge=voltage_limit_charge,
  cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times, act_profile,
  mt_profile, loss_profile, del_ox, del_red,
 ) = bbb.run(cell_model=setup,
-            #cls_degradation=test_f4,
-            #degradation=test_f4,
-            ncls_degradation=test_f4,
+            cls_degradation=test_f1,
+            #degradation=test_f2,
+            #ncls_degradation=test_f2,
             #crossover_params=crossover_f,
             duration=5000)
 
 
 ##### PLOTTING BELOW ################
 print(cycle_capacity[:5])
-
 
 def structure_data(x, y):
     time_charge = x[::2]
@@ -93,16 +92,18 @@ ax[0].plot(time_charge, cap_charge, 'ro--')
 ax[1].plot(times[g:], current_profile, 'r')
 ax[2].plot(times[g:], cell_V_profile, 'b')
 ax[3].plot(times[g:], ocv_profile, 'k')
-ax[4].plot(times[g:], loss_profile, 'k')
-
-ax[4].plot(times[g:], act_profile, 'r')
-ax[4].plot(times[g:], mt_profile, 'b')
+#ax[4].plot(times[g:], loss_profile, 'k')
+#ax[4].plot(times[g:], act_profile, 'r')
+#ax[4].plot(times[g:], mt_profile, 'b')
+ax[4].plot(times[g:], soc_profile_CLS, 'r')
+ax[4].plot(times[g:], soc_profile_NCLS, 'k')
 
 ax[0].set_ylabel('Capacity')
 ax[1].set_ylabel('Current')
 ax[2].set_ylabel('Voltage')
 ax[3].set_ylabel('OCV')
-ax[4].set_ylabel('Overpotential')
+#ax[4].set_ylabel('Overpotential')
+ax[4].set_ylabel('SOC (%)')
 plt.show()
 
 # plot out current and voltage cycyles

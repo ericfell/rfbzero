@@ -341,17 +341,17 @@ class ZeroDModel:
 
         return delta_ox, delta_red
 
-    #@staticmethod
-    def soc(self) -> tuple[float, float]:
+    @staticmethod
+    def soc(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls) -> tuple[float, float]:
         """Calculate state-of-charge in each reservoir"""
-        soc_cls = (self.c_red_cls / (self.c_ox_cls + self.c_red_cls)) * 100
+        soc_cls = (c_red_cls / (c_ox_cls + c_red_cls)) * 100
         # this could be defined differently i.e., cell vs reservoir definition of SOC
-        soc_ncls = (self.c_red_ncls / (self.c_ox_ncls + self.c_red_ncls)) * 100
+        soc_ncls = (c_red_ncls / (c_ox_ncls + c_red_ncls)) * 100
         return soc_cls, soc_ncls
 
     # is below proper *args unpacking naming style?
     def cv_current_solver(self, current: float, *data: float) -> float:
-        (cell_v, ocv, charge, c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, i_lim_cls, i_lim_ncls) = data
+        (cell_v, ocv, charge, i_lim_cls, i_lim_ncls) = data
         # curr has sign but v_losses makes it always positive
         loss_solve, _, _ = self.v_losses(current, charge, i_lim_cls,
                                          i_lim_ncls)
