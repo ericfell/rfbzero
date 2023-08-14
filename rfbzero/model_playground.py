@@ -42,10 +42,10 @@ setup = battery(CLS_vol, NCLS_vol,
 test_f1 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
 test_f2 = AutoOxidation(rate=30e-5)
 test_f3 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
-test_f4 = MultiDegradationMechanism([test_f1, test_f2]) # maybe have multi do *args
+test_f4 = MultiDegradationMechanism([test_f1, test_f2])  # maybe have multi do *args
 
 # define cycling protocol and run based on defined cell and optional degradations
-"""
+
 bbb = ConstantCurrent(voltage_cutoff_charge=voltage_limit_charge,
                       voltage_cutoff_discharge=voltage_limit_discharge,
                       current=current)
@@ -54,13 +54,13 @@ bbb = ConstantCurrentConstantVoltage(voltage_limit_charge=voltage_limit_charge,
                                      voltage_limit_discharge=voltage_limit_discharge,
                                      current_cutoff_charge=0.005, current_cutoff_discharge=-0.005,
                                      current=current)
-
+"""
 # run based on defined cell and optional degradations
 (current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile,
  cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times, act_profile,
  mt_profile, loss_profile, del_ox, del_red,
 ) = bbb.run(cell_model=setup,
-            cls_degradation=test_f1,
+            cls_degradation=test_f4,
             #degradation=test_f2,
             #ncls_degradation=test_f2,
             #crossover_params=crossover_f,
