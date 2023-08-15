@@ -117,7 +117,6 @@ class ZeroDModel:
         Calculates exchange current (i_0) of redox couples in the CLS and NCLS.
         Value returned is in Amps.
 
-
         Returns
         -------
         i_0_cls : float
@@ -368,7 +367,6 @@ class ZeroDModel:
         delta_red = 0.0
 
         # Coulomb counting from optional degradation/crossover mechanisms
-
         if cls_degradation is not None:
             c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
 

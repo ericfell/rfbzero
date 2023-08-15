@@ -124,6 +124,8 @@ class ConstantCurrent(CyclingProtocol):
 
         Returns
         -------
+        results : CyclingProtocolResults
+            Object with results from simulation
 
         """
 
@@ -144,7 +146,7 @@ class ConstantCurrent(CyclingProtocol):
         # setup of data results object to be sent to user
         results = CyclingProtocolResults(length_data)
 
-        results.times = [x*cell_model.time_increment for x in range(1, length_data + 1)]
+        results.times = [x * cell_model.time_increment for x in range(1, length_data + 1)]
         print(f"{duration} sec of cycling, time steps: {cell_model.time_increment} sec")
 
         count = 0
@@ -327,6 +329,8 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         Returns
         -------
+        results : CyclingProtocolResults
+            Object with results from simulation
 
         """
 

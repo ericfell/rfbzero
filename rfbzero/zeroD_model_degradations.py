@@ -74,7 +74,7 @@ class ChemicalDegradation(DegradationMechanism):
 class AutoOxidation(DegradationMechanism):
     """
     Subclass for an auto-oxidation mechanism,
-    (red --> ox) no loss of active material.
+    (red --> ox) with no loss of active material.
 
     Parameters
     ----------
@@ -100,7 +100,7 @@ class AutoOxidation(DegradationMechanism):
 class AutoReduction(DegradationMechanism):
     """
     Subclass for an auto-reduction mechanism,
-    (ox --> red) no loss of active material.
+    (ox --> red) with no loss of active material.
 
     Parameters
     ----------
