@@ -2,12 +2,16 @@
 
 from abc import ABC, abstractmethod
 from scipy.optimize import fsolve
+import numpy as np
 from zeroD_model_1e_vs_1e import ZeroDModel
 from zeroD_model_degradations import DegradationMechanism
 from zeroD_model_crossover import Crossover
 
 
 class CyclingProtocol(ABC):
+    def __init__(self, current, charge):
+        self.current = current
+        self.charge = charge
     @abstractmethod
     def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
@@ -19,19 +23,58 @@ class CyclingProtocol(ABC):
 
 
 class ConstantCurrent(CyclingProtocol):
+    """
+    Subclass for constant current (CC) cycling method.
+
+    Parameters
+    ----------
+    voltage_cutoff_charge : float
+        Voltage above which cell will switch to discharge (V).
+    voltage_cutoff_discharge : float
+        Voltage below which cell will switch to charge (V).
+    current : float
+        Instantaneous current flowing (A).
+    charge_first : bool
+        If True, charges the cell first.
+
+    """
 
     def __init__(self, voltage_cutoff_charge: float, voltage_cutoff_discharge: float,
                  current: float, charge_first: bool = True):
         self.voltage_cutoff_charge = voltage_cutoff_charge
         self.voltage_cutoff_discharge = voltage_cutoff_discharge
-        self.current = current
-        self.charge_first = charge_first
+        self.current = current # super.__init__
+        self.charge = charge_first
+
+        if self.current < 0.0:
+            raise ValueError("Current must be a positive value")
 
     def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
             crossover_params: Crossover = None) -> object:
+        """
+
+        Parameters
+        ----------
+        duration : int
+            Simulation time (s).
+        cell_model : ZeroDModel
+            Defined cell parameters for simulating.
+        degradation : DegradationMechanism, optional
+            Degradation mechanism(s) applied to CLS and NCLS.
+        cls_degradation : DegradationMechanism, optional
+            Degradation mechanism(s) applied to CLS.
+        ncls_degradation : DegradationMechanism, optional
+            Degradation mechanism(s) applied to NCLS.
+        crossover_params : Crossover, optional
+            Crossover mechanism applied to cell.
+
+        Returns
+        -------
+
+        """
 
         if degradation is not None and (cls_degradation is not None or ncls_degradation is not None):
             raise ValueError("Cannot specify both 'degradation' and '(n)cls_degradation'")
@@ -40,12 +83,8 @@ class ConstantCurrent(CyclingProtocol):
             cls_degradation = degradation
             ncls_degradation = degradation
 
-        (cls_start_c_ox, cls_start_c_red,
-         ncls_start_c_ox, ncls_start_c_red) = cell_model.starting_concentrations()
-
         # Raise ValueError if user inputs a negative concentration
-        if cell_model.negative_concentrations(cls_start_c_ox, cls_start_c_red,
-                                              ncls_start_c_ox, ncls_start_c_red):
+        if cell_model.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
         (current_profile, c_ox_cls_profile, c_red_cls_profile, cell_v_profile, soc_profile_cls, ocv_profile,
@@ -53,69 +92,54 @@ class ConstantCurrent(CyclingProtocol):
          mt_profile, loss_profile) = [], [], [], [], [], [], [], [], [], [], [], [], [], []
         # testing
         del_ox, del_red = [], []
-        # set starting concentrations for all species
-        c_ox_cls_temp = cls_start_c_ox
-        #cc = cell_model.cls_start_c_ox
-        c_red_cls_temp = cls_start_c_red
-        c_ox_ncls_temp = ncls_start_c_ox
-        c_red_ncls_temp = ncls_start_c_red
-        #
-        charge = self.charge_first  # ??
-        #times = cell_model.times #self.times
+
+        # record temporary values of concentrations for all species
+        c_ox_cls_temp = cell_model.c_ox_cls
+        c_red_cls_temp = cell_model.c_red_cls
+        c_ox_ncls_temp = cell_model.c_ox_ncls
+        c_red_ncls_temp = cell_model.c_red_ncls
+
         length_data = int(duration / cell_model.time_increment)
         times = [x*cell_model.time_increment for x in range(1, length_data + 1)]
         print(f"{duration} sec of cycling, timesteps: {cell_model.time_increment} sec")
 
-
         count = 0
         cap = 0.0
         cap_low = False
-        # initialized in case simulation has to stop due to no more capacity
+        # initialized in case simulation has to stop due to no more available capacity
         final_count = length_data
 
-        i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_reactant_selector(charge, c_ox_cls_temp, c_red_cls_temp,
-                                                                    c_ox_ncls_temp, c_red_ncls_temp)
+        i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
 
-        if (self.current >= (i_lim_cls_t * 2)) or (self.current >= (i_lim_ncls_t * 2)):
+        if self.current >= i_lim_cls_t or self.current >= i_lim_ncls_t:
             raise ValueError("Desired current > limiting current, cell can't run")
 
         # assign + current to charge, - current to discharge
-        i = cell_model.current_direction(charge) * self.current
+        i = cell_model.current_direction(self.charge) * self.current
 
-        losses ,_ ,_ = cell_model.v_losses(i, charge, c_ox_cls_temp, c_red_cls_temp, c_ox_ncls_temp, c_red_ncls_temp,
-                                   i_lim_cls_t, i_lim_ncls_t)
-        #
-        OCV = cell_model.nernst_ocv_full(c_ox_cls_temp, c_red_cls_temp, c_ox_ncls_temp, c_red_ncls_temp)
+        losses, _, _ = cell_model.total_overpotential(i, self.charge, i_lim_cls_t, i_lim_ncls_t)
+        ocv = cell_model.open_circuit_voltage()
+        cell_v = cell_model.cell_voltage(ocv, losses, self.charge)
 
-        cell_V = cell_model.cell_voltage(OCV, losses, charge)
-
-        if (cell_V < self.voltage_cutoff_discharge) or (cell_V > self.voltage_cutoff_charge):
+        if cell_v <= self.voltage_cutoff_discharge or cell_v >= self.voltage_cutoff_charge:
             raise ValueError("Desired current too high, overpotentials place cell voltage outside voltage cutoffs")
 
         while count != length_data:
             # set current
-            i = cell_model.current_direction(charge) * self.current
+            i = cell_model.current_direction(self.charge) * self.current
 
-            # need to do this for CCCV method below too
-            (concentration_ox_CLS,
-             concentration_red_CLS,
-             concentration_ox_NCLS,
-             concentration_red_NCLS,
-             delta_ox, delta_red) = cell_model.coulomb_counter(i, c_ox_cls_temp, c_red_cls_temp, c_ox_ncls_temp,
-                                                         c_red_ncls_temp, cls_degradation, ncls_degradation, crossover_params)
+            delta_ox, delta_red = cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover_params)
 
-            # EDGE CASE where voltage limits never reached i.e straight CC cycling until concentration runs out
-            if cell_model.negative_concentrations(concentration_ox_CLS, concentration_red_CLS,
-                                                  concentration_ox_NCLS, concentration_red_NCLS):
+            # EDGE CASE where voltage limits never reached i.e. straight CC cycling until concentration runs out
+            if cell_model.negative_concentrations():
                 # record capacity here
                 cycle_capacity.append(cap)
-                ############### Break out of loop if cpacity approaches zero
-                if (cap < 1.0) and (len(cycle_capacity) > 2):
+
+                #  Break out of loop if capacity approaches zero
+                if cap < 1.0 and len(cycle_capacity) > 2:
                     print(str(count) + 'count')
                     print('Simulation stopped, capacity < 1 coulomb')
                     final_count = count
-                    # break out of while loop
-                    count = length_data # not needed?
                     cap_low = True
                     break
                 ##############
@@ -123,75 +147,64 @@ class ConstantCurrent(CyclingProtocol):
                 # record cycle time
                 cycle_time.append(count * cell_model.time_increment)
                 # switch charge to discharge or vice-versa
-                charge = not charge
+                self.charge = not self.charge
+
+                # set self back to previous, valid, concentration value
+                cell_model.c_ox_cls = c_ox_cls_temp
+                cell_model.c_red_cls = c_red_cls_temp
+                cell_model.c_ox_ncls = c_ox_ncls_temp
+                cell_model.c_red_ncls = c_red_ncls_temp
 
                 # set limiting current for next cycle, with previous allowable concentrations
-                i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_reactant_selector(charge, c_ox_cls_temp, c_red_cls_temp,
-                                                                            c_ox_ncls_temp, c_red_ncls_temp)
+                i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
                 continue
             else:
                 pass
             # calculate overpotentials and resulting cell voltage
-            losses, n_act, n_mt = cell_model.v_losses(i, charge, concentration_ox_CLS, concentration_red_CLS,
-                                                concentration_ox_NCLS, concentration_red_NCLS, i_lim_cls_t, i_lim_ncls_t)
-
-            OCV = cell_model.nernst_ocv_full(concentration_ox_CLS, concentration_red_CLS, concentration_ox_NCLS,
-                                             concentration_red_NCLS)
-
-            cell_V = cell_model.cell_voltage(OCV, losses, charge)
+            losses, n_act, n_mt = cell_model.total_overpotential(i, self.charge, i_lim_cls_t, i_lim_ncls_t)
+            ocv = cell_model.open_circuit_voltage()
+            cell_v = cell_model.cell_voltage(ocv, losses, self.charge)
 
             # did it hit voltage limit ?
-            if (cell_V >= self.voltage_cutoff_charge) or (cell_V <= self.voltage_cutoff_discharge):
+            if cell_v >= self.voltage_cutoff_charge or cell_v <= self.voltage_cutoff_discharge:
                 # record capacity here
                 cycle_capacity.append(cap)
                 #####################
-                if (cap < 1.0) and (len(cycle_capacity) > 2):
+                if cap < 1.0 and len(cycle_capacity) > 2:
                     print(str(count) + 'count')
                     print('Simulation stopped, capacity < 1 coulomb')
                     final_count = count
-                    # to break out of while loop
-                    count = length_data # not needed?
                     cap_low = True
                     break
                 ##################
                 cap = 0.0
                 # record cycle time
                 cycle_time.append(count * cell_model.time_increment)
-                # switch charge to discharge or viceversa
-                charge = not charge
+                # switch charge to discharge or vice-versa
+                self.charge = not self.charge
 
                 # set limiting current for next cycle
-                i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_reactant_selector(charge, c_ox_cls_temp, c_red_cls_temp,
-                                                                            c_ox_ncls_temp, c_red_ncls_temp)
+                i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
                 continue
             else:
                 pass
 
-            # calculate SOC (local, in this case) ** for CLS make this a function, can be other file
-            soc_CLS, soc_NCLS = cell_model.soc(concentration_ox_CLS, concentration_red_CLS, concentration_ox_NCLS,
-                                               concentration_red_NCLS)
             # update capacity
-            cap += abs( i * cell_model.time_increment)
+            cap += abs(i * cell_model.time_increment)
             # update concentrations
-            c_ox_cls_temp = concentration_ox_CLS
-            c_red_cls_temp = concentration_red_CLS
-            c_ox_ncls_temp = concentration_ox_NCLS
-            c_red_ncls_temp = concentration_red_NCLS
-            #
-            current_profile.append(i)
-            c_ox_cls_profile.append(concentration_ox_CLS)
-            c_red_cls_profile.append(concentration_red_CLS)
-            c_ox_ncls_profile.append(concentration_ox_NCLS)
-            c_red_ncls_profile.append(concentration_red_NCLS)
 
-            # test
+            current_profile.append(i)
+            c_ox_cls_profile.append(cell_model.c_ox_cls)
+            c_red_cls_profile.append(cell_model.c_red_cls)
+            c_ox_ncls_profile.append(cell_model.c_ox_ncls)
+            c_red_ncls_profile.append(cell_model.c_red_ncls)
+
             del_ox.append(delta_ox)
             del_red.append(delta_red)
 
-            cell_v_profile.append(cell_V)
-            ocv_profile.append(OCV)
-            soc_profile_cls.append(soc_CLS)
-            soc_profile_ncls.append(soc_NCLS)
+            cell_v_profile.append(cell_v)
+            ocv_profile.append(ocv)
+
             act_profile.append(n_act)
             mt_profile.append(n_mt)
             loss_profile.append(losses)
@@ -199,12 +212,39 @@ class ConstantCurrent(CyclingProtocol):
         # adjusts time points if capacity decreased past set point
         if cap_low:
             times = times[:final_count + 1]
+
+        # now calculating SOC of cls and ncls
+        # can definitely be written better
+        for a,b,c,d in zip(c_ox_cls_profile, c_red_cls_profile, c_ox_ncls_profile, c_red_ncls_profile):
+            c, n = cell_model.state_of_charge(a, b, c, d)
+            soc_profile_cls.append(c)
+            soc_profile_ncls.append(n)
+
         return (current_profile, c_ox_cls_profile, c_red_cls_profile, c_ox_ncls_profile, c_red_ncls_profile,
                 cell_v_profile, soc_profile_cls, soc_profile_ncls, ocv_profile, cycle_capacity, cycle_time, times,
                 act_profile, mt_profile, loss_profile, del_ox, del_red)
 
 
 class ConstantCurrentConstantVoltage(CyclingProtocol):
+    """
+    Subclass for constant current constant voltage (CCCV) cycling method.
+
+    Parameters
+    ----------
+    voltage_limit_charge : float
+        Voltage above which cell will switch to CV mode, charging (V).
+    voltage_limit_discharge : float
+        Voltage below which cell will switch to CV mode, discharging (V).
+    current_cutoff_charge : float
+        Current below which CV charging will switch to CC portion of CCCV discharge (A).
+    current_cutoff_discharge : float
+        Current above which CV discharging will switch to CC portion of CCCV charge (A).
+    current : float
+        Instantaneous current flowing (A).
+    charge_first : bool
+        If True, charges the cell first.
+
+    """
 
     def __init__(self, voltage_limit_charge: float, voltage_limit_discharge: float,
                  current_cutoff_charge: float, current_cutoff_discharge: float, current: float,
@@ -214,16 +254,38 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         self.current_cutoff_charge = current_cutoff_charge
         self.current_cutoff_discharge = current_cutoff_discharge
         self.current = current
-        self.charge_first = charge_first
+        self.charge = charge_first
+
+        if self.current_cutoff_discharge > 0 or self.current_cutoff_charge < 0:
+            raise ValueError("Invalid (dis)charge current cutoff")
 
     def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
             crossover_params: Crossover = None) -> object:
+        """
 
-        # new part
-        #if degradation and (cls_degradation or ncls_degradation):
+        Parameters
+        ----------
+        duration : int
+            Simulation time (s).
+        cell_model : ZeroDModel
+            Defined cell parameters for simulating.
+        degradation : DegradationMechanism, optional
+            Degradation mechanism(s) applied to CLS and NCLS.
+        cls_degradation : DegradationMechanism, optional
+            Degradation mechanism(s) applied to CLS.
+        ncls_degradation : DegradationMechanism, optional
+            Degradation mechanism(s) applied to NCLS.
+        crossover_params : Crossover, optional
+            Crossover mechanism applied to cell.
+
+        Returns
+        -------
+
+        """
+
         if degradation is not None and (cls_degradation is not None or ncls_degradation is not None):
             raise ValueError("Cannot specify both 'degradation' and '(n)cls_degradation'")
 
@@ -231,34 +293,25 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             cls_degradation = degradation
             ncls_degradation = degradation
 
-        (cls_start_c_ox, cls_start_c_red,
-         ncls_start_c_ox, ncls_start_c_red) = cell_model.starting_concentrations()
-
-        # to dos: if full CV, then should be appending voltage to overpotential
-
         # Raise ValueError if user inputs a negative concentration
-        if cell_model.negative_concentrations(cls_start_c_ox, cls_start_c_red,
-                                              ncls_start_c_ox, ncls_start_c_red):
+        if cell_model.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
-        (conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile, cycle_capacity,
-         current_profile, cell_V_profile, soc_profile_CLS, ocv_profile, soc_profile_NCLS, cycle_time, act_profile,
+        (c_ox_cls_profile, c_red_cls_profile, c_ox_ncls_profile, c_red_ncls_profile, cycle_capacity,
+         current_profile, cell_v_profile, soc_profile_cls, ocv_profile, soc_profile_ncls, cycle_time, act_profile,
          mt_profile, loss_profile) = [], [], [], [], [], [], [], [], [], [], [], [], [], []
         del_ox, del_red = [], []
-        # set starting concentrations for all species
-        # simplify this ?????
-        conc_ox_now_CLS = cls_start_c_ox
-        conc_red_now_CLS = cls_start_c_red
-        conc_ox_now_NCLS = ncls_start_c_ox
-        conc_red_now_NCLS = ncls_start_c_red
 
-        assert self.current_cutoff_discharge < 0, "invalid discharge current cutoff"
-        #
-        charge = self.charge_first  # True
-        CC_mode = True
+        # record temporary values of concentrations for all species
+        c_ox_cls_temp = cell_model.c_ox_cls
+        c_red_cls_temp = cell_model.c_red_cls
+        c_ox_ncls_temp = cell_model.c_ox_ncls
+        c_red_ncls_temp = cell_model.c_red_ncls
+
+        cc_mode = True
         i_first = True
-        CV_only = False
-        #times = cell_model.times #self.times
+        cv_only = False
+
         length_data = int(duration / cell_model.time_increment)
         times = [x * cell_model.time_increment for x in range(1, length_data + 1)]
         print(f"{duration} sec of cycling, timesteps: {cell_model.time_increment} sec")
@@ -268,55 +321,45 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         cap_low = False
         final_count = length_data
 
-        i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_reactant_selector(charge, conc_ox_now_CLS, conc_red_now_CLS,
-                                                                    conc_ox_now_NCLS, conc_red_now_NCLS)
+        i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
 
-        i = cell_model.current_direction(charge) * self.current
-        ##### check if need to go straight to CV
-        # allow option to say 0 current for straight CV?
-        if (self.current >= (i_lim_cls_t * 2)) or (self.current >= (i_lim_ncls_t * 2)):
-            CC_mode = False
-            CV_only = True
+        i = cell_model.current_direction(self.charge) * self.current
+        #  check if cell needs to go straight to CV
+        if self.current >= i_lim_cls_t or self.current >= i_lim_ncls_t:
+            cc_mode = False
+            cv_only = True
             print("Goes straight to CV cycling")
         else:
-            losses, n_act, n_mt = cell_model.v_losses(i, charge, conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS,
-                                                conc_red_now_NCLS, i_lim_cls_t, i_lim_ncls_t)
-            ## OCV due to CLS and NCLS
-            OCV = cell_model.nernst_ocv_full(conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
-            cell_V = cell_model.cell_voltage(OCV, losses, charge)
-            if (cell_V >= self.voltage_limit_charge) or (cell_V <= self.voltage_limit_discharge):
-                CC_mode = False
-                CV_only = True
+            losses, n_act, n_mt = cell_model.total_overpotential(i, self.charge, i_lim_cls_t, i_lim_ncls_t)
+            ocv = cell_model.open_circuit_voltage()
+            cell_v = cell_model.cell_voltage(ocv, losses, self.charge)
+
+            if cell_v >= self.voltage_limit_charge or cell_v <= self.voltage_limit_discharge:
+                cc_mode = False
+                cv_only = True
                 print("Has now switched to CV cycling")
             else:
                 pass
         ##############
         while count != length_data:
             # check if in CC or CV mode
-            if CC_mode:
+            if cc_mode:
                 # set current
-                i = cell_model.current_direction(charge) * self.current
+                i = cell_model.current_direction(self.charge) * self.current
 
                 # calculate species' concentrations
-                (concentration_ox_CLS,
-                 concentration_red_CLS,
-                 concentration_ox_NCLS,
-                 concentration_red_NCLS,
-                 delta_ox, delta_red) = cell_model.coulomb_counter(i, conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS,
-                                                             conc_red_now_NCLS, cls_degradation, ncls_degradation, crossover_params)
+                delta_ox, delta_red = cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover_params)
 
                 # EDGE CASE where voltage limits never reached i.e straight CC cycling
-                if cell_model.negative_concentrations(concentration_ox_CLS, concentration_red_CLS,
-                                                      concentration_ox_NCLS, concentration_red_NCLS):
+                if cell_model.negative_concentrations():
                     # record capacity here
                     cycle_capacity.append(cap)
 
-                    ############ Break out of loop if capacity near zero
-                    if (cap < 1.0) and (len(cycle_capacity) > 2):
+                    #  Break out of loop if capacity near zero
+                    if cap < 1.0 and len(cycle_capacity) > 2:
                         print(str(count) + 'count')
                         print('Simulation stopped, capacity < 1 coulomb')
                         final_count = count
-                        # count = self.length_data # not needed?
                         cap_low = True
                         break
 
@@ -324,62 +367,49 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                     cap = 0.0
                     # record cycle time
                     cycle_time.append(count * cell_model.time_increment)
-                    # switch charge to discharge or viceversa
-                    charge = not charge
+                    # switch charge to discharge or vice-versa
+                    self.charge = not self.charge
+
+                    # set self back to previous, valid, concentration value
+                    cell_model.c_ox_cls = c_ox_cls_temp
+                    cell_model.c_red_cls = c_red_cls_temp
+                    cell_model.c_ox_ncls = c_ox_ncls_temp
+                    cell_model.c_red_ncls = c_red_ncls_temp
 
                     # set limiting current for next cycle
-                    i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_reactant_selector(charge, conc_ox_now_CLS,
-                                                                                conc_red_now_CLS, conc_ox_now_NCLS,
-                                                                                conc_red_now_NCLS)
+                    i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
                     continue
                 else:
                     pass
 
                 # calculate overpotentials and resulting cell voltage
-                losses, n_act, n_mt = cell_model.v_losses(i, charge, concentration_ox_CLS, concentration_red_CLS,
-                                                    concentration_ox_NCLS, concentration_red_NCLS, i_lim_cls_t,
-                                                    i_lim_ncls_t)
+                losses, n_act, n_mt = cell_model.total_overpotential(i, self.charge, i_lim_cls_t, i_lim_ncls_t)
+                ocv = cell_model.open_circuit_voltage()
+                cell_v = cell_model.cell_voltage(ocv, losses, self.charge)
 
-                # OCV due to CLS and NCLS
-                OCV = cell_model.nernst_ocv_full(concentration_ox_CLS, concentration_red_CLS, concentration_ox_NCLS,
-                                                 concentration_red_NCLS)
-
-                cell_V = cell_model.cell_voltage(OCV, losses, charge)
-
-                # calculate SOC (local, not global if there's loss mechanisms)
-                soc_CLS, soc_NCLS = cell_model.soc(concentration_ox_CLS, concentration_red_CLS, concentration_ox_NCLS,
-                                                   concentration_red_NCLS)
                 # update capacity
                 cap += abs(i * cell_model.time_increment)
 
                 # check if V limit is reached?
-                if (cell_V >= self.voltage_limit_charge) or (cell_V <= self.voltage_limit_discharge):
-                    CC_mode = not CC_mode
-                    # at some point maybe record cap here too so you know cap due to CC and due to CV?
+                if cell_v >= self.voltage_limit_charge or cell_v <= self.voltage_limit_discharge:
+                    cc_mode = not cc_mode
+                    # at some point maybe record cap here too, so you know cap due to CC and due to CV?
                     continue
                 else:
                     pass
 
                 # update concentrations
-                conc_ox_now_CLS = concentration_ox_CLS
-                conc_red_now_CLS = concentration_red_CLS
-                conc_ox_now_NCLS = concentration_ox_NCLS
-                conc_red_now_NCLS = concentration_red_NCLS
-                ##
                 current_profile.append(i)  # CC section
-                conc_ox_CLS_profile.append(concentration_ox_CLS)
-                conc_red_CLS_profile.append(concentration_red_CLS)
-                conc_ox_NCLS_profile.append(concentration_ox_NCLS)
-                conc_red_NCLS_profile.append(concentration_red_NCLS)
+                c_ox_cls_profile.append(cell_model.c_ox_cls)
+                c_red_cls_profile.append(cell_model.c_red_cls)
+                c_ox_ncls_profile.append(cell_model.c_ox_ncls)
+                c_red_ncls_profile.append(cell_model.c_red_ncls)
 
-                # test
                 del_ox.append(delta_ox)
                 del_red.append(delta_red)
 
-                cell_V_profile.append(cell_V)
-                ocv_profile.append(OCV)
-                soc_profile_CLS.append(soc_CLS)
-                soc_profile_NCLS.append(soc_NCLS)
+                cell_v_profile.append(cell_v)
+                ocv_profile.append(ocv)
                 act_profile.append(n_act)
                 mt_profile.append(n_mt)
                 loss_profile.append(losses)
@@ -387,18 +417,23 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             ##########################################################
             else:  # now we're in CV mode
 
-                # all constant voltage here
-                cell_V = self.voltage_limit_charge if charge else self.voltage_limit_discharge
+                # record temporary values of concentrations for all species
+                c_ox_cls_temp = cell_model.c_ox_cls
+                c_red_cls_temp = cell_model.c_red_cls
+                c_ox_ncls_temp = cell_model.c_ox_ncls
+                c_red_ncls_temp = cell_model.c_red_ncls
 
-                OCV = cell_model.nernst_ocv_full(conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS)
+                # all cycling is now constant voltage
+                cell_v = self.voltage_limit_charge if self.charge else self.voltage_limit_discharge
+                ocv = cell_model.open_circuit_voltage()
 
-                data = (cell_V, OCV, charge, conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS, conc_red_now_NCLS,
-                        i_lim_cls_t, i_lim_ncls_t)
+                # variables to be passed into numerical solver to calculate current
+                data = (cell_v, ocv, self.charge, i_lim_cls_t, i_lim_ncls_t)
                 # adapting the solver's guess to the updated current
                 # calculate the first current value for guess
                 if i_first:
-                    if CV_only:  # the case where you're straight CV cycling, and an initial current guess is needed
-                        i_guess = cell_model.current_direction(charge) * self.current  # ??
+                    if cv_only:  # the case where you're straight CV cycling, and an initial current guess is needed
+                        i_guess = cell_model.current_direction(self.charge) * self.current  # ?? think about this more
                     else:
                         i_guess = i
                         i_first = not i_first
@@ -420,26 +455,25 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                     else:
                         min_bracket = -10
 
-                i_CV = brentq(self.cv_current_solver, min_bracket, max_bracket, args=data)
+                i_cv = brentq(self.cv_current_solver, min_bracket, max_bracket, args=data)
                 '''
-                ######
-                ######### end testing ############
+
                 # consider different solver that ensure max allowable current upon switch to CV ?
-                i_CV = float(fsolve(cell_model.cv_current_solver, i_guess, args=data)[0])
-                i_guess = i_CV
+                i_cv = float(fsolve(cell_model.cv_current_solver, np.array([i_guess]), args=data)[0])
+                i_guess = i_cv
 
                 # check if current is below cutoffs
-                if (charge and (i_CV <= self.current_cutoff_charge)) or (not charge and (i_CV >= self.current_cutoff_discharge)):
+                if (self.charge and i_cv <= self.current_cutoff_charge) or \
+                        (not self.charge and i_cv >= self.current_cutoff_discharge):
                     # CV part of cycle has now ended, record capacity data
 
                     cycle_capacity.append(cap)
-                    ############ Break out of full simulation if capacity nears zero
 
-                    if (cap < 1.0) and (len(cycle_capacity) > 2):
+                    # Break out of full simulation if capacity nears zero
+                    if cap < 1.0 and len(cycle_capacity) > 2:
                         print(str(count) + 'count')
                         print('Simulation stopped, capacity < 1 coulomb')
                         final_count = count
-                        # count = self.length_data # not needed?
                         cap_low = True
                         break
 
@@ -447,84 +481,74 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                     cap = 0.0
                     # record cycle time
                     cycle_time.append(count * cell_model.time_increment)
-                    # switch charge to discharge or viceversa
-                    charge = not charge
-                    CC_mode = True
+                    # switch charge to discharge or vice-versa
+                    self.charge = not self.charge
+                    cc_mode = True
                     i_first = True
 
+                    # set self back to previous, valid, concentration value
+                    cell_model.c_ox_cls = c_ox_cls_temp
+                    cell_model.c_red_cls = c_red_cls_temp
+                    cell_model.c_ox_ncls = c_ox_ncls_temp
+                    cell_model.c_red_ncls = c_red_ncls_temp
+
                     # set limiting current for next cycle
-                    i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_reactant_selector(charge, conc_ox_now_CLS,
-                                                                                conc_red_now_CLS, conc_ox_now_NCLS,
-                                                                                conc_red_now_NCLS)
+                    i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
                     continue
                 else:
                     pass
 
-                # testing new. should i_CV be i_guesss?
-                (concentration_ox_CLS,
-                 concentration_red_CLS,
-                 concentration_ox_NCLS,
-                 concentration_red_NCLS,
-                 delta_ox, delta_red) = cell_model.coulomb_counter(i_CV, conc_ox_now_CLS, conc_red_now_CLS, conc_ox_now_NCLS,
-                                                             conc_red_now_NCLS, cls_degradation, ncls_degradation, crossover_params)
+                delta_ox, delta_red = cell_model.coulomb_counter(i_cv, cls_degradation, ncls_degradation,
+                                                                 crossover_params)
 
                 # check if any reactant remains
-                if cell_model.negative_concentrations(concentration_ox_CLS, concentration_red_CLS,
-                                                      concentration_ox_NCLS, concentration_red_NCLS):
-
+                if cell_model.negative_concentrations():
                     cycle_capacity.append(cap)
-                    ############### Break out of loop if capacity nears zero
 
-                    if (cap < 1.0) and (len(cycle_capacity) > 2):
+                    # Break out of loop if capacity nears zero
+                    if cap < 1.0 and len(cycle_capacity) > 2:
                         print(str(count) + 'count')
                         print('Simulation stopped, capacity < 1 coulomb')
                         final_count = count
-                        # count = self.length_data # not needed?
                         cap_low = True
                         break
 
-                    ###########
                     cap = 0.0
                     # record cycle time
                     cycle_time.append(count * cell_model.time_increment)
-                    # switch charge to discharge or viceversa
-                    charge = not charge
-                    CC_mode = True
+                    # switch charge to discharge or vice-versa
+                    self.charge = not self.charge
+                    cc_mode = True
                     i_first = True  # not sure if this would be needed
 
+                    # set self back to previous, valid, concentration value
+                    cell_model.c_ox_cls = c_ox_cls_temp
+                    cell_model.c_red_cls = c_red_cls_temp
+                    cell_model.c_ox_ncls = c_ox_ncls_temp
+                    cell_model.c_red_ncls = c_red_ncls_temp
+
                     # set limiting current for next cycle
-                    i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_reactant_selector(charge, conc_ox_now_CLS,
-                                                                                conc_red_now_CLS, conc_ox_now_NCLS,
-                                                                                conc_red_now_NCLS)
+                    i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
                     continue
                 else:
                     pass
 
-                # calculate SOC (local, in this case)
-                soc_CLS, soc_NCLS = cell_model.soc(concentration_ox_CLS, concentration_red_CLS,
-                                                   concentration_ox_NCLS, concentration_red_NCLS)
                 # update capacity
-                cap += abs(i_CV * cell_model.time_increment)
+                cap += abs(i_cv * cell_model.time_increment)
                 # update concentrations
-                conc_ox_now_CLS = concentration_ox_CLS
-                conc_red_now_CLS = concentration_red_CLS
-                conc_ox_now_NCLS = concentration_ox_NCLS
-                conc_red_now_NCLS = concentration_red_NCLS
-                ##
-                current_profile.append(i_CV)
-                conc_ox_CLS_profile.append(concentration_ox_CLS)
-                conc_red_CLS_profile.append(concentration_red_CLS)
-                conc_ox_NCLS_profile.append(concentration_ox_NCLS)
-                conc_red_NCLS_profile.append(concentration_red_NCLS)
+
+                current_profile.append(i_cv)
+                c_ox_cls_profile.append(cell_model.c_ox_cls)
+                c_red_cls_profile.append(cell_model.c_red_cls)
+                c_ox_ncls_profile.append(cell_model.c_ox_ncls)
+                c_red_ncls_profile.append(cell_model.c_red_ncls)
 
                 # test
                 del_ox.append(delta_ox)
                 del_red.append(delta_red)
 
-                cell_V_profile.append(cell_V)
-                ocv_profile.append(OCV)
-                soc_profile_CLS.append(soc_CLS)
-                soc_profile_NCLS.append(soc_NCLS)
+                cell_v_profile.append(cell_v)
+                ocv_profile.append(ocv)
                 act_profile.append(n_act)
                 mt_profile.append(n_mt)
                 loss_profile.append(losses)
@@ -532,14 +556,19 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         if cap_low:
             times = times[:final_count + 1]
-        return (current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile,
-                cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times,
+
+        # now calculating SOC of cls and ncls
+        # can defs make this better
+        for a,b,c,d in zip(c_ox_cls_profile, c_red_cls_profile, c_ox_ncls_profile, c_red_ncls_profile):
+            c, n = cell_model.state_of_charge(a, b, c, d)
+            soc_profile_cls.append(c)
+            soc_profile_ncls.append(n)
+
+        return (current_profile, c_ox_cls_profile, c_red_cls_profile, c_ox_ncls_profile, c_red_ncls_profile,
+                cell_v_profile, soc_profile_cls, soc_profile_ncls, ocv_profile, cycle_capacity, cycle_time, times,
                 act_profile, mt_profile, loss_profile, del_ox, del_red)
 
 
-
-
-
-
-
+if __name__ == '__main__':
+    print('testing')
 
