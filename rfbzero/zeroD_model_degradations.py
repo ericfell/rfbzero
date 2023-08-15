@@ -39,7 +39,7 @@ class ChemicalDegradation(DegradationMechanism):
             raise ValueError("Rate must be a non-zero, positive value")
 
         if self.species not in ['red', 'ox']:
-            raise ValueError("Options: 'red', 'ox' ")
+            raise ValueError("'species' options: 'red', 'ox' ")
 
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
@@ -151,13 +151,13 @@ class MultiDegradationMechanism(DegradationMechanism):
 # to-dos
 def auto_red_test(c_ox, c_red, timestep, extra_ratio=1, rate=0):
     # assumes first order process: ox --> red
-    delta_conc = timestep*rate*c_ox*extra_ratio
-    concentration_red = c_red + delta_conc
-    concentration_ox = c_ox - delta_conc
+    delta_concentration = timestep*rate*c_ox*extra_ratio
+    concentration_red = c_red + delta_concentration
+    concentration_ox = c_ox - delta_concentration
     return concentration_ox, concentration_red
 
 
-# def oxygen_oxidation(conc_o2, c_ox, c_red, timestep, rate=0):
+# def oxygen_oxidation(concentration_o2, c_ox, c_red, timestep, rate=0):
     
 
 # def potential_dependent(potential, c_ox, c_red, timestep, rate=0):

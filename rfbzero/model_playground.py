@@ -2,7 +2,7 @@ from zeroD_model_1e_vs_1e import ZeroDModel as battery
 import matplotlib.pyplot as plt
 from zeroD_model_degradations import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism
 from zeroD_model_crossover import Crossover
-from cycle_protocol import ConstantCurrent, ConstantCurrentConstantVoltage
+from cycle_protocol import ConstantCurrent, ConstantCurrentConstantVoltage, CyclingProtocolResults
 
 CLS_start_conc_ox = 0.01
 CLS_start_conc_red = 0.01
@@ -17,7 +17,7 @@ voltage_limit_charge = 1.4 #0.4
 voltage_limit_discharge = 0.6 #-0.4
 current = 0.3
 
-resistance = 1.5
+resistance = 1.0
 k_species = 2.2e-3
 
 
@@ -50,11 +50,12 @@ bbb = ConstantCurrent(voltage_cutoff_charge=voltage_limit_charge,
                       voltage_cutoff_discharge=voltage_limit_discharge,
                       current=current)
 """
+
 bbb = ConstantCurrentConstantVoltage(voltage_limit_charge=voltage_limit_charge,
                                      voltage_limit_discharge=voltage_limit_discharge,
                                      current_cutoff_charge=0.005, current_cutoff_discharge=-0.005,
                                      current=current)
-
+"""
 # run based on defined cell and optional degradations
 (current_profile, conc_ox_CLS_profile, conc_red_CLS_profile, conc_ox_NCLS_profile, conc_red_NCLS_profile,
  cell_V_profile, soc_profile_CLS, soc_profile_NCLS, ocv_profile, cycle_capacity, cycle_time, times, act_profile,
@@ -65,10 +66,16 @@ bbb = ConstantCurrentConstantVoltage(voltage_limit_charge=voltage_limit_charge,
             #ncls_degradation=test_f2,
             #crossover_params=crossover_f,
             duration=5000)
-
-
+"""
+all_results = bbb.run(cell_model=setup,
+                      cls_degradation=test_f1,
+                      # degradation=test_f2,
+                      # #ncls_degradation=test_f2,
+                      # #crossover_params=crossover_f,
+                      duration=5000)
+print(all_results.cycle_capacity[:5])
 ##### PLOTTING BELOW ################
-print(cycle_capacity[:5])
+
 
 def structure_data(x, y):
     time_charge = x[::2]
@@ -82,21 +89,22 @@ def structure_data(x, y):
         cap_discharge = cap_discharge[:-1]
     return time_charge, time_discharge, cap_charge, cap_discharge
 
-time_charge, time_discharge, cap_charge, cap_discharge = structure_data(
-        cycle_time, cycle_capacity)
+
+time_charge, time_discharge, cap_charge, cap_discharge = structure_data(all_results.cycle_time,
+                                                                        all_results.cycle_capacity)
 
 g = 0
 fig,ax = plt.subplots(nrows=5,ncols=1,sharex=True)
 ax[0].plot(time_discharge, cap_discharge, 'bo--')
 ax[0].plot(time_charge, cap_charge, 'ro--')
-ax[1].plot(times[g:], current_profile, 'r')
-ax[2].plot(times[g:], cell_V_profile, 'b')
-ax[3].plot(times[g:], ocv_profile, 'k')
+ax[1].plot(all_results.times[g:], all_results.current_profile, 'r')
+ax[2].plot(all_results.times[g:], all_results.cell_v_profile, 'b')
+ax[3].plot(all_results.times[g:], all_results.ocv_profile, 'k')
 #ax[4].plot(times[g:], loss_profile, 'k')
 #ax[4].plot(times[g:], act_profile, 'r')
 #ax[4].plot(times[g:], mt_profile, 'b')
-ax[4].plot(times[g:], soc_profile_CLS, 'r')
-ax[4].plot(times[g:], soc_profile_NCLS, 'k')
+ax[4].plot(all_results.times[g:], all_results.soc_profile_cls, 'r')
+ax[4].plot(all_results.times[g:], all_results.soc_profile_ncls, 'k')
 
 ax[0].set_ylabel('Capacity')
 ax[1].set_ylabel('Current')
