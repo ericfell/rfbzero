@@ -9,6 +9,9 @@ from zeroD_model_crossover import Crossover
 
 
 class CyclingProtocol(ABC):
+    def __init__(self, current, charge):
+        self.current = current
+        self.charge = charge
     @abstractmethod
     def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
@@ -40,7 +43,7 @@ class ConstantCurrent(CyclingProtocol):
                  current: float, charge_first: bool = True):
         self.voltage_cutoff_charge = voltage_cutoff_charge
         self.voltage_cutoff_discharge = voltage_cutoff_discharge
-        self.current = current
+        self.current = current # super.__init__
         self.charge = charge_first
 
         if self.current < 0.0:
