@@ -9,9 +9,10 @@ from zeroD_model_crossover import Crossover
 
 
 class CyclingProtocol(ABC):
-    def __init__(self, current, charge):
+    def __init__(self, current, charge_first):
         self.current = current
-        self.charge = charge
+        self.charge = charge_first
+
     @abstractmethod
     def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
@@ -20,6 +21,19 @@ class CyclingProtocol(ABC):
             crossover_params: Crossover = None,
             ) -> object:
         raise NotImplementedError
+
+    @staticmethod
+    def _validate_model(cell_model: ZeroDModel,
+                        degradation: DegradationMechanism = None,
+                        cls_degradation: DegradationMechanism = None,
+                        ncls_degradation: DegradationMechanism = None):
+
+        if degradation is not None and (cls_degradation is not None or ncls_degradation is not None):
+            raise ValueError("Cannot specify both 'degradation' and '(n)cls_degradation'")
+
+        # Raise ValueError if user inputs a negative concentration
+        if cell_model.negative_concentrations():
+            raise ValueError('Negative concentration detected')
 
 
 class ConstantCurrent(CyclingProtocol):
@@ -43,8 +57,7 @@ class ConstantCurrent(CyclingProtocol):
                  current: float, charge_first: bool = True):
         self.voltage_cutoff_charge = voltage_cutoff_charge
         self.voltage_cutoff_discharge = voltage_cutoff_discharge
-        self.current = current # super.__init__
-        self.charge = charge_first
+        super().__init__(current, charge_first)
 
         if self.current < 0.0:
             raise ValueError("Current must be a positive value")
@@ -76,16 +89,11 @@ class ConstantCurrent(CyclingProtocol):
 
         """
 
-        if degradation is not None and (cls_degradation is not None or ncls_degradation is not None):
-            raise ValueError("Cannot specify both 'degradation' and '(n)cls_degradation'")
+        self._validate_model(cell_model, degradation, cls_degradation, ncls_degradation)
 
         if degradation is not None:
             cls_degradation = degradation
             ncls_degradation = degradation
-
-        # Raise ValueError if user inputs a negative concentration
-        if cell_model.negative_concentrations():
-            raise ValueError('Negative concentration detected')
 
         (current_profile, c_ox_cls_profile, c_red_cls_profile, cell_v_profile, soc_profile_cls, ocv_profile,
          c_ox_ncls_profile, c_red_ncls_profile, soc_profile_ncls, cycle_capacity, cycle_time, act_profile,
@@ -253,8 +261,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         self.voltage_limit_discharge = voltage_limit_discharge
         self.current_cutoff_charge = current_cutoff_charge
         self.current_cutoff_discharge = current_cutoff_discharge
-        self.current = current
-        self.charge = charge_first
+        super().__init__(current, charge_first)
 
         if self.current_cutoff_discharge > 0 or self.current_cutoff_charge < 0:
             raise ValueError("Invalid (dis)charge current cutoff")
@@ -286,16 +293,11 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         """
 
-        if degradation is not None and (cls_degradation is not None or ncls_degradation is not None):
-            raise ValueError("Cannot specify both 'degradation' and '(n)cls_degradation'")
+        self._validate_model(cell_model, degradation, cls_degradation, ncls_degradation)
 
         if degradation is not None:
             cls_degradation = degradation
             ncls_degradation = degradation
-
-        # Raise ValueError if user inputs a negative concentration
-        if cell_model.negative_concentrations():
-            raise ValueError('Negative concentration detected')
 
         (c_ox_cls_profile, c_red_cls_profile, c_ox_ncls_profile, c_red_ncls_profile, cycle_capacity,
          current_profile, cell_v_profile, soc_profile_cls, ocv_profile, soc_profile_ncls, cycle_time, act_profile,
@@ -567,6 +569,18 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         return (current_profile, c_ox_cls_profile, c_red_cls_profile, c_ox_ncls_profile, c_red_ncls_profile,
                 cell_v_profile, soc_profile_cls, soc_profile_ncls, ocv_profile, cycle_capacity, cycle_time, times,
                 act_profile, mt_profile, loss_profile, del_ox, del_red)
+
+# testing here
+
+
+class CyclingProtocolResults:
+
+    def __init__(self, size):
+        self.current_profile = [0.0] * size
+        self.c_ox_cls_profile = [0.0] * size
+
+
+
 
 
 if __name__ == '__main__':
