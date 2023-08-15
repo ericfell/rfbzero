@@ -112,11 +112,6 @@ class ZeroDModel:
         if 0.0 > self.alpha_cls > 1.0 or 0.0 > self.alpha_cls > 1.0:
             raise ValueError("Alpha parameters must be between 0.0 and 1.0")
 
-    @staticmethod
-    def current_direction(charge: bool) -> int:
-        """Make current positive for charge, negative for discharge"""
-        return 1 if charge else -1
-
     def _exchange_current(self) -> tuple[float, float]:
         """
         Calculates exchange current (i_0) of redox couples in the CLS and NCLS.
@@ -398,28 +393,6 @@ class ZeroDModel:
         soc_cls = (c_red_cls / (c_ox_cls + c_red_cls)) * 100
         soc_ncls = (c_red_ncls / (c_ox_ncls + c_red_ncls)) * 100
         return soc_cls, soc_ncls
-
-    # is below proper *args unpacking naming style?
-    def cv_current_solver(self, current: float, *data: tuple[float, float, bool, float, float]) -> float:
-        """
-        Numerical solver for current when in constant voltage (CV) mode.
-        Attempts to minimize difference of voltage, OCV, and losses (function of current).
-
-        Parameters
-        ----------
-        current : float
-            Instantaneous current flowing (A).
-        data : tuple ??
-
-        Returns
-        -------
-
-        """
-        cell_v, ocv, charge, i_lim_cls, i_lim_ncls = data
-        # curr has sign but total_overpotential makes it always positive
-        loss_solve, _, _ = self.total_overpotential(current, charge, i_lim_cls, i_lim_ncls)
-        # returns what solver will try to minimize
-        return cell_v - ocv - loss_solve if charge else cell_v - ocv + loss_solve
 
 
 if __name__ == '__main__':

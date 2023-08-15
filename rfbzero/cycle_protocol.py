@@ -35,6 +35,11 @@ class CyclingProtocol(ABC):
         if cell_model.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
+    @staticmethod
+    def current_direction(charge: bool) -> int:
+        """Make current positive for charge, negative for discharge"""
+        return 1 if charge else -1
+
 
 class ConstantCurrent(CyclingProtocol):
     """
@@ -123,7 +128,7 @@ class ConstantCurrent(CyclingProtocol):
             raise ValueError("Desired current > limiting current, cell can't run")
 
         # assign + current to charge, - current to discharge
-        i = cell_model.current_direction(self.charge) * self.current
+        i = self.current_direction(self.charge) * self.current
 
         losses, _, _ = cell_model.total_overpotential(i, self.charge, i_lim_cls_t, i_lim_ncls_t)
         ocv = cell_model.open_circuit_voltage()
@@ -134,7 +139,7 @@ class ConstantCurrent(CyclingProtocol):
 
         while count != length_data:
             # set current
-            i = cell_model.current_direction(self.charge) * self.current
+            i = self.current_direction(self.charge) * self.current
 
             delta_ox, delta_red = cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover_params)
 
@@ -325,7 +330,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
 
-        i = cell_model.current_direction(self.charge) * self.current
+        i = self.current_direction(self.charge) * self.current
         #  check if cell needs to go straight to CV
         if self.current >= i_lim_cls_t or self.current >= i_lim_ncls_t:
             cc_mode = False
@@ -347,7 +352,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             # check if in CC or CV mode
             if cc_mode:
                 # set current
-                i = cell_model.current_direction(self.charge) * self.current
+                i = self.current_direction(self.charge) * self.current
 
                 # calculate species' concentrations
                 delta_ox, delta_red = cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover_params)
@@ -435,7 +440,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 # calculate the first current value for guess
                 if i_first:
                     if cv_only:  # the case where you're straight CV cycling, and an initial current guess is needed
-                        i_guess = cell_model.current_direction(self.charge) * self.current  # ?? think about this more
+                        i_guess = self.current_direction(self.charge) * self.current  # ?? think about this more
                     else:
                         i_guess = i
                         i_first = not i_first
@@ -460,8 +465,8 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 i_cv = brentq(self.cv_current_solver, min_bracket, max_bracket, args=data)
                 '''
 
-                # consider different solver that ensure max allowable current upon switch to CV ?
-                i_cv = float(fsolve(cell_model.cv_current_solver, np.array([i_guess]), args=data)[0])
+                # testting new func solver
+                i_cv = self._get_min_current(cell_model, i_guess, cell_v, ocv, self.charge, i_lim_cls_t, i_lim_ncls_t)
                 i_guess = i_cv
 
                 # check if current is below cutoffs
@@ -570,16 +575,53 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 cell_v_profile, soc_profile_cls, soc_profile_ncls, ocv_profile, cycle_capacity, cycle_time, times,
                 act_profile, mt_profile, loss_profile, del_ox, del_red)
 
-# testing here
+    @staticmethod
+    def _get_min_current(cell_model, i_guess, cell_v, ocv, charge, i_lim_cls, i_lim_ncls):
+        """
+        Method wrapper to solve for current during constant voltage cycling.
+        Attempts to minimize the difference of voltage, OCV, and losses (function of current).
+
+        Parameters
+        ----------
+        cell_model : ZeroDModel
+            Defined cell parameters for simulating.
+        i_guess : float
+            Initial guess for root of solver. Current at constant voltage (A).
+        cell_v : float
+            Cell voltage (V).
+        ocv : float
+            Cell open circuit voltage (V).
+        charge : bool
+            Positive if charging, negative if discharging.
+        i_lim_cls : float
+            Limiting current of CLS redox couple
+            at a given timestep (A).
+        i_lim_ncls : float
+            Limiting current of NCLS redox couple
+            at a given timestep (A).
+
+        Returns
+        -------
+        min_current : float
+            Solved current at given timestep of constant voltage cycling (A).
+        """
+        def solver(current):
+            """Numerical solver for current during constant voltage cycling"""
+            loss_solve, *_ = cell_model.total_overpotential(current, charge, i_lim_cls, i_lim_ncls)
+            return cell_v - ocv - loss_solve if charge else cell_v - ocv + loss_solve
+
+        min_current, *_ = fsolve(solver, np.array([i_guess]))
+        return min_current
 
 
+"""
 class CyclingProtocolResults:
 
     def __init__(self, size):
         self.current_profile = [0.0] * size
         self.c_ox_cls_profile = [0.0] * size
 
-
+"""
 
 
 
