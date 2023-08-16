@@ -59,24 +59,26 @@ class Crossover:
 
         Returns
         -------
-        concentration_ox_cls :
+        c_ox_cls : float
             Updated CLS concentration of oxidized species (M).
-        concentration_red_cls :
+        c_red_cls : float
             Updated CLS concentration of reduced species (M).
-        concentration_ox_ncls :
+        c_ox_ncls : float
             Updated NCLS concentration of oxidized species (M).
-        concentration_red_ncls :
+        c_red_ncls : float
             Updated NCLS concentration of reduced species (M).
-        delta_c_ox :
-            Concentration difference (CLS-NCLS) of oxidized species (M).
-        delta_c_red :
-            Concentration difference (CLS-NCLS) of reduced species (M).
+        delta_ox_mols : float
+            Mols oxidized species crossing at given timestep (mol).
+        delta_red_mols : float
+            Mols reduced species crossing at given timestep (mol).
 
         """
 
         if self.p_ox == 0.0 and self.p_red == 0.0:
             return c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, 0.0, 0.0
 
+        """
+        # old way
         # set volume term based on side that is source of crossing species
         # multiply by 1000 for liters to cm^3 conversion
         if c_red_cls < c_red_ncls:
@@ -88,7 +90,7 @@ class Crossover:
             volume_ox = vol_ncls * 1000
         else:
             volume_ox = vol_cls * 1000
-
+        
         # driven force via concentration differences (mol/L)
         delta_c_ox = c_ox_cls - c_ox_ncls
         delta_c_red = c_red_cls - c_red_ncls
@@ -103,10 +105,25 @@ class Crossover:
 
         concentration_ox_cls = c_ox_cls - delta_ox
         concentration_ox_ncls = c_ox_ncls + delta_ox
+        """
 
-        return (concentration_ox_cls, concentration_red_cls,
-                concentration_ox_ncls, concentration_red_ncls,
-                delta_c_ox, delta_c_red)
+        # driving force from concentration differences (mol/L)
+        c_ox_difference = c_ox_cls - c_ox_ncls
+        c_red_difference = c_red_cls - c_red_ncls
+
+        # amount added/subtracted from concentrations (mol)
+        # divide by 1000 for liters to cm^3 conversion
+        delta_ox_mols = (timestep * self.p_ox * self.membrane_constant * c_ox_difference) / 1000
+        delta_red_mols = (timestep * self.p_red * self.membrane_constant * c_red_difference) / 1000
+
+        # update concentrations
+        c_ox_cls = c_ox_cls - (delta_ox_mols / vol_cls)
+        c_ox_ncls = c_ox_ncls + (delta_ox_mols / vol_ncls)
+
+        c_red_cls = c_red_cls - (delta_red_mols / vol_cls)
+        c_red_ncls = c_red_ncls + (delta_red_mols / vol_ncls)
+
+        return c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox_mols, delta_red_mols
 
 
 if __name__ == '__main__':
