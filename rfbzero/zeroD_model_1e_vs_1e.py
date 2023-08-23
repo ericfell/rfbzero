@@ -118,6 +118,12 @@ class ZeroDModel:
         if not 0.0 < self.alpha_cls < 1.0 or not 0.0 < self.alpha_ncls < 1.0:
             raise ValueError("Alpha parameters must be between 0.0 and 1.0")
 
+        if not isinstance(self.n_cls, int) or not isinstance(self.n_ncls, int):
+            raise ValueError("'n_cls' and 'n_ncls' must be integers")
+
+        if self.init_ocv == 0.0 and self.n_cls != self.n_ncls:
+            raise ValueError("Symmetric cell (0 V OCV) requires 'n_cls' and 'n_ncls' to be equal (same species)")
+
     def _exchange_current(self) -> tuple[float, float]:
         """
         Calculates exchange current (i_0) of redox couples in the CLS and NCLS.
@@ -134,9 +140,9 @@ class ZeroDModel:
 
         """
         # division by 1000 for conversion from L to cm^3
-        i_0_cls = (self.const_i_ex * self.k_0_cls * (self.c_red_cls ** self.alpha_cls)
+        i_0_cls = (self.n_cls * self.const_i_ex * self.k_0_cls * (self.c_red_cls ** self.alpha_cls)
                    * (self.c_ox_cls ** (1 - self.alpha_cls)) * 0.001)
-        i_0_ncls = (self.const_i_ex * self.k_0_ncls * (self.c_red_ncls ** self.alpha_ncls)
+        i_0_ncls = (self.n_ncls * self.const_i_ex * self.k_0_ncls * (self.c_red_ncls ** self.alpha_ncls)
                     * (self.c_ox_ncls ** (1 - self.alpha_ncls)) * 0.001)
         return i_0_cls, i_0_ncls
 
@@ -153,6 +159,7 @@ class ZeroDModel:
     def limiting_concentration(self, charge: bool) -> tuple[float, float]:
         """
         Selects limiting concentration and calculates limiting current for CLS and NCLS.
+        Multiplies by number of electrons transferred per molecule, for the given species.
 
         Parameters
         ----------
@@ -170,16 +177,15 @@ class ZeroDModel:
 
         """
         if (self.cls_negolyte and charge) or (not self.cls_negolyte and not charge):
-            i_lim_cls = self._limiting_current(self.c_ox_cls)
-            i_lim_ncls = self._limiting_current(self.c_red_ncls)
+            i_lim_cls = self._limiting_current(self.c_ox_cls) * self.n_cls
+            i_lim_ncls = self._limiting_current(self.c_red_ncls) * self.n_ncls
         else:
-            i_lim_cls = self._limiting_current(self.c_red_cls)
-            i_lim_ncls = self._limiting_current(self.c_ox_ncls)
+            i_lim_cls = self._limiting_current(self.c_red_cls) * self.n_cls
+            i_lim_ncls = self._limiting_current(self.c_ox_ncls) * self.n_ncls
 
         return i_lim_cls, i_lim_ncls
 
-    @staticmethod
-    def _activation_overpotential(current: float, i_0_cls: float, i_0_ncls: float) -> float:
+    def _activation_overpotential(self, current: float, i_0_cls: float, i_0_ncls: float) -> float:
         """
         Calculates overall cell activation overpotential.
         This is equation 4 of [1].
@@ -203,7 +209,8 @@ class ZeroDModel:
 
         z_cls = abs(current) / (2 * i_0_cls)
         z_ncls = abs(current) / (2 * i_0_ncls)
-        n_act = NERNST_CONST * (log(z_ncls + ((z_ncls**2) + 1)**0.5) + log(z_cls + ((z_cls**2) + 1)**0.5))
+        n_act = NERNST_CONST * ((log(z_cls + ((z_cls**2) + 1)**0.5) / self.n_cls)
+                                + (log(z_ncls + ((z_ncls**2) + 1)**0.5) / self.n_ncls))
         return n_act
 
     def negative_concentrations(self) -> bool:
@@ -244,13 +251,15 @@ class ZeroDModel:
         i = abs(current)
 
         if (self.cls_negolyte and charge) or (not self.cls_negolyte and not charge):
-            n_mt = NERNST_CONST * log((1 - ((c_tot_cls * i) / ((self.c_red_cls * i_lim_cls) + (self.c_ox_cls * i))))
-                                      * (1 - ((c_tot_ncls * i) / ((self.c_ox_ncls * i_lim_ncls)
-                                                                  + (self.c_red_ncls * i)))))
+            n_mt = NERNST_CONST\
+                   * ((log(1 - ((c_tot_cls * i) / ((self.c_red_cls * i_lim_cls) + (self.c_ox_cls * i)))) / self.n_cls)
+                      + (log(1 - ((c_tot_ncls * i) / ((self.c_ox_ncls * i_lim_ncls) + (self.c_red_ncls * i))))
+                         / self.n_ncls))
         else:
-            n_mt = NERNST_CONST * log(((1 - ((c_tot_cls * i) / ((self.c_ox_cls * i_lim_cls) + (self.c_red_cls * i))))
-                                       * (1 - ((c_tot_ncls * i) / ((self.c_red_ncls * i_lim_ncls)
-                                                                   + (self.c_ox_ncls * i))))))
+            n_mt = NERNST_CONST\
+                   * ((log(1 - ((c_tot_cls * i) / ((self.c_ox_cls * i_lim_cls) + (self.c_red_cls * i)))) / self.n_cls)
+                      + (log(1 - ((c_tot_ncls * i) / ((self.c_red_ncls * i_lim_ncls) + (self.c_ox_ncls * i))))
+                         / self.n_ncls))
         return n_mt
 
     def total_overpotential(self, current: float, charge: bool,
@@ -313,14 +322,14 @@ class ZeroDModel:
         # CLS is negolyte
         if self.cls_negolyte:
             ocv = (self.init_ocv
-                   + (NERNST_CONST * log(self.c_red_cls / self.c_ox_cls))
-                   + (NERNST_CONST * log(self.c_ox_ncls / self.c_red_ncls)))
+                   + ((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
+                   + ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls)))
 
         # CLS is posolyte
         else:
             ocv = (self.init_ocv
-                   - (NERNST_CONST * log(self.c_red_cls / self.c_ox_cls))
-                   - (NERNST_CONST * log(self.c_ox_ncls / self.c_red_ncls)))
+                   - ((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
+                   - ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls)))
         return ocv
 
     @staticmethod
@@ -359,8 +368,8 @@ class ZeroDModel:
 
         # Coulomb counting based solely on current
         direction = 1 if self.cls_negolyte else -1
-        delta_cls = ((self.time_increment * current) / (F * self.cls_volume)) * direction
-        delta_ncls = ((self.time_increment * current) / (F * self.ncls_volume)) * direction
+        delta_cls = ((self.time_increment * current) / (F * self.n_cls * self.cls_volume)) * direction
+        delta_ncls = ((self.time_increment * current) / (F * self.n_ncls * self.ncls_volume)) * direction
 
         # update CLS and NCLS concentrations
         c_ox_cls = self.c_ox_cls - delta_cls
