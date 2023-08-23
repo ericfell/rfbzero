@@ -139,12 +139,6 @@ class ConstantCurrent(CyclingProtocol):
             cls_degradation = degradation
             ncls_degradation = degradation
 
-        # record temporary values of concentrations for all species
-        c_ox_cls_temp = cell_model.c_ox_cls
-        c_red_cls_temp = cell_model.c_red_cls
-        c_ox_ncls_temp = cell_model.c_ox_ncls
-        c_red_ncls_temp = cell_model.c_red_ncls
-
         length_data = int(duration / cell_model.time_increment)
 
         # setup of data results object to be sent to user
@@ -177,6 +171,12 @@ class ConstantCurrent(CyclingProtocol):
         while count != length_data:
             # set current
             i = self.current_direction(self.charge) * self.current
+
+            # record temporary values of concentrations for all species
+            c_ox_cls_temp = cell_model.c_ox_cls
+            c_red_cls_temp = cell_model.c_red_cls
+            c_ox_ncls_temp = cell_model.c_ox_ncls
+            c_red_ncls_temp = cell_model.c_red_ncls
 
             delta_ox, delta_red = cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover_params)
 
@@ -345,12 +345,6 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             cls_degradation = degradation
             ncls_degradation = degradation
 
-        # record temporary values of concentrations for all species
-        c_ox_cls_temp = cell_model.c_ox_cls
-        c_red_cls_temp = cell_model.c_red_cls
-        c_ox_ncls_temp = cell_model.c_ox_ncls
-        c_red_ncls_temp = cell_model.c_red_ncls
-
         cc_mode = True
         i_first = True
         cv_only = False
@@ -390,6 +384,12 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 pass
         ##############
         while count != length_data:
+            # record temporary values of concentrations for all species
+            c_ox_cls_temp = cell_model.c_ox_cls
+            c_red_cls_temp = cell_model.c_red_cls
+            c_ox_ncls_temp = cell_model.c_ox_ncls
+            c_red_ncls_temp = cell_model.c_red_ncls
+
             # check if in CC or CV mode
             if cc_mode:
                 # set current

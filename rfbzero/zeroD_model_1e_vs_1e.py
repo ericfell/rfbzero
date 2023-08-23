@@ -14,7 +14,7 @@ R = spc.R
 
 # make these parameters at some point?
 TEMPERATURE = 298  # Kelvins, for S.T.P.
-NERNST_CONST = (R * TEMPERATURE) / F  # should have n_electrons input option
+NERNST_CONST = (R * TEMPERATURE) / F
 
 
 class ZeroDModel:
@@ -153,7 +153,6 @@ class ZeroDModel:
         This is equation 6 of [1].
         """
         # div by 1000 for conversion from L to cm^3
-        # will require n electrons param
         return F * self.k_mt * c_lim * self.geometric_area * 0.001
 
     def limiting_concentration(self, charge: bool) -> tuple[float, float]:
@@ -294,7 +293,7 @@ class ZeroDModel:
 
         i_0_cls, i_0_ncls = self._exchange_current()
         # calculate overpotentials
-        n_ohmic = abs(current)*self.resistance
+        n_ohmic = abs(current) * self.resistance
         n_act = self._activation_overpotential(current, i_0_cls, i_0_ncls)
         n_mt = self._mass_transport_overpotential(charge, current, i_lim_cls, i_lim_ncls)
 
@@ -318,7 +317,6 @@ class ZeroDModel:
         if self.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
-        # will need n_electrons input
         # CLS is negolyte
         if self.cls_negolyte:
             ocv = (self.init_ocv
@@ -366,7 +364,7 @@ class ZeroDModel:
 
         """
 
-        # Coulomb counting based solely on current
+        # Change in concentration from coulomb counting based solely on current
         direction = 1 if self.cls_negolyte else -1
         delta_cls = ((self.time_increment * current) / (F * self.n_cls * self.cls_volume)) * direction
         delta_ncls = ((self.time_increment * current) / (F * self.n_ncls * self.ncls_volume)) * direction
