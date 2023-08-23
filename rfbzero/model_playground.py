@@ -20,12 +20,11 @@ current = 0.05
 resistance = 0.5
 k_species = 2.2e-3
 
-
 # for crossover
-membrane_thickness = 183/10000  # cm, nafion 117
+membrane_thickness = 183 / 10000  # cm, nafion 117
 membrane_c = area / membrane_thickness
 p_ox = 1.0e-8  # cm^2/s
-p_red = 1.0e-8 # cm^2/s
+p_red = 1.0e-8  # cm^2/s
 ##############################
 
 # define the battery design parameters
@@ -33,10 +32,10 @@ cell = ZeroDModel(CLS_vol, NCLS_vol, CLS_start_conc_ox, CLS_start_conc_red, NCLS
                   E_redox, resistance, k_species, k_species)
 
 # define degradation mechanisms
-test_f1 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
-test_f2 = AutoOxidation(rate=30e-5)
-test_f3 = ChemicalDegradation(rate_order=1, rate=10e-5, species='red')
-test_f4 = MultiDegradationMechanism([test_f1, test_f2])
+test_f1 = ChemicalDegradation(rate_order=1, rate_constant=10e-5, species='red')
+# test_f2 = AutoOxidation(rate_constant=30e-5)
+# test_f3 = ChemicalDegradation(rate_order=1, rate_constant=10e-5, species='red')
+# test_f4 = MultiDegradationMechanism([test_f1, test_f2])
 # crossover mechanism
 crossover_f = Crossover(membrane_constant=membrane_c, permeability_ox=p_ox, permeability_red=p_red)
 
@@ -55,59 +54,64 @@ else:
                                               current=current)
 # putting it all together
 all_results = protocol.run(cell_model=cell,
-                           #cls_degradation=test_f1,
+                           # cls_degradation=test_f1,
                            degradation=test_f1,
                            # #ncls_degradation=test_f2,
                            crossover_params=crossover_f,
                            duration=20000)
 
-#print([attr for attr in dir(all_results) if not attr.startswith('__')])
+# print([attr for attr in dir(all_results) if not attr.startswith('__')])
 print(all_results.cycle_capacity[:5])
-##### PLOTTING BELOW ################
 
 
 def structure_data(x, y):
-    time_charge = x[::2]
-    time_discharge = x[1::2]
-    cap_charge = y[::2]
-    cap_discharge = y[1::2]
+    t_charge = x[::2]
+    t_discharge = x[1::2]
+    capacity_charge = y[::2]
+    capacity_discharge = y[1::2]
 
-    if len(time_charge) < len(cap_charge):
-        cap_charge = cap_charge[:-1]
-    if len(time_discharge) < len(cap_discharge):
-        cap_discharge = cap_discharge[:-1]
-    return time_charge, time_discharge, cap_charge, cap_discharge
+    if len(t_charge) < len(capacity_charge):
+        capacity_charge = capacity_charge[:-1]
+    if len(t_discharge) < len(capacity_discharge):
+        capacity_discharge = capacity_discharge[:-1]
+    return t_charge, t_discharge, capacity_charge, capacity_discharge
 
 
 time_charge, time_discharge, cap_charge, cap_discharge = structure_data(all_results.cycle_time[1:],
                                                                         all_results.cycle_capacity[1:])
 
 g = 0
-fig,ax = plt.subplots(nrows=5,ncols=1,sharex=True)
+fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True)
 ax[0].plot(time_discharge, cap_discharge, 'bo--')
 ax[0].plot(time_charge, cap_charge, 'ro--')
 ax[1].plot(all_results.times[g:], all_results.current_profile, 'r')
 ax[2].plot(all_results.times[g:], all_results.cell_v_profile, 'b')
 ax[3].plot(all_results.times[g:], all_results.ocv_profile, 'k')
-#ax[4].plot(times[g:], loss_profile, 'k')
-#ax[4].plot(times[g:], act_profile, 'r')
-#ax[4].plot(times[g:], mt_profile, 'b')
-ax[4].plot(all_results.times[g:], all_results.soc_profile_cls, 'r')
-ax[4].plot(all_results.times[g:], all_results.soc_profile_ncls, 'k')
+# ax[4].plot(times[g:], loss_profile, 'k')
+# ax[4].plot(times[g:], act_profile, 'r')
+# ax[4].plot(times[g:], mt_profile, 'b')
+# ax[4].plot(all_results.times[g:], all_results.soc_profile_cls, 'r')
+# ax[4].plot(all_results.times[g:], all_results.soc_profile_ncls, 'k')
 
 ax[0].set_ylabel('Capacity')
 ax[1].set_ylabel('Current')
 ax[2].set_ylabel('Voltage')
 ax[3].set_ylabel('OCV')
-#ax[4].set_ylabel('Overpotential')
-ax[4].set_ylabel('SOC (%)')
+# ax[4].set_ylabel('Overpotential')
+# ax[4].set_ylabel('SOC (%)')
 
 
 # plot out current and voltage cycyles
-fig,ax = plt.subplots()
-ax.plot(all_results.times, all_results.del_ox, 'b--')
-ax.plot(all_results.times, all_results.del_red, 'r--')
-ax.set_xlabel('Time (s)')
-ax.set_ylabel(r'$C_{CLS} - C_{NCLS}$ (M)')
+fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
+ax[0].plot(all_results.times, all_results.del_ox, 'b--')
+ax[0].plot(all_results.times, all_results.del_red, 'r--')
+
+ax[1].plot(all_results.times[g:], all_results.soc_profile_cls, 'r')
+ax[1].plot(all_results.times[g:], all_results.soc_profile_ncls, 'k')
+ax[1].set_xlabel('Time (s)')
+ax[0].set_ylabel("Mols of species crossed")  # (r'$_{CLS} - C_{NCLS}$ (M)')
+ax[1].set_ylabel('SOC (%)')
 plt.show()
 
+# if __name__ == '__main__':
+#    print('testing')

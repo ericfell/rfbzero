@@ -66,6 +66,10 @@ class ZeroDModel:
         Roughness factor, dimensionless.
         Total surface area divided by geometric surface area.
         Default is 26.0, as used in [1].
+    n_cls : int
+        Number of electrons transferred per active species molecule in the CLS
+    n_ncls : int
+        Number of electrons transferred per active species molecule in the NCLS
 
 
     Notes
@@ -82,7 +86,7 @@ class ZeroDModel:
                  ncls_start_c_ox: float, ncls_start_c_red: float, init_ocv: float, resistance: float, k_0_cls: float,
                  k_0_ncls: float, alpha_cls: float = 0.5, alpha_ncls: float = 0.5, geometric_area: float = 5.0,
                  cls_negolyte: bool = True, time_increment: float = 0.01, k_mt: float = 0.8,
-                 roughness_factor: float = 26.0) -> None:
+                 roughness_factor: float = 26.0, n_cls: int = 1, n_ncls: int = 1) -> None:
         """Initialize ZeroDModel"""
         self.cls_volume = cls_volume
         self.ncls_volume = ncls_volume
@@ -101,15 +105,17 @@ class ZeroDModel:
         self.time_increment = time_increment
         self.k_mt = k_mt
         self.const_i_ex = F * roughness_factor * self.geometric_area
+        self.n_cls = n_cls
+        self.n_ncls = n_ncls
 
         if any(x <= 0.0 for x in [self.cls_volume, self.ncls_volume, self.k_0_cls, self.k_0_ncls, self.geometric_area,
                                   self.time_increment, self.k_mt, self.const_i_ex]):
             raise ValueError("A variable has been set negative/zero")
 
         if any(x < 0.0 for x in [self.init_ocv, self.resistance]):
-            raise ValueError("Variable must be zero or positive")
+            raise ValueError("'init_ocv' and 'resistance' must be zero or positive")
 
-        if 0.0 > self.alpha_cls > 1.0 or 0.0 > self.alpha_cls > 1.0:
+        if not 0.0 < self.alpha_cls < 1.0 or not 0.0 < self.alpha_ncls < 1.0:
             raise ValueError("Alpha parameters must be between 0.0 and 1.0")
 
     def _exchange_current(self) -> tuple[float, float]:
@@ -127,7 +133,7 @@ class ZeroDModel:
             at a given timestep (A).
 
         """
-        # division by 1000 for conversion from mol/L to mol/cm^3
+        # division by 1000 for conversion from L to cm^3
         i_0_cls = (self.const_i_ex * self.k_0_cls * (self.c_red_cls ** self.alpha_cls)
                    * (self.c_ox_cls ** (1 - self.alpha_cls)) * 0.001)
         i_0_ncls = (self.const_i_ex * self.k_0_ncls * (self.c_red_ncls ** self.alpha_ncls)
@@ -140,7 +146,7 @@ class ZeroDModel:
         Value returned is in Amps.
         This is equation 6 of [1].
         """
-        # div by 1000 for conversion from mol/L to mol/cm^3
+        # div by 1000 for conversion from L to cm^3
         # will require n electrons param
         return F * self.k_mt * c_lim * self.geometric_area * 0.001
 
@@ -329,7 +335,7 @@ class ZeroDModel:
         """
         Updates all species' concentrations at each timestep.
         Contributions from faradaic current, (optional) degradations
-        mechanisms, and (optional) crossover mechanisms.
+        mechanisms_list, and (optional) crossover mechanisms_list.
 
         Parameters
         ----------
@@ -366,7 +372,7 @@ class ZeroDModel:
         delta_ox = 0.0
         delta_red = 0.0
 
-        # Coulomb counting from optional degradation/crossover mechanisms
+        # Coulomb counting from optional degradation/crossover mechanisms_list
         if cls_degradation is not None:
             c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
 
@@ -375,8 +381,8 @@ class ZeroDModel:
 
         if crossover_params is not None:
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.time_increment,
-                                                     self.cls_volume, self.ncls_volume)
+             delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.cls_volume,
+                                                     self.ncls_volume, self.time_increment)
         # update concentrations to self
         self.c_ox_cls = c_ox_cls
         self.c_red_cls = c_red_cls
@@ -391,8 +397,3 @@ class ZeroDModel:
         soc_cls = (c_red_cls / (c_ox_cls + c_red_cls)) * 100
         soc_ncls = (c_red_ncls / (c_ox_ncls + c_red_ncls)) * 100
         return soc_cls, soc_ncls
-
-
-if __name__ == '__main__':
-    print('testing')           
-        

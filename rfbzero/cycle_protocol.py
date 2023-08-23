@@ -10,7 +10,7 @@ from zeroD_model_crossover import Crossover
 
 class CyclingProtocolResults:
     """
-    Class for returned data object of simulation results.
+    Returns a data object of the simulation results.
 
     Parameters
     ----------
@@ -42,6 +42,9 @@ class CyclingProtocolResults:
 
 
 class CyclingProtocol(ABC):
+    """
+    Base class to be overridden by specific cycling protocol choice.
+    """
     def __init__(self, current, charge_first):
         self.current = current
         self.charge = charge_first
@@ -53,6 +56,7 @@ class CyclingProtocol(ABC):
             ncls_degradation: DegradationMechanism = None,
             crossover_params: Crossover = None,
             ) -> CyclingProtocolResults:
+        """Applies a cycling protocol and (possible) degradation mechanisms to a cell model"""
         raise NotImplementedError
 
     @staticmethod
@@ -76,7 +80,7 @@ class CyclingProtocol(ABC):
 
 class ConstantCurrent(CyclingProtocol):
     """
-    Subclass for constant current (CC) cycling method.
+    Provides a constant current (CC) cycling method.
 
     Parameters
     ----------
@@ -274,7 +278,8 @@ class ConstantCurrent(CyclingProtocol):
 
 class ConstantCurrentConstantVoltage(CyclingProtocol):
     """
-    Subclass for constant current constant voltage (CCCV) cycling method.
+    Provides a constant current constant voltage (CCCV) cycling method which, in the limit of a high current demanded of
+    a cell that it cannot maintain, becomes a constant voltage (CV) cycling method.
 
     Parameters
     ----------
@@ -627,7 +632,3 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         min_current, *_ = fsolve(solver, np.array([i_guess]))
         return min_current
-
-
-if __name__ == '__main__':
-    print('testing')
