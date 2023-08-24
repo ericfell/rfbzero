@@ -2,8 +2,8 @@
 
 from math import log
 import scipy.constants as spc
-from zeroD_model_degradations import DegradationMechanism
-from zeroD_model_crossover import Crossover
+from degradation import DegradationMechanism
+from crossover import Crossover
 
 
 # Faraday constant (C/mol)

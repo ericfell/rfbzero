@@ -1,8 +1,8 @@
-from zeroD_model_1e_vs_1e import ZeroDModel
+from redox_flow_cell import ZeroDModel
 import matplotlib.pyplot as plt
-from zeroD_model_degradations import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism
-from zeroD_model_crossover import Crossover
-from cycle_protocol import ConstantCurrent, ConstantCurrentConstantVoltage
+from degradation import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism
+from crossover import Crossover
+from experiment import ConstantCurrent, ConstantCurrentConstantVoltage
 
 CLS_start_conc_ox = 0.01
 CLS_start_conc_red = 0.01

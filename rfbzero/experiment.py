@@ -3,9 +3,9 @@
 from abc import ABC, abstractmethod
 from scipy.optimize import fsolve
 import numpy as np
-from zeroD_model_1e_vs_1e import ZeroDModel
-from zeroD_model_degradations import DegradationMechanism
-from zeroD_model_crossover import Crossover
+from redox_flow_cell import ZeroDModel
+from degradation import DegradationMechanism
+from crossover import Crossover
 
 
 class CyclingProtocolResults:
