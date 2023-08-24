@@ -378,7 +378,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         if self.current >= i_lim_cls_t or self.current >= i_lim_ncls_t:
             cc_mode = False
             cv_only = True
-            print("Goes straight to CV cycling")
+            print("Goes straight to CV cycling due to high current")
         else:
             losses, n_act, n_mt = cell_model.total_overpotential(i, self.charge, i_lim_cls_t, i_lim_ncls_t)
             ocv = cell_model.open_circuit_voltage()
@@ -387,7 +387,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             if cell_v >= self.voltage_limit_charge or cell_v <= self.voltage_limit_discharge:
                 cc_mode = False
                 cv_only = True
-                print("Has now switched to CV cycling")
+                print("Goes straight to CV cycling due to high overpotential")
             else:
                 pass
         ##############
@@ -487,13 +487,12 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 # adapting the solver's guess to the updated current
                 # calculate the first current value for guess
                 if i_first:
-                    if cv_only:  # the case where you're straight CV cycling, and an initial current guess is needed
-                        i_guess = self.current_direction(self.charge) * self.current  # ?? think about this more
+                    # case where you're straight into CV cycling, and initial current guess is needed
+                    if cv_only:
+                        i_guess = i  # ?
                     else:
                         i_guess = i
-                        i_first = not i_first
-                else:
-                    pass
+                    i_first = not i_first
 
                 i_cv = self._get_min_current(cell_model, i_guess, cell_v, ocv, self.charge, i_lim_cls_t, i_lim_ncls_t)
                 i_guess = i_cv
@@ -639,5 +638,5 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             loss_solve, *_ = cell_model.total_overpotential(current, charge, i_lim_cls, i_lim_ncls)
             return cell_v - ocv - loss_solve if charge else cell_v - ocv + loss_solve
 
-        min_current, *_ = fsolve(solver, np.array([i_guess]))
+        min_current, *_ = fsolve(solver, np.array([i_guess]), xtol=1e-5)
         return min_current
