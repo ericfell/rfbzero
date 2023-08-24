@@ -37,10 +37,10 @@ class ChemicalDegradation(DegradationMechanism):
         self.species = species
 
         if not isinstance(self.rate_order, int):
-            raise ValueError("Rate order must be an integer")
+            raise ValueError("'rate_order' must be an integer")
 
         if self.rate_constant <= 0.0:
-            raise ValueError("Rate must be a non-zero, positive value")
+            raise ValueError("'rate_constant' must be > 0.0")
 
         if self.species not in ['red', 'ox']:
             raise ValueError(f"Invalid value: {self.species}. 'species' options: 'red', 'ox' ")
@@ -91,7 +91,7 @@ class AutoOxidation(DegradationMechanism):
     def __init__(self, rate_constant: float):
         self.rate_constant = rate_constant
         if self.rate_constant <= 0.0:
-            raise ValueError("Rate must be a non-zero, positive value")
+            raise ValueError("'rate_constant' must be > 0.0")
 
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
@@ -137,7 +137,7 @@ class AutoReduction(DegradationMechanism):
     def __init__(self, rate_constant: float):
         self.rate_constant = rate_constant
         if self.rate_constant <= 0.0:
-            raise ValueError("Rate must be a non-zero, positive value")
+            raise ValueError("'rate_constant' must be > 0.0")
 
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """

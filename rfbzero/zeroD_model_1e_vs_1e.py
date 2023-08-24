@@ -108,12 +108,16 @@ class ZeroDModel:
         self.n_cls = n_cls
         self.n_ncls = n_ncls
 
-        if any(x <= 0.0 for x in [self.cls_volume, self.ncls_volume, self.k_0_cls, self.k_0_ncls, self.geometric_area,
-                                  self.time_increment, self.k_mt, self.const_i_ex]):
-            raise ValueError("A variable has been set negative/zero")
+        for key, value in {'cls_volume': self.cls_volume, 'ncls_volume': self.ncls_volume, 'k_0_cls': self.k_0_cls,
+                           'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
+                           'time_increment': self.time_increment, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
+                           'init_ocv': self.init_ocv, 'resistance': self.resistance}.items():
 
-        if any(x < 0.0 for x in [self.init_ocv, self.resistance]):
-            raise ValueError("'init_ocv' and 'resistance' must be zero or positive")
+            if key not in ['init_ocv', 'resistance'] and value <= 0.0:
+                raise ValueError(f"'{key}' must be > 0.0")
+
+            if value < 0.0:
+                raise ValueError(f"'{key}' must be >= 0.0")
 
         if not 0.0 < self.alpha_cls < 1.0 or not 0.0 < self.alpha_ncls < 1.0:
             raise ValueError("Alpha parameters must be between 0.0 and 1.0")
@@ -122,7 +126,7 @@ class ZeroDModel:
             raise ValueError("'n_cls' and 'n_ncls' must be integers")
 
         if self.init_ocv == 0.0 and self.n_cls != self.n_ncls:
-            raise ValueError("Symmetric cell (0 V OCV) requires 'n_cls' and 'n_ncls' to be equal (same species)")
+            raise ValueError("Symmetric cell (0 volt OCV) requires 'n_cls' and 'n_ncls' to be equal (same species)")
 
     def _exchange_current(self) -> tuple[float, float]:
         """

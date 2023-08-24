@@ -19,7 +19,7 @@ class CyclingProtocolResults:
 
     """
 
-    def __init__(self, size):
+    def __init__(self, size: int):
         self.current_profile = [0.0] * size
         self.c_ox_cls_profile = [0.0] * size
         self.c_red_cls_profile = [0.0] * size
@@ -35,19 +35,25 @@ class CyclingProtocolResults:
         self.loss_profile = [0.0] * size
         self.del_ox = [0.0] * size
         self.del_red = [0.0] * size
+
         # total cycles is unknown at start, thus size is undetermined
-        # can the below two just be = []  ?
-        self.cycle_capacity = [0.0]
-        self.cycle_time = [0.0]
+        self.cycle_capacity = []
+        self.cycle_time = []
 
 
 class CyclingProtocol(ABC):
     """
     Base class to be overridden by specific cycling protocol choice.
     """
-    def __init__(self, current, charge_first):
+    def __init__(self, current: float, charge_first: bool):
         self.current = current
         self.charge = charge_first
+
+        if self.current <= 0.0:
+            raise ValueError("'current must be > 0.0")
+
+        if not isinstance(self.charge, bool):
+            raise ValueError("'charge_first' must be a boolean")
 
     @abstractmethod
     def run(self, duration: int, cell_model: ZeroDModel,
@@ -95,14 +101,11 @@ class ConstantCurrent(CyclingProtocol):
 
     """
 
-    def __init__(self, voltage_cutoff_charge: float, voltage_cutoff_discharge: float,
-                 current: float, charge_first: bool = True):
+    def __init__(self, voltage_cutoff_charge: float, voltage_cutoff_discharge: float, current: float,
+                 charge_first: bool = True):
         self.voltage_cutoff_charge = voltage_cutoff_charge
         self.voltage_cutoff_discharge = voltage_cutoff_discharge
         super().__init__(current, charge_first)
-
-        if self.current < 0.0:
-            raise ValueError("Current must be a positive value")
 
     def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
@@ -138,6 +141,9 @@ class ConstantCurrent(CyclingProtocol):
         if degradation is not None:
             cls_degradation = degradation
             ncls_degradation = degradation
+
+        if not self.voltage_cutoff_discharge < cell_model.init_ocv < self.voltage_cutoff_charge:
+            raise ValueError("Ensure that 'voltage_cutoff_discharge' < 'init_ocv' < 'voltage_cutoff_charge'")
 
         length_data = int(duration / cell_model.time_increment)
 
@@ -298,17 +304,16 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
     """
 
-    def __init__(self, voltage_limit_charge: float, voltage_limit_discharge: float,
-                 current_cutoff_charge: float, current_cutoff_discharge: float, current: float,
-                 charge_first: bool = True):
+    def __init__(self, voltage_limit_charge: float, voltage_limit_discharge: float, current_cutoff_charge: float,
+                 current_cutoff_discharge: float, current: float, charge_first: bool = True):
         self.voltage_limit_charge = voltage_limit_charge
         self.voltage_limit_discharge = voltage_limit_discharge
         self.current_cutoff_charge = current_cutoff_charge
         self.current_cutoff_discharge = current_cutoff_discharge
         super().__init__(current, charge_first)
 
-        if self.current_cutoff_discharge > 0 or self.current_cutoff_charge < 0:
-            raise ValueError("Invalid (dis)charge current cutoff")
+        if self.current_cutoff_discharge >= 0.0 or self.current_cutoff_charge <= 0.0:
+            raise ValueError("Ensure 'current_cutoff_discharge' < 0.0, 'current_cutoff_charge' > 0.0")
 
     def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
@@ -344,6 +349,9 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         if degradation is not None:
             cls_degradation = degradation
             ncls_degradation = degradation
+
+        if not self.voltage_limit_discharge < cell_model.init_ocv < self.voltage_limit_charge:
+            raise ValueError("Ensure that 'voltage_limit_discharge' < 'init_ocv' < 'voltage_limit_charge'")
 
         cc_mode = True
         i_first = True
@@ -596,7 +604,8 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         return results
 
     @staticmethod
-    def _get_min_current(cell_model, i_guess, cell_v, ocv, charge, i_lim_cls, i_lim_ncls):
+    def _get_min_current(cell_model: ZeroDModel, i_guess: float, cell_v: float, ocv: float, charge: bool,
+                         i_lim_cls: float, i_lim_ncls: float):
         """
         Method wrapper to solve for current during constant voltage cycling.
         Attempts to minimize the difference of voltage, OCV, and losses (function of current).
@@ -625,7 +634,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         min_current : float
             Solved current at given timestep of constant voltage cycling (A).
         """
-        def solver(current):
+        def solver(current: float):
             """Numerical solver for current during constant voltage cycling"""
             loss_solve, *_ = cell_model.total_overpotential(current, charge, i_lim_cls, i_lim_ncls)
             return cell_v - ocv - loss_solve if charge else cell_v - ocv + loss_solve

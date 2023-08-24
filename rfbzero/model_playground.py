@@ -77,8 +77,8 @@ def structure_data(x, y):
     return t_charge, t_discharge, capacity_charge, capacity_discharge
 
 
-time_charge, time_discharge, cap_charge, cap_discharge = structure_data(all_results.cycle_time[1:],
-                                                                        all_results.cycle_capacity[1:])
+time_charge, time_discharge, cap_charge, cap_discharge = structure_data(all_results.cycle_time,
+                                                                        all_results.cycle_capacity)
 
 g = 0
 fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True)

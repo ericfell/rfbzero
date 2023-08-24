@@ -30,10 +30,10 @@ class Crossover:
         self.p_red = permeability_red
 
         if self.membrane_constant <= 0.0:
-            raise ValueError("'membrane_constant' must be a non-zero, positive value")
+            raise ValueError("'membrane_constant' must be > 0.0")
 
         if self.p_ox < 0.0 or self.p_red < 0.0:
-            raise ValueError("'p_ox' and 'p_red' must be zero or positive values")
+            raise ValueError("'p_ox' and 'p_red' must be >= 0.0")
 
     def crossover(self, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float, vol_cls: float,
                   vol_ncls: float, timestep: float) -> tuple[float, float, float, float, float, float]:
