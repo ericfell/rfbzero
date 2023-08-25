@@ -60,7 +60,7 @@ class CyclingProtocol(ABC):
             degradation: DegradationMechanism = None,
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
-            crossover_params: Crossover = None,
+            cross_over: Crossover = None,
             ) -> CyclingProtocolResults:
         """Applies a cycling protocol and (possible) degradation mechanisms to a cell model"""
         raise NotImplementedError
@@ -87,6 +87,7 @@ class CyclingProtocol(ABC):
 class ConstantCurrent(CyclingProtocol):
     """
     Provides a constant current (CC) cycling method.
+    Overrides CyclingProtocol base class 'run' method.
 
     Parameters
     ----------
@@ -111,7 +112,7 @@ class ConstantCurrent(CyclingProtocol):
             degradation: DegradationMechanism = None,
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
-            crossover_params: Crossover = None) -> CyclingProtocolResults:
+            cross_over: Crossover = None) -> CyclingProtocolResults:
         """
 
         Parameters
@@ -126,7 +127,7 @@ class ConstantCurrent(CyclingProtocol):
             Degradation mechanism(s) applied to CLS.
         ncls_degradation : DegradationMechanism, optional
             Degradation mechanism(s) applied to NCLS.
-        crossover_params : Crossover, optional
+        cross_over : Crossover, optional
             Crossover mechanism applied to cell.
 
         Returns
@@ -184,7 +185,7 @@ class ConstantCurrent(CyclingProtocol):
             c_ox_ncls_temp = cell_model.c_ox_ncls
             c_red_ncls_temp = cell_model.c_red_ncls
 
-            delta_ox, delta_red = cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover_params)
+            delta_ox, delta_red = cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, cross_over)
 
             # EDGE CASE where voltage limits never reached i.e. straight CC cycling until concentration runs out
             if cell_model.negative_concentrations():
@@ -286,6 +287,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
     """
     Provides a constant current constant voltage (CCCV) cycling method which, in the limit of a high current demanded of
     a cell that it cannot maintain, becomes a constant voltage (CV) cycling method.
+    Overrides CyclingProtocol base class 'run' method.
 
     Parameters
     ----------
@@ -319,7 +321,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             degradation: DegradationMechanism = None,
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
-            crossover_params: Crossover = None) -> CyclingProtocolResults:
+            cross_over: Crossover = None) -> CyclingProtocolResults:
         """
 
         Parameters
@@ -334,7 +336,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             Degradation mechanism(s) applied to CLS.
         ncls_degradation : DegradationMechanism, optional
             Degradation mechanism(s) applied to NCLS.
-        crossover_params : Crossover, optional
+        cross_over : Crossover, optional
             Crossover mechanism applied to cell.
 
         Returns
@@ -404,7 +406,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 i = self.current_direction(self.charge) * self.current
 
                 # calculate species' concentrations
-                delta_ox, delta_red = cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover_params)
+                delta_ox, delta_red = cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, cross_over)
 
                 # EDGE CASE where voltage limits never reached i.e. straight CC cycling
                 if cell_model.negative_concentrations():
@@ -534,7 +536,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                     pass
 
                 delta_ox, delta_red = cell_model.coulomb_counter(i_cv, cls_degradation, ncls_degradation,
-                                                                 crossover_params)
+                                                                 cross_over)
 
                 # check if any reactant remains
                 if cell_model.negative_concentrations():

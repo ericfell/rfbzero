@@ -342,7 +342,7 @@ class ZeroDModel:
     def coulomb_counter(self, current: float,
                         cls_degradation: DegradationMechanism = None,
                         ncls_degradation: DegradationMechanism = None,
-                        crossover_params: Crossover = None) -> tuple[float, float]:
+                        cross_over: Crossover = None) -> tuple[float, float]:
         """
         Updates all species' concentrations at each timestep.
         Contributions from faradaic current, (optional) degradations
@@ -356,7 +356,7 @@ class ZeroDModel:
             Degradation class instance for CLS.
         ncls_degradation: DegradationMechanism, optional
             Degradation class instance for NCLS.
-        crossover_params : Crossover, optional
+        cross_over : Crossover, optional
             Crossover class instance
 
         Returns
@@ -390,10 +390,10 @@ class ZeroDModel:
         if ncls_degradation is not None:
             c_ox_ncls, c_red_ncls = ncls_degradation.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
 
-        if crossover_params is not None:
+        if cross_over is not None:
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = crossover_params.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.cls_volume,
-                                                     self.ncls_volume, self.time_increment)
+             delta_red) = cross_over.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.cls_volume,
+                                               self.ncls_volume, self.time_increment)
         # update concentrations to self
         self.c_ox_cls = c_ox_cls
         self.c_red_cls = c_red_cls

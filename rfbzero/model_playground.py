@@ -21,7 +21,7 @@ voltage_limit_discharge = -0.2
 current = 0.05
 
 resistance = 0.1
-k_species = 2.2e-3
+k_species = 2.2e-3 # AQDS nature paper says 7.3e-3
 
 # for crossover
 membrane_thickness = 183 / 10000  # cm, nafion 117
@@ -63,7 +63,7 @@ all_results = protocol.run(cell_model=cell,
                            cls_degradation=test_f1,
                            #degradation=test_f1,
                            #ncls_degradation=test_f2,
-                           crossover_params=crossover_f,
+                           cross_over=crossover_f,
                            duration=10000)
 
 # print([attr for attr in dir(all_results) if not attr.startswith('__')])
