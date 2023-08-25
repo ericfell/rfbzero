@@ -31,8 +31,16 @@ class Crossover:
 
         for key, value in {'membrane_constant': self.membrane_constant,
                            'p_ox': self.p_ox, 'p_red': self.p_red}.items():
-            if value <= 0.0:
+            if value <= 0.0 and key == 'membrane_constant':
                 raise ValueError(f"'{key}' must be > 0.0")
+            elif value < 0.0:
+                raise ValueError(f"'{key}' must be >= 0.0")
+
+        if self.membrane_constant <= 0.0:
+            raise ValueError("'membrane_constant' must be > 0.0")
+
+        if self.p_ox == 0.0 and self.p_red == 0.0:
+            raise ValueError("'p_ox' and 'p_red' cannot both be zero")
 
     def crossover(self, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float, vol_cls: float,
                   vol_ncls: float, timestep: float) -> tuple[float, float, float, float, float, float]:
