@@ -40,6 +40,18 @@ class CyclingProtocolResults:
         self.cycle_capacity = []
         self.cycle_time = []
 
+        self.time_charge = []
+        self.time_discharge = []
+        self.charge_capacity = []
+        self.discharge_capacity = []
+
+    def structure_data(self, charge_first: bool):
+
+        self.time_charge = self.cycle_time[::2] if charge_first else self.cycle_time[1::2]
+        self.time_discharge = self.cycle_time[1::2] if charge_first else self.cycle_time[::2]
+        self.charge_capacity = self.cycle_capacity[::2] if charge_first else self.cycle_capacity[1::2]
+        self.discharge_capacity = self.cycle_capacity[1::2] if charge_first else self.cycle_capacity[::2]
+
 
 class CyclingProtocol(ABC):
     """
@@ -48,6 +60,7 @@ class CyclingProtocol(ABC):
     def __init__(self, current: float, charge_first: bool):
         self.current = current
         self.charge = charge_first
+        self.charge_first = charge_first
 
         if self.current <= 0.0:
             raise ValueError("'current must be > 0.0")
@@ -280,6 +293,8 @@ class ConstantCurrent(CyclingProtocol):
             results.soc_profile_cls[i] = c
             results.soc_profile_ncls[i] = n
 
+        # structures data into individual charge and discharge cycle times and capacities
+        results.structure_data(self.charge_first)
         return results
 
 
@@ -602,6 +617,8 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             results.soc_profile_cls[i] = c
             results.soc_profile_ncls[i] = n
 
+        # structures data into individual charge and discharge cycle times and capacities
+        results.structure_data(self.charge_first)
         return results
 
     @staticmethod
