@@ -402,9 +402,3 @@ class ZeroDModel:
 
         return delta_ox, delta_red
 
-    @staticmethod
-    def state_of_charge(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls) -> tuple[float, float]:
-        """Calculate state-of-charge in each reservoir"""
-        soc_cls = (c_red_cls / (c_ox_cls + c_red_cls)) * 100
-        soc_ncls = (c_red_ncls / (c_ox_ncls + c_red_ncls)) * 100
-        return soc_cls, soc_ncls

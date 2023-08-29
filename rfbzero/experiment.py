@@ -45,6 +45,19 @@ class CyclingProtocolResults:
         self.charge_capacity = []
         self.discharge_capacity = []
 
+    def state_of_charge(self):
+        """Calculate state-of-charge in each reservoir"""
+        for i, (a, b, c, d) in enumerate(zip(self.c_ox_cls_profile, self.c_red_cls_profile,
+                                             self.c_ox_ncls_profile, self.c_red_ncls_profile)):
+
+            if a + b == 0.0 or c + d == 0.0:
+                break
+
+            soc_cls = (b / (a + b)) * 100
+            soc_ncls = (d / (c + d)) * 100
+            self.soc_profile_cls[i] = soc_cls
+            self.soc_profile_ncls[i] = soc_ncls
+
     def structure_data(self, charge_first: bool):
 
         self.time_charge = self.cycle_time[::2] if charge_first else self.cycle_time[1::2]
@@ -161,17 +174,17 @@ class ConstantCurrent(CyclingProtocol):
 
         length_data = int(duration / cell_model.time_increment)
 
-        # setup of data results object to be sent to user
+        # initialize data results object to be sent to user
         results = CyclingProtocolResults(length_data)
 
-        results.times = [x * cell_model.time_increment for x in range(1, length_data + 1)]
+        #results.times = [x * cell_model.time_increment for x in range(1, length_data + 1)]
         print(f"{duration} sec of cycling, time steps: {cell_model.time_increment} sec")
 
         count = 0
         cap = 0.0
-        cap_low = False
+        #cap_low = False
         # initialized in case simulation has to stop due to no more available capacity
-        final_count = length_data
+        #final_count = length_data
 
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
 
@@ -204,17 +217,18 @@ class ConstantCurrent(CyclingProtocol):
             if cell_model.negative_concentrations():
                 # record capacity here
                 results.cycle_capacity.append(cap)
+                #results.cycle_time.append(count * cell_model.time_increment)
                 #  Break out of loop if capacity approaches zero
                 if cap < 1.0 and len(results.cycle_capacity) > 2:
                     print(str(count) + 'count')
                     print('Simulation stopped, capacity < 1 coulomb')
-                    final_count = count
-                    cap_low = True
-                    break
+                    #final_count = count
+                    #cap_low = True
+                    #break
                 ##############
                 cap = 0.0
 
-                # record cycle time
+                # OG record cycle time
                 results.cycle_time.append(count * cell_model.time_increment)
 
                 # switch charge to discharge or vice-versa
@@ -240,16 +254,17 @@ class ConstantCurrent(CyclingProtocol):
             if cell_v >= self.voltage_cutoff_charge or cell_v <= self.voltage_cutoff_discharge:
                 # record capacity here
                 results.cycle_capacity.append(cap)
+                #results.cycle_time.append(count * cell_model.time_increment)
                 #####################
                 if cap < 1.0 and count > 2:
                     print(str(count) + 'count')
                     print('Simulation stopped, capacity < 1 coulomb')
-                    final_count = count
-                    cap_low = True
-                    break
+                    #final_count = count
+                    #cap_low = True
+                    #break
                 ##################
                 cap = 0.0
-                # record cycle time
+                # OG record cycle time
                 results.cycle_time.append(count * cell_model.time_increment)
 
                 # switch charge to discharge or vice-versa
@@ -280,19 +295,16 @@ class ConstantCurrent(CyclingProtocol):
             results.mt_profile[count] = n_mt
             results.loss_profile[count] = losses
 
+            # times
+            results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
+
             count += 1
         # adjusts time points if capacity decreased past set point
-        if cap_low:
-            results.times = results.times[:final_count + 1]
+        #if cap_low:
+        #    results.times = results.times[:final_count + 1]
 
         # now calculating SOC of cls and ncls
-        # can definitely be written better
-        for i, (a, b, c, d) in enumerate(zip(results.c_ox_cls_profile, results.c_red_cls_profile,
-                                             results.c_ox_ncls_profile, results.c_red_ncls_profile)):
-            c, n = cell_model.state_of_charge(a, b, c, d)
-            results.soc_profile_cls[i] = c
-            results.soc_profile_ncls[i] = n
-
+        results.state_of_charge()
         # structures data into individual charge and discharge cycle times and capacities
         results.structure_data(self.charge_first)
         return results
@@ -376,7 +388,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         length_data = int(duration / cell_model.time_increment)
 
-        # setup of data object to be sent to user
+        # initialize data object to be sent to user
         results = CyclingProtocolResults(length_data)
 
         results.times = [x * cell_model.time_increment for x in range(1, length_data + 1)]
@@ -610,13 +622,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             results.times = results.times[:final_count + 1]
 
         # now calculating SOC of cls and ncls
-        # can defs make this better
-        for i, (a, b, c, d) in enumerate(zip(results.c_ox_cls_profile, results.c_red_cls_profile,
-                                             results.c_ox_ncls_profile, results.c_red_ncls_profile)):
-            c, n = cell_model.state_of_charge(a, b, c, d)
-            results.soc_profile_cls[i] = c
-            results.soc_profile_ncls[i] = n
-
+        results.state_of_charge()
         # structures data into individual charge and discharge cycle times and capacities
         results.structure_data(self.charge_first)
         return results
