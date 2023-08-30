@@ -263,7 +263,7 @@ class ZeroDModel:
                    * ((log(1 - ((c_tot_cls * i) / ((self.c_ox_cls * i_lim_cls) + (self.c_red_cls * i)))) / self.n_cls)
                       + (log(1 - ((c_tot_ncls * i) / ((self.c_red_ncls * i_lim_ncls) + (self.c_ox_ncls * i))))
                          / self.n_ncls))
-        return n_mt
+        return n_mt * -1
 
     def total_overpotential(self, current: float, charge: bool,
                             i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
