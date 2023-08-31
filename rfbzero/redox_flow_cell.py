@@ -253,7 +253,8 @@ class ZeroDModel:
 
         i = abs(current)
 
-        if (self.cls_negolyte and charge) or (not self.cls_negolyte and not charge):
+        #if (self.cls_negolyte and charge) or (not self.cls_negolyte and not charge): # OG
+        if (self.cls_negolyte and not charge) or (not self.cls_negolyte and charge):
             n_mt = NERNST_CONST\
                    * ((log(1 - ((c_tot_cls * i) / ((self.c_red_cls * i_lim_cls) + (self.c_ox_cls * i)))) / self.n_cls)
                       + (log(1 - ((c_tot_ncls * i) / ((self.c_ox_ncls * i_lim_ncls) + (self.c_red_ncls * i))))

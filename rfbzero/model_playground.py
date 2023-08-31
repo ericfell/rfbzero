@@ -29,17 +29,17 @@ voltage_limit_charge = 0.2
 voltage_limit_discharge = -0.2
 current = 0.05
 
-resistance = 0.1
+resistance = 3.5
 k_species = 5e-3  # AQDS nature paper says 7.3e-3
 
 # for crossover
-membrane_thickness = 183 / 10000  # cm, nafion 117
+membrane_thickness = 183 / 10000  # cm, nafion 117 # 183, 120, 50, 25
 membrane_c = area / membrane_thickness
 p_ox = 1.0e-6  # cm^2/s
 p_red = 1.0e-6  # cm^2/s
 ##############################
 # working on timing here
-"""
+
 start_time = time.time()
 
 # define the battery design parameters
@@ -47,7 +47,7 @@ cell = ZeroDModel(CLS_vol, NCLS_vol, c_ox_cls_start, c_red_cls_start, c_ox_ncls_
                   E_redox, resistance, k_species, k_species, n_cls=2, n_ncls=2)
 
 # define degradation mechanisms
-test_f1 = ChemicalDegradation(rate_order=1, rate_constant=10e-5, species='red')
+test_f1 = ChemicalDegradation(rate_order=1, rate_constant=1e-7, species='red')
 # test_f2 = AutoOxidation(rate_constant=30e-5)
 # test_f3 = ChemicalDegradation(rate_order=1, rate_constant=10e-5, species='red')
 # test_f4 = MultiDegradationMechanism([test_f1, test_f2])
@@ -69,30 +69,32 @@ else:
                                               current=current)
 # putting it all together
 all_results = protocol.run(cell_model=cell,
-                           cls_degradation=test_f1,
-                           #degradation=test_f1,
+                           #cls_degradation=test_f1,
+                           degradation=test_f1,
                            #ncls_degradation=test_f2,
-                           cross_over=crossover_f,
+                           #cross_over=crossover_f,
                            duration=10000)
 
 # print([attr for attr in dir(all_results) if not attr.startswith('__')])
 print(f"Execution time: {(time.time() - start_time):.2f}")
 print(all_results.cycle_capacity[:5])
 
+t_dis = [i/86400 for i in all_results.time_discharge]
+fade, r2 = fade_rate(all_results.discharge_capacity, t_dis)
+print(f"Fade rate: {fade:.3f}%/day, r^2: {r2:.3f}")
 
-g = 0
 fig, ax = plt.subplots(nrows=4, ncols=1, sharex=True)
-ax[0].plot(time_discharge, cap_discharge, 'bo--')
-ax[0].plot(time_charge, cap_charge, 'ro--')
-ax[1].plot(all_results.times[g:], all_results.current_profile, 'r')
-ax[2].plot(all_results.times[g:], all_results.cell_v_profile, 'b')
-ax[3].plot(all_results.times[g:], all_results.ocv_profile, 'k')
+ax[0].plot(all_results.time_discharge, all_results.discharge_capacity, 'bo--')
+ax[0].plot(all_results.time_charge, all_results.charge_capacity, 'ro--')
+ax[1].plot(all_results.times, all_results.current_profile, 'r')
+ax[2].plot(all_results.times, all_results.cell_v_profile, 'b')
+ax[3].plot(all_results.times, all_results.ocv_profile, 'k')
 # ax[4].plot(times[g:], loss_profile, 'k')
 # ax[4].plot(times[g:], act_profile, 'r')
 # ax[4].plot(times[g:], mt_profile, 'b')
 # ax[4].plot(all_results.times[g:], all_results.soc_profile_cls, 'r')
 # ax[4].plot(all_results.times[g:], all_results.soc_profile_ncls, 'k')
-plt.show()
+#plt.show()
 
 ax[0].set_ylabel('Capacity')
 ax[1].set_ylabel('Current')
@@ -107,8 +109,8 @@ fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
 ax[0].plot(all_results.times, all_results.del_ox, 'b--')
 ax[0].plot(all_results.times, all_results.del_red, 'r--')
 
-ax[1].plot(all_results.times[g:], all_results.soc_profile_cls, 'r')
-ax[1].plot(all_results.times[g:], all_results.soc_profile_ncls, 'k')
+ax[1].plot(all_results.times, all_results.soc_profile_cls, 'r')
+ax[1].plot(all_results.times, all_results.soc_profile_ncls, 'k')
 ax[1].set_xlabel('Time (s)')
 ax[0].set_ylabel("Mols of species crossed")  # (r'$_{CLS} - C_{NCLS}$ (M)')
 ax[1].set_ylabel('SOC (%)')
@@ -179,3 +181,4 @@ plt.show()
 #ax[].set_ylabel('Current')
 #ax[2].set_ylabel('Voltage')
 #ax[3].set_ylabel('OCV')
+"""
