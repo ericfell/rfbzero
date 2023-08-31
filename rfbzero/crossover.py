@@ -20,6 +20,8 @@ class Crossover:
 
     Notes
     -----
+    TODO: adapt this functionality to crossover in a full cell
+    which looks similar to chemical degradation.
 
     """
 

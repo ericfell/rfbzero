@@ -88,7 +88,7 @@ class CyclingProtocol(ABC):
             ncls_degradation: DegradationMechanism = None,
             cross_over: Crossover = None,
             ) -> CyclingProtocolResults:
-        """Applies a cycling protocol and (possible) degradation mechanisms to a cell model"""
+        """Applies a cycling protocol and (optional) degradation mechanisms to a cell model"""
         raise NotImplementedError
 
     @staticmethod
@@ -104,10 +104,9 @@ class CyclingProtocol(ABC):
         if cell_model.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
-    @staticmethod
-    def current_direction(charge: bool) -> int:
+    def current_direction(self) -> int:
         """Make current positive for charge, negative for discharge"""
-        return 1 if charge else -1
+        return 1 if self.charge else -1
 
 
 class ConstantCurrent(CyclingProtocol):
@@ -172,19 +171,14 @@ class ConstantCurrent(CyclingProtocol):
         if not self.voltage_cutoff_discharge < cell_model.init_ocv < self.voltage_cutoff_charge:
             raise ValueError("Ensure that 'voltage_cutoff_discharge' < 'init_ocv' < 'voltage_cutoff_charge'")
 
-        length_data = int(duration / cell_model.time_increment)
+        print(f"{duration} sec of cycling, time steps: {cell_model.time_increment} sec")
 
         # initialize data results object to be sent to user
+        length_data = int(duration / cell_model.time_increment)
         results = CyclingProtocolResults(length_data)
-
-        #results.times = [x * cell_model.time_increment for x in range(1, length_data + 1)]
-        print(f"{duration} sec of cycling, time steps: {cell_model.time_increment} sec")
 
         count = 0
         cap = 0.0
-        #cap_low = False
-        # initialized in case simulation has to stop due to no more available capacity
-        #final_count = length_data
 
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
 
@@ -192,7 +186,7 @@ class ConstantCurrent(CyclingProtocol):
             raise ValueError("Desired current > limiting current, cell can't run")
 
         # assign + current to charge, - current to discharge
-        i = self.current_direction(self.charge) * self.current
+        i = self.current_direction() * self.current
 
         losses, _, _ = cell_model.total_overpotential(i, self.charge, i_lim_cls_t, i_lim_ncls_t)
         ocv = cell_model.open_circuit_voltage()
@@ -203,7 +197,7 @@ class ConstantCurrent(CyclingProtocol):
 
         while count != length_data:
             # set current
-            i = self.current_direction(self.charge) * self.current
+            i = self.current_direction() * self.current
 
             # record temporary values of concentrations for all species
             c_ox_cls_temp = cell_model.c_ox_cls
@@ -221,16 +215,10 @@ class ConstantCurrent(CyclingProtocol):
 
                 #  Break out of loop if capacity approaches zero
                 if cap < 1.0 and len(results.cycle_capacity) > 2:
-                    print(str(count) + 'count')
-                    print('Simulation stopped, capacity < 1 coulomb')
-                    #final_count = count
-                    #cap_low = True
-                    #break
+                    print(f"Simulation stopped after {count} time steps, due to capacity < 1 coulomb")
+                    break
                 ##############
                 cap = 0.0
-
-                # OG record cycle time
-                #results.cycle_time.append(count * cell_model.time_increment)
 
                 # switch charge to discharge or vice-versa
                 self.charge = not self.charge
@@ -253,20 +241,15 @@ class ConstantCurrent(CyclingProtocol):
 
             # did it hit voltage limit ?
             if cell_v >= self.voltage_cutoff_charge or cell_v <= self.voltage_cutoff_discharge:
-                # record capacity here
+                # record cycle capacity, cycle time
                 results.cycle_capacity.append(cap)
                 results.cycle_time.append(count * cell_model.time_increment)
                 #####################
                 if cap < 1.0 and count > 2:
-                    print(str(count) + 'count')
-                    print('Simulation stopped, capacity < 1 coulomb')
-                    #final_count = count
-                    #cap_low = True
-                    #break
-                ##################
+                    print(f"Simulation stopped after {count} time steps, due to capacity < 1 coulomb")
+                    break
+
                 cap = 0.0
-                # OG record cycle time
-                #results.cycle_time.append(count * cell_model.time_increment)
 
                 # switch charge to discharge or vice-versa
                 self.charge = not self.charge
@@ -300,9 +283,6 @@ class ConstantCurrent(CyclingProtocol):
             results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
 
             count += 1
-        # adjusts time points if capacity decreased past set point
-        #if cap_low:
-        #    results.times = results.times[:final_count + 1]
 
         # now calculating SOC of cls and ncls
         results.state_of_charge()
@@ -383,27 +363,22 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         if not self.voltage_limit_discharge < cell_model.init_ocv < self.voltage_limit_charge:
             raise ValueError("Ensure that 'voltage_limit_discharge' < 'init_ocv' < 'voltage_limit_charge'")
 
+        print(f"{duration} sec of cycling, time steps: {cell_model.time_increment} sec")
+
         cc_mode = True
         i_first = True
         cv_only = False
 
-        length_data = int(duration / cell_model.time_increment)
-
         # initialize data object to be sent to user
+        length_data = int(duration / cell_model.time_increment)
         results = CyclingProtocolResults(length_data)
-
-        #results.times = [x * cell_model.time_increment for x in range(1, length_data + 1)]
-
-        print(f"{duration} sec of cycling, time steps: {cell_model.time_increment} sec")
 
         count = 0
         cap = 0.0
-        #cap_low = False
-        #final_count = length_data
 
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
+        i = self.current_direction() * self.current
 
-        i = self.current_direction(self.charge) * self.current
         #  check if cell needs to go straight to CV
         if self.current >= i_lim_cls_t or self.current >= i_lim_ncls_t:
             cc_mode = False
@@ -431,29 +406,24 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             # check if in CC or CV mode
             if cc_mode:
                 # set current
-                i = self.current_direction(self.charge) * self.current
+                i = self.current_direction() * self.current
 
                 # calculate species' concentrations
                 delta_ox, delta_red = cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, cross_over)
 
                 # EDGE CASE where voltage limits never reached i.e. straight CC cycling
                 if cell_model.negative_concentrations():
-                    # record capacity here
+                    # record cycle capacity, cycle time
                     results.cycle_capacity.append(cap)
                     results.cycle_time.append(count * cell_model.time_increment)
 
                     #  Break out of loop if capacity near zero
                     if cap < 1.0 and len(results.cycle_capacity) > 2:
-                        print(str(count) + 'count')
-                        print('Simulation stopped, capacity < 1 coulomb')
-                        #final_count = count
-                        #cap_low = True
+                        print(f"Simulation stopped after {count} time steps, due to capacity < 1 coulomb")
                         break
 
-                    #####################
                     cap = 0.0
-                    # record cycle time
-                    #results.cycle_time.append(count * cell_model.time_increment)
+
                     # switch charge to discharge or vice-versa
                     self.charge = not self.charge
 
@@ -541,16 +511,11 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
                     # Break out of full simulation if capacity nears zero
                     if cap < 1.0 and len(results.cycle_capacity) > 2:
-                        print(str(count) + 'count')
-                        print('Simulation stopped, capacity < 1 coulomb')
-                        #final_count = count
-                        #cap_low = True
+                        print(f"Simulation stopped after {count} time steps, due to capacity < 1 coulomb")
                         break
 
-                    ############################
                     cap = 0.0
-                    # record cycle time
-                    #results.cycle_time.append(count * cell_model.time_increment)
+
                     # switch charge to discharge or vice-versa
                     self.charge = not self.charge
                     cc_mode = True
@@ -578,15 +543,11 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
                     # Break out of loop if capacity nears zero
                     if cap < 1.0 and len(results.cycle_capacity) > 2:
-                        print(str(count) + 'count')
-                        print('Simulation stopped, capacity < 1 coulomb')
-                        #final_count = count
-                        #cap_low = True
+                        print(f"Simulation stopped after {count} time steps, due to capacity < 1 coulomb")
                         break
 
                     cap = 0.0
-                    # record cycle time
-                    #results.cycle_time.append(count * cell_model.time_increment)
+
                     # switch charge to discharge or vice-versa
                     self.charge = not self.charge
                     cc_mode = True
@@ -627,9 +588,6 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
 
                 count += 1
-
-        #if cap_low:
-        #    results.times = results.times[:final_count + 1]
 
         # now calculating SOC of cls and ncls
         results.state_of_charge()
