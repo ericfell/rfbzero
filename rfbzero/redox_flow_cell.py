@@ -125,6 +125,9 @@ class ZeroDModel:
         if not isinstance(self.n_cls, int) or not isinstance(self.n_ncls, int):
             raise ValueError("'n_cls' and 'n_ncls' must be integers")
 
+        if self.cls_volume >= self.ncls_volume:
+            raise ValueError("'cls_volume' must be < 'ncls_volume'")
+
         if self.init_ocv == 0.0 and self.n_cls != self.n_ncls:
             raise ValueError("Symmetric cell (0 volt OCV) requires 'n_cls' and 'n_ncls' to be equal (same species)")
 
