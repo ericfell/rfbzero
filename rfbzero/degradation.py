@@ -36,7 +36,7 @@ class ChemicalDegradation(DegradationMechanism):
         self.rate_constant = rate_constant
         self.species = species
 
-        if not isinstance(self.rate_order, int):
+        if not isinstance(self.rate_order, int) or self.rate_order < 0:
             raise ValueError("'rate_order' must be an integer")
 
         if self.rate_constant <= 0.0:

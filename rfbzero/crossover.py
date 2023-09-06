@@ -38,9 +38,6 @@ class Crossover:
             elif value < 0.0:
                 raise ValueError(f"'{key}' must be >= 0.0")
 
-        if self.membrane_constant <= 0.0:
-            raise ValueError("'membrane_constant' must be > 0.0")
-
         if self.p_ox == 0.0 and self.p_red == 0.0:
             raise ValueError("'p_ox' and 'p_red' cannot both be zero")
 

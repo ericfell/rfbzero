@@ -178,7 +178,7 @@ class ConstantCurrent(CyclingProtocol):
         results = CyclingProtocolResults(length_data)
 
         count = 0
-        cap = 0.0
+        capacity = 0.0
 
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
 
@@ -210,15 +210,15 @@ class ConstantCurrent(CyclingProtocol):
             # EDGE CASE where voltage limits never reached i.e. straight CC cycling until concentration runs out
             if cell_model.negative_concentrations():
                 # record capacity here
-                results.cycle_capacity.append(cap)
+                results.cycle_capacity.append(capacity)
                 results.cycle_time.append(count * cell_model.time_increment)
 
                 #  Break out of loop if capacity approaches zero
-                if cap < 1.0 and len(results.cycle_capacity) > 2:
+                if capacity < 1.0 and len(results.cycle_capacity) > 2:
                     print(f"Simulation stopped after {count} time steps, due to capacity < 1 coulomb")
                     break
                 ##############
-                cap = 0.0
+                capacity = 0.0
 
                 # switch charge to discharge or vice-versa
                 self.charge = not self.charge
@@ -242,14 +242,14 @@ class ConstantCurrent(CyclingProtocol):
             # did it hit voltage limit ?
             if cell_v >= self.voltage_cutoff_charge or cell_v <= self.voltage_cutoff_discharge:
                 # record cycle capacity, cycle time
-                results.cycle_capacity.append(cap)
+                results.cycle_capacity.append(capacity)
                 results.cycle_time.append(count * cell_model.time_increment)
                 #####################
-                if cap < 1.0 and count > 2:
+                if capacity < 1.0 and count > 2:
                     print(f"Simulation stopped after {count} time steps, due to capacity < 1 coulomb")
                     break
 
-                cap = 0.0
+                capacity = 0.0
 
                 # switch charge to discharge or vice-versa
                 self.charge = not self.charge
@@ -261,7 +261,7 @@ class ConstantCurrent(CyclingProtocol):
                 pass
 
             # update capacity
-            cap += abs(i * cell_model.time_increment)
+            capacity += abs(i * cell_model.time_increment)
 
             # update concentrations
             results.current_profile[count] = i
@@ -374,7 +374,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         results = CyclingProtocolResults(length_data)
 
         count = 0
-        cap = 0.0
+        capacity = 0.0
 
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
         i = self.current_direction() * self.current
@@ -414,15 +414,15 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 # EDGE CASE where voltage limits never reached i.e. straight CC cycling
                 if cell_model.negative_concentrations():
                     # record cycle capacity, cycle time
-                    results.cycle_capacity.append(cap)
+                    results.cycle_capacity.append(capacity)
                     results.cycle_time.append(count * cell_model.time_increment)
 
                     #  Break out of loop if capacity near zero
-                    if cap < 1.0 and len(results.cycle_capacity) > 2:
+                    if capacity < 1.0 and len(results.cycle_capacity) > 2:
                         print(f"Simulation stopped after {count} time steps, due to capacity < 1 coulomb")
                         break
 
-                    cap = 0.0
+                    capacity = 0.0
 
                     # switch charge to discharge or vice-versa
                     self.charge = not self.charge
@@ -445,12 +445,12 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 cell_v = cell_model.cell_voltage(ocv, losses, self.charge)
 
                 # update capacity
-                cap += abs(i * cell_model.time_increment)
+                capacity += abs(i * cell_model.time_increment)
 
                 # check if V limit is reached?
                 if cell_v >= self.voltage_limit_charge or cell_v <= self.voltage_limit_discharge:
                     cc_mode = not cc_mode
-                    # at some point maybe record cap here too, so you know cap due to CC and due to CV?
+                    # at some point maybe record capacity here too, so you know capacity due to CC and due to CV?
                     continue
                 else:
                     pass
@@ -506,15 +506,15 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                         (not self.charge and i_cv >= self.current_cutoff_discharge):
                     # CV part of cycle has now ended, record capacity data
 
-                    results.cycle_capacity.append(cap)
+                    results.cycle_capacity.append(capacity)
                     results.cycle_time.append(count * cell_model.time_increment)
 
                     # Break out of full simulation if capacity nears zero
-                    if cap < 1.0 and len(results.cycle_capacity) > 2:
+                    if capacity < 1.0 and len(results.cycle_capacity) > 2:
                         print(f"Simulation stopped after {count} time steps, due to capacity < 1 coulomb")
                         break
 
-                    cap = 0.0
+                    capacity = 0.0
 
                     # switch charge to discharge or vice-versa
                     self.charge = not self.charge
@@ -538,15 +538,15 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
                 # check if any reactant remains
                 if cell_model.negative_concentrations():
-                    results.cycle_capacity.append(cap)
+                    results.cycle_capacity.append(capacity)
                     results.cycle_time.append(count * cell_model.time_increment)
 
                     # Break out of loop if capacity nears zero
-                    if cap < 1.0 and len(results.cycle_capacity) > 2:
+                    if capacity < 1.0 and len(results.cycle_capacity) > 2:
                         print(f"Simulation stopped after {count} time steps, due to capacity < 1 coulomb")
                         break
 
-                    cap = 0.0
+                    capacity = 0.0
 
                     # switch charge to discharge or vice-versa
                     self.charge = not self.charge
@@ -566,7 +566,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                     pass
 
                 # update capacity
-                cap += abs(i_cv * cell_model.time_increment)
+                capacity += abs(i_cv * cell_model.time_increment)
                 # update concentrations
 
                 results.current_profile[count] = i_cv  # CV section
