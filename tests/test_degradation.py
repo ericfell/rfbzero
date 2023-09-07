@@ -1,8 +1,8 @@
 import pytest
 #import numpy as np
 
-#from rfbzero.rfbzero.degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism)
-from degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism) # uncomment here when running test harness
+#from rfbzero.rfbzero.degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism, AutoReductionO2Release)
+from degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism, AutoReductionO2Release) # uncomment here when running test harness
 
 
 class TestDegradationMechanism:
@@ -32,6 +32,13 @@ class TestChemicalDegradation:
         assert c_o == 1
         assert c_r == 0.495
 
+        test_chemdeg2 = ChemicalDegradation(rate_order=1,
+                                            rate_constant=0.1,
+                                            species='ox')
+        c_ox, c_red = test_chemdeg2.degrade(c_ox=1, c_red=0.5, timestep=0.1)
+        assert c_ox == 0.99
+        assert c_red == 0.5
+
 
 class TestAutoOxidation:
 
@@ -59,6 +66,21 @@ class TestAutoReduction:
         c_o, c_r = test_autored.degrade(c_ox=1, c_red=0.5, timestep=0.1)
         assert c_o == 0.99
         assert c_r == 0.51
+
+
+class TestAutoReductionO2Release:
+
+    @pytest.mark.parametrize("constant,factor", [(-1, -1), (0, -1), (-0.01, 11)])
+    def test_auto_red_o2_init(self, constant, factor):
+        with pytest.raises(ValueError):
+            AutoReductionO2Release(rate_constant=constant, release_factor=factor)
+
+    def test_auto_red_o2_degrade(self):
+        test_autoredo2 = AutoReductionO2Release(rate_constant=0.1, release_factor=0.01)
+        c_o, c_r = test_autoredo2.degrade(c_ox=1, c_red=0.5, timestep=0.1)
+        assert c_o == 0.99
+        assert c_r == 0.51
+        assert test_autoredo2.rate_constant == 0.0999
 
 
 class TestMultiDegradationMechanism:
