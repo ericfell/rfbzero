@@ -212,6 +212,75 @@ class MultiDegradationMechanism(DegradationMechanism):
         return c_ox, c_red
 
 
+class AutoReductionO2Release(DegradationMechanism):
+    """
+    #Provides a 1st order auto-reduction mechanism, (ox --> red) with no loss of active material. Can be thought of as a
+    #chemical reduction of the redox-active, balanced by the oxidation of some species not of interest to the model i.e.,
+    #water oxidation (OER). Typically, this could occur in a high-potential posolyte and be considered a self-discharge.
+
+    Parameters
+    ----------
+    rate_constant : float
+        First order rate of auto-oxidation (1/s).
+
+    """
+    def __init__(self, rate_constant: float, release_factor: float):
+        self.rate_constant = rate_constant
+        self.release_factor = release_factor
+        if self.rate_constant < 0.0:
+            raise ValueError("'rate_constant' must be > 0.0")
+        if self.release_factor < 0.0:
+            raise ValueError("'release_factor' must be > 0.0")
+
+    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+        """
+        Assumes first order process: ox --> red
+
+        Parameters
+        ----------
+        c_ox : float
+            Concentration of oxidized species (M).
+        c_red : float
+            Concentration of reduced species (M).
+        timestep : float
+            Time interval size (s).
+
+        Returns
+        -------
+        c_ox : float
+            Updated concentration of oxidized species (M).
+        c_red : float
+            Updated concentration of reduced species (M).
+
+        """
+
+        # normal auto-reduction step
+        delta_concentration = timestep * self.rate_constant * c_ox
+        c_ox -= delta_concentration
+        c_red += delta_concentration
+
+        # now continuously adjust rate constant based on release factor
+        self.rate_constant -= self.rate_constant * self.release_factor * timestep
+        if self.rate_constant < 0.0:
+            self.rate_constant = 0.0
+
+        return c_ox, c_red
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 """
 # to-dos
 def auto_red_test(c_ox, c_red, timestep, extra_ratio=1, rate=0):
