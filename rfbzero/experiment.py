@@ -19,22 +19,23 @@ class CyclingProtocolResults:
 
     """
 
-    def __init__(self, size: int):
-        self.current_profile = [0.0] * size
-        self.c_ox_cls_profile = [0.0] * size
-        self.c_red_cls_profile = [0.0] * size
-        self.c_ox_ncls_profile = [0.0] * size
-        self.c_red_ncls_profile = [0.0] * size
-        self.cell_v_profile = [0.0] * size
-        self.soc_profile_cls = [0.0] * size
-        self.soc_profile_ncls = [0.0] * size
-        self.ocv_profile = [0.0] * size
-        self.times = [0.0] * size
-        self.act_profile = [0.0] * size
-        self.mt_profile = [0.0] * size
-        self.loss_profile = [0.0] * size
-        self.del_ox = [0.0] * size
-        self.del_red = [0.0] * size
+    def __init__(self, size: int, capacity_only: bool):
+        if not capacity_only:
+            self.current_profile = [0.0] * size
+            self.c_ox_cls_profile = [0.0] * size
+            self.c_red_cls_profile = [0.0] * size
+            self.c_ox_ncls_profile = [0.0] * size
+            self.c_red_ncls_profile = [0.0] * size
+            self.cell_v_profile = [0.0] * size
+            self.soc_profile_cls = [0.0] * size
+            self.soc_profile_ncls = [0.0] * size
+            self.ocv_profile = [0.0] * size
+            self.times = [0.0] * size
+            self.act_profile = [0.0] * size
+            self.mt_profile = [0.0] * size
+            self.loss_profile = [0.0] * size
+            self.del_ox = [0.0] * size
+            self.del_red = [0.0] * size
 
         # total cycles is unknown at start, thus size is undetermined
         self.cycle_capacity = []
@@ -70,10 +71,11 @@ class CyclingProtocol(ABC):
     """
     Base class to be overridden by specific cycling protocol choice.
     """
-    def __init__(self, current: float, charge_first: bool):
+    def __init__(self, current: float, charge_first: bool, capacity_only: bool = True):
         self.current = current
         self.charge = charge_first
         self.charge_first = charge_first
+        self.capacity_only = capacity_only
 
         if self.current <= 0.0:
             raise ValueError("'current must be > 0.0")
@@ -128,10 +130,10 @@ class ConstantCurrent(CyclingProtocol):
     """
 
     def __init__(self, voltage_cutoff_charge: float, voltage_cutoff_discharge: float, current: float,
-                 charge_first: bool = True):
+                 charge_first: bool = True, capacity_only: bool = True):
         self.voltage_cutoff_charge = voltage_cutoff_charge
         self.voltage_cutoff_discharge = voltage_cutoff_discharge
-        super().__init__(current, charge_first)
+        super().__init__(current, charge_first, capacity_only)
 
     def run(self, duration: int, cell_model: ZeroDModel,
             degradation: DegradationMechanism = None,
@@ -175,7 +177,7 @@ class ConstantCurrent(CyclingProtocol):
 
         # initialize data results object to be sent to user
         length_data = int(duration / cell_model.time_increment)
-        results = CyclingProtocolResults(length_data)
+        results = CyclingProtocolResults(length_data, self.capacity_only)
 
         count = 0
         capacity = 0.0
@@ -261,28 +263,30 @@ class ConstantCurrent(CyclingProtocol):
             capacity += abs(i * cell_model.time_increment)
 
             # update concentrations
-            results.current_profile[count] = i
-            results.c_ox_cls_profile[count] = cell_model.c_ox_cls
-            results.c_red_cls_profile[count] = cell_model.c_red_cls
-            results.c_ox_ncls_profile[count] = cell_model.c_ox_ncls
-            results.c_red_ncls_profile[count] = cell_model.c_red_ncls
+            if not self.capacity_only:
+                results.current_profile[count] = i
+                results.c_ox_cls_profile[count] = cell_model.c_ox_cls
+                results.c_red_cls_profile[count] = cell_model.c_red_cls
+                results.c_ox_ncls_profile[count] = cell_model.c_ox_ncls
+                results.c_red_ncls_profile[count] = cell_model.c_red_ncls
 
-            results.del_ox[count] = delta_ox
-            results.del_red[count] = delta_red
+                results.del_ox[count] = delta_ox
+                results.del_red[count] = delta_red
 
-            results.cell_v_profile[count] = cell_v
-            results.ocv_profile[count] = ocv
-            results.act_profile[count] = n_act
-            results.mt_profile[count] = n_mt
-            results.loss_profile[count] = losses
+                results.cell_v_profile[count] = cell_v
+                results.ocv_profile[count] = ocv
+                results.act_profile[count] = n_act
+                results.mt_profile[count] = n_mt
+                results.loss_profile[count] = losses
 
-            # times
-            results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
+                # times
+                results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
 
             count += 1
 
         # now calculating SOC of cls and ncls
-        results.state_of_charge()
+        if not self.capacity_only:
+            results.state_of_charge()
         # structures data into individual charge and discharge cycle times and capacities
         results.structure_data(self.charge_first)
         return results
@@ -312,12 +316,12 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
     """
 
     def __init__(self, voltage_limit_charge: float, voltage_limit_discharge: float, current_cutoff_charge: float,
-                 current_cutoff_discharge: float, current: float, charge_first: bool = True):
+                 current_cutoff_discharge: float, current: float, charge_first: bool = True, capacity_only: bool = True):
         self.voltage_limit_charge = voltage_limit_charge
         self.voltage_limit_discharge = voltage_limit_discharge
         self.current_cutoff_charge = current_cutoff_charge
         self.current_cutoff_discharge = current_cutoff_discharge
-        super().__init__(current, charge_first)
+        super().__init__(current, charge_first, capacity_only)
 
         if self.current_cutoff_discharge >= 0.0 or self.current_cutoff_charge <= 0.0:
             raise ValueError("Ensure 'current_cutoff_discharge' < 0.0, 'current_cutoff_charge' > 0.0")
@@ -367,7 +371,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         # initialize data object to be sent to user
         length_data = int(duration / cell_model.time_increment)
-        results = CyclingProtocolResults(length_data)
+        results = CyclingProtocolResults(length_data, self.capacity_only)
 
         count = 0
         capacity = 0.0
@@ -448,23 +452,24 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                     continue
 
                 # update concentrations
-                results.current_profile[count] = i  # CC section
-                results.c_ox_cls_profile[count] = cell_model.c_ox_cls
-                results.c_red_cls_profile[count] = cell_model.c_red_cls
-                results.c_ox_ncls_profile[count] = cell_model.c_ox_ncls
-                results.c_red_ncls_profile[count] = cell_model.c_red_ncls
+                if not self.capacity_only:
+                    results.current_profile[count] = i  # CC section
+                    results.c_ox_cls_profile[count] = cell_model.c_ox_cls
+                    results.c_red_cls_profile[count] = cell_model.c_red_cls
+                    results.c_ox_ncls_profile[count] = cell_model.c_ox_ncls
+                    results.c_red_ncls_profile[count] = cell_model.c_red_ncls
 
-                results.del_ox[count] = delta_ox
-                results.del_red[count] = delta_red
+                    results.del_ox[count] = delta_ox
+                    results.del_red[count] = delta_red
 
-                results.cell_v_profile[count] = cell_v
-                results.ocv_profile[count] = ocv
-                results.act_profile[count] = n_act
-                results.mt_profile[count] = n_mt
-                results.loss_profile[count] = losses
+                    results.cell_v_profile[count] = cell_v
+                    results.ocv_profile[count] = ocv
+                    results.act_profile[count] = n_act
+                    results.mt_profile[count] = n_mt
+                    results.loss_profile[count] = losses
 
-                # times
-                results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
+                    # times
+                    results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
 
                 count += 1
             ##########################################################
@@ -556,29 +561,31 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 capacity += abs(i_cv * cell_model.time_increment)
 
                 # update concentrations
-                results.current_profile[count] = i_cv
-                results.c_ox_cls_profile[count] = cell_model.c_ox_cls
-                results.c_red_cls_profile[count] = cell_model.c_red_cls
-                results.c_ox_ncls_profile[count] = cell_model.c_ox_ncls
-                results.c_red_ncls_profile[count] = cell_model.c_red_ncls
+                if not self.capacity_only:
+                    results.current_profile[count] = i_cv
+                    results.c_ox_cls_profile[count] = cell_model.c_ox_cls
+                    results.c_red_cls_profile[count] = cell_model.c_red_cls
+                    results.c_ox_ncls_profile[count] = cell_model.c_ox_ncls
+                    results.c_red_ncls_profile[count] = cell_model.c_red_ncls
 
-                results.del_ox[count] = delta_ox
-                results.del_red[count] = delta_red
+                    results.del_ox[count] = delta_ox
+                    results.del_red[count] = delta_red
 
-                results.cell_v_profile[count] = cell_v
-                results.ocv_profile[count] = ocv
-                # these are undefined in CV mode
-                results.act_profile[count] = 0.0
-                results.mt_profile[count] = 0.0
-                results.loss_profile[count] = 0.0
+                    results.cell_v_profile[count] = cell_v
+                    results.ocv_profile[count] = ocv
+                    # these are undefined in CV mode
+                    results.act_profile[count] = 0.0
+                    results.mt_profile[count] = 0.0
+                    results.loss_profile[count] = 0.0
 
-                # times
-                results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
+                    # times
+                    results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
 
                 count += 1
 
         # now calculating SOC of cls and ncls
-        results.state_of_charge()
+        if not self.capacity_only:
+            results.state_of_charge()
         # structures data into individual charge and discharge cycle times and capacities
         results.structure_data(self.charge_first)
         return results
