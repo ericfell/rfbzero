@@ -29,7 +29,7 @@ bibliography: paper.bib
 
 # Overview
 
-`rfbzero` is a Python package for simulating electrochemical cycling of redox flow batteries. This package includes modules for initial cell setup, cycling protocol selection, and optional inputs for various chemical degradation mechanisms and active species crossover.
+`rfbzero.py` is a Python package for simulating electrochemical cycling of redox flow batteries. This package includes modules for initial cell setup and electrolyte description, cycling protocol selection, and optional inputs for various capacity degradation mechanisms and active species crossover.
 currently allows for zero dimensional modelling of electrochemical cycling techniques and possible capacity fade mechanisms including:
 <break this down further?>
 - _CC_: constant current cell cycling
@@ -38,11 +38,12 @@ currently allows for zero dimensional modelling of electrochemical cycling techn
 - _crossover_: crossover of redox-active species
 
 # Introduction
-placeholder
+Redox flow batteries (RFBs) are seen as a promising long-duration energy storage technology for grid-scale applications. Zero-dimensional models have previously been developed to understand the electrochemical cycling behaviour of vanadium-based RFBs (citeXX), where the dominant capacity fade mechanism involves crossover of active species from the negative reservoir (negolyte) to the positive reservoir (posolyte). Development of second generation electrolyte chemistries, such as redox-active organic molecules (RAOMs) (citeXX), in the past decade requires new models that incorporate properties inherent to novel chemistries. It is often the case that RAOMs are sufficiently bulky so as not to experience appreciable membrane crossover in an RFB, yet unlike vanadium ion electrolytes, they can experience chemical degradation leading to capacity decay. Recent work [@2021_Modak_JES] has extended VRFB-based zero-dimensional models to now include the effect of chemical degradation of redox active organics in RFBs.
 
 # Statement of Need
+To date, zero-dimensional RFB models have typically been disseminated in the literature via ad hoc non-generalizable code and written in proprietary software languages. With `rfbzero.py` we hope to provide an open-source package that accomplishes electrochemical learning objectives for RFBs, as well as allows for expansion of battery diagnostics via understanding of capacity fade mechanisms seen in the RAOM flow battery community.
+
 The initial cell setup configuration can often dictate the future trend in temporal capacity.
-Previous work [@2021_Modak_JES] has extended VRFB-based zero-dimensional models to include the effect of chemical degradation of redox active organics in RFBs.
 
 # Current `rfbzero.py` Functionality
 
