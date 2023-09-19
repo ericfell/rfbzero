@@ -85,10 +85,17 @@ class TestAutoReductionO2Release:
 
 class TestMultiDegradationMechanism:
 
-    #@pytest.mark.parametrize("mech", [(AutoOxidation, AutoReduction)])
-    def test_multi_deg_init(self):#, mech):
-        #with pytest.raises(ValueError):
-        #    MultiDegradationMechanism(mechanisms_list=mech)
-        raise NotImplementedError
+    @pytest.mark.parametrize("mech", [(1, True)])
+    def test_multi_deg_init(self, mech):
+        with pytest.raises(ValueError):
+            MultiDegradationMechanism(mechanisms_list=mech)
+        #raise NotImplementedError
     def test_multi_deg_degrade(self):
-        raise NotImplementedError
+        mech_1 = AutoReduction(rate_constant=0.1)
+        mech_2 = AutoOxidation(rate_constant=0.1)
+        mech_list = [mech_1, mech_2]
+        test_multi = MultiDegradationMechanism(mechanisms_list=mech_list)
+        c_o, c_r = test_multi.degrade(c_ox=1, c_red=0.5, timestep=0.1)
+        assert c_o == 0.9951
+        assert c_r == 0.5049
+        #raise NotImplementedError
