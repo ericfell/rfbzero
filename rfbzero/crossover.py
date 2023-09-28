@@ -1,8 +1,4 @@
 
-"""
-CROSSOVER FUNCTIONS CALLED BY ZeroDmodel CLASS
-"""
-
 
 class Crossover:
     """

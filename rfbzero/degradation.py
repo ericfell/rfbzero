@@ -1,7 +1,4 @@
 
-"""
-DEGRADATION FUNCTIONS CALLED BY ZeroDmodel CLASS
-"""
 
 from abc import ABC, abstractmethod
 
@@ -47,8 +44,8 @@ class ChemicalDegradation(DegradationMechanism):
 
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
-        N-th order chemical degradation of
-        N*[redox-active species] --> [redox-inactive species]
+        N-th order chemical degradation of N*[redox-active species] --> [redox-inactive species].
+        Returns updated concentrations. Concentration may be unchanged if species does not degrade.
 
         Parameters
         ----------
@@ -62,9 +59,9 @@ class ChemicalDegradation(DegradationMechanism):
         Returns
         -------
         c_ox : float
-            (Possibly) updated concentration of oxidized species (M).
+            Concentration of oxidized species (M).
         c_red : float
-            (Possibly) updated concentration of reduced species (M).
+            Concentration of reduced species (M).
 
         """
 
@@ -251,6 +248,7 @@ class MultiDegradationMechanism(DegradationMechanism):
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
         Input of different degradation mechanisms.
+        Concentration may be unchanged if species does not degrade.
 
         Parameters
         ----------
@@ -264,9 +262,9 @@ class MultiDegradationMechanism(DegradationMechanism):
         Returns
         -------
         c_ox : float
-            (Possibly) updated concentration of oxidized species (M).
+            Concentration of oxidized species (M).
         c_red : float
-            (Possibly) updated concentration of reduced species (M).
+            Concentration of reduced species (M).
 
         """
 
