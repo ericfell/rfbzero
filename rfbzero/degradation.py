@@ -12,7 +12,7 @@ class DegradationMechanism(ABC):
     """
     @abstractmethod
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
-        """Applies (possible) degradation mechanisms to oxidized/reduced species at each timestep"""
+        """Applies desired degradation mechanisms to oxidized/reduced species at each timestep"""
         raise NotImplementedError
 
 
@@ -78,9 +78,9 @@ class ChemicalDegradation(DegradationMechanism):
 
 class AutoOxidation(DegradationMechanism):
     """
-    Provides a 1st order auto-oxidation mechanism, (red --> ox) with no loss of active material. Can be thought of as a
-    chemical oxidation of the redox-active, balanced by the reduction of some species not of interest to the model i.e.,
-    water reduction (HER). Typically, this could occur in a low-potential negolyte and be considered a self-discharge.
+    Provides a 1st order auto-oxidation mechanism, (red --> ox) with no loss of active material. This can be thought of
+    as a chemical oxidation of the redox-active, balanced by the reduction of some species not of interest to the model
+    i.e., water splitting (HER). This could occur in a low-potential negolyte and be considered a self-discharge.
 
     Parameters
     ----------
@@ -125,9 +125,9 @@ class AutoOxidation(DegradationMechanism):
 
 class AutoReduction(DegradationMechanism):
     """
-    Provides a 1st order auto-reduction mechanism, (ox --> red) with no loss of active material. Can be thought of as a
-    chemical reduction of the redox-active, balanced by the oxidation of some species not of interest to the model i.e.,
-    water oxidation (OER). Typically, this could occur in a high-potential posolyte and be considered a self-discharge.
+    Provides a 1st order auto-reduction mechanism, (ox --> red) with no loss of active material. This can be thought of
+    as a chemical reduction of the redox-active, balanced by the oxidation of some species not of interest to the model
+    i.e., water splitting (OER). This could occur in a high-potential posolyte and be considered a self-discharge.
 
     Parameters
     ----------
@@ -224,8 +224,7 @@ class AutoReductionO2Release(DegradationMechanism):
 
         # now continuously adjust rate constant based on release factor
         self.rate_constant -= self.rate_constant * self.release_factor * timestep
-        if self.rate_constant < 0.0:
-            self.rate_constant = 0.0
+        self.rate_constant = max(self.rate_constant, 0.0)
 
         return c_ox, c_red
 
@@ -233,18 +232,19 @@ class AutoReductionO2Release(DegradationMechanism):
 class MultiDegradationMechanism(DegradationMechanism):
     """
     Provides option to input multiple degradation mechanisms available within the DegradationMechanism abstract class.
-    Allows for different and/or multiple mechanisms to be applied to reduced and/or oxidized species.
+    Allows for different and/or multiple mechanisms to be applied to reduced and/or oxidized species. Degradation
+    mechanisms are applied in the same order they are inputted.
 
     Parameters
     ----------
-    mechanisms_list : list[DegradationMechanism]
+    mechanisms : list[DegradationMechanism]
         List of degradation mechanism subclass instances.
 
     """
-    def __init__(self, mechanisms_list: list[DegradationMechanism]):
-        self.mechanisms_list = mechanisms_list
+    def __init__(self, mechanisms: list[DegradationMechanism]):
+        self.mechanisms = mechanisms
 
-        for mechanism in self.mechanisms_list:
+        for mechanism in self.mechanisms:
             if not isinstance(mechanism, DegradationMechanism):
                 raise ValueError(f"Mechanism {mechanism} is not of type DegradationMechanism")
 
@@ -270,7 +270,7 @@ class MultiDegradationMechanism(DegradationMechanism):
 
         """
 
-        for mechanism in self.mechanisms_list:
+        for mechanism in self.mechanisms:
             c_ox, c_red = mechanism.degrade(c_ox, c_red, timestep)
         return c_ox, c_red
 

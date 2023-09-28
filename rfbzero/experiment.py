@@ -48,19 +48,19 @@ class CyclingProtocolResults:
 
     def state_of_charge(self):
         """Calculate state-of-charge in each reservoir"""
-        for i, (a, b, c, d) in enumerate(zip(self.c_ox_cls_profile, self.c_red_cls_profile,
-                                             self.c_ox_ncls_profile, self.c_red_ncls_profile)):
+        for i, (cls_ox, cls_red, ncls_ox, ncls_red) in enumerate(zip(self.c_ox_cls_profile, self.c_red_cls_profile,
+                                                                     self.c_ox_ncls_profile, self.c_red_ncls_profile)):
 
-            if (a == 0.0 and b == 0.0) or (c == 0.0 and d == 0.0):
+            if cls_ox + cls_red == 0.0 or ncls_ox + ncls_red == 0.0:
                 break
 
-            soc_cls = (b / (a + b)) * 100
-            soc_ncls = (d / (c + d)) * 100
+            soc_cls = (cls_red / (cls_ox + cls_red)) * 100
+            soc_ncls = (ncls_red / (ncls_ox + ncls_red)) * 100
             self.soc_profile_cls[i] = soc_cls
             self.soc_profile_ncls[i] = soc_ncls
 
     def structure_data(self, charge_first: bool):
-
+        """Create separate charge/discharge cycle capacities and times from model outputs"""
         self.time_charge = self.cycle_time[::2] if charge_first else self.cycle_time[1::2]
         self.time_discharge = self.cycle_time[1::2] if charge_first else self.cycle_time[::2]
         self.charge_capacity = self.cycle_capacity[::2] if charge_first else self.cycle_capacity[1::2]
@@ -84,12 +84,15 @@ class CyclingProtocol(ABC):
             raise ValueError("'charge_first' must be a boolean")
 
     @abstractmethod
-    def run(self, duration: int, cell_model: ZeroDModel,
-            degradation: DegradationMechanism = None,
-            cls_degradation: DegradationMechanism = None,
-            ncls_degradation: DegradationMechanism = None,
-            cross_over: Crossover = None,
-            ) -> CyclingProtocolResults:
+    def run(
+        self,
+        duration: int,
+        cell_model: ZeroDModel,
+        degradation: DegradationMechanism = None,
+        cls_degradation: DegradationMechanism = None,
+        ncls_degradation: DegradationMechanism = None,
+        cross_over: Crossover = None,
+    ) -> CyclingProtocolResults:
         """Applies a cycling protocol and (optional) degradation mechanisms to a cell model"""
         raise NotImplementedError
 
@@ -114,7 +117,6 @@ class CyclingProtocol(ABC):
 class ConstantCurrent(CyclingProtocol):
     """
     Provides a constant current (CC) cycling method.
-    Overrides CyclingProtocol base class 'run' method.
 
     Parameters
     ----------
@@ -279,7 +281,7 @@ class ConstantCurrent(CyclingProtocol):
                 results.mt_profile[count] = n_mt
                 results.loss_profile[count] = losses
 
-                # times
+                # record time of model data point
                 results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
 
             count += 1
@@ -296,7 +298,6 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
     """
     Provides a constant current constant voltage (CCCV) cycling method which, in the limit of a high current demanded of
     a cell that it cannot maintain, becomes a constant voltage (CV) cycling method.
-    Overrides CyclingProtocol base class 'run' method.
 
     Parameters
     ----------

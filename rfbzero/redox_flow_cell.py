@@ -55,7 +55,7 @@ class ZeroDModel:
         Geometric area of cell (cm^2).
         Default is 5.0, a typical lab-scale cell size.
     cls_negolyte : bool
-        If True, negolyte is the CLS.
+        True if negolyte is the CLS, False if posolyte is the CLS.
     time_increment : float
         Simulation time step (s).
         Default is 0.01, providing adequate balance of accuracy vs compute time.
@@ -74,7 +74,7 @@ class ZeroDModel:
 
     Notes
     -----
-    All equations are adapted from [1]. If ZeroDModel has been
+    Most equations are adapted from [1]. If ZeroDModel has been
     significant to your research please cite the paper.
 
     [1] Modak, S.; Kwabi, D. G. A Zero-Dimensional Model for Electrochemical
@@ -139,11 +139,9 @@ class ZeroDModel:
         Returns
         -------
         i_0_cls : float
-            Exchange current of CLS redox couple
-            at a given timestep (A).
+            Exchange current of CLS redox couple at a given timestep (A).
         i_0_ncls : float
-            Exchange current of NCLS redox couple
-            at a given timestep (A).
+            Exchange current of NCLS redox couple at a given timestep (A).
 
         """
         # division by 1000 for conversion from L to cm^3
@@ -170,7 +168,7 @@ class ZeroDModel:
         Parameters
         ----------
         charge : bool
-            Positive if charging, negative if discharging.
+            True if charging, False if discharging.
 
         Returns
         -------
@@ -182,7 +180,7 @@ class ZeroDModel:
             at a given timestep (A).
 
         """
-        if (self.cls_negolyte and charge) or (not self.cls_negolyte and not charge):
+        if self.cls_negolyte == charge:
             i_lim_cls = self._limiting_current(self.c_ox_cls) * self.n_cls
             i_lim_ncls = self._limiting_current(self.c_red_ncls) * self.n_ncls
         else:
@@ -349,7 +347,7 @@ class ZeroDModel:
         """
         Updates all species' concentrations at each timestep.
         Contributions from faradaic current, (optional) degradations
-        mechanisms_list, and (optional) crossover mechanisms_list.
+        mechanisms, and (optional) crossover mechanisms.
 
         Parameters
         ----------
@@ -386,7 +384,7 @@ class ZeroDModel:
         delta_ox = 0.0
         delta_red = 0.0
 
-        # Coulomb counting from optional degradation/crossover mechanisms_list
+        # Coulomb counting from optional degradation/crossover mechanisms
         if cls_degradation is not None:
             c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
 

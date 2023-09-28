@@ -11,7 +11,7 @@ class Crossover:
     Parameters
     ----------
     membrane_constant : float
-        Cell geometric area divided by membrane thickness (cm^2 / cm)
+        Cell geometric area divided by membrane thickness (cm^2/cm)
     permeability_ox : float
         Permeability of oxidized species through membrane (cm^2/s)
     permeability_red : float
@@ -89,10 +89,10 @@ class Crossover:
         delta_red_mols = timestep * self.p_red * self.membrane_constant * (c_red_difference / 1000)
 
         # update concentrations (mol/L)
-        c_ox_cls -= (delta_ox_mols / vol_cls)
-        c_ox_ncls += (delta_ox_mols / vol_ncls)
+        c_ox_cls -= delta_ox_mols / vol_cls
+        c_ox_ncls += delta_ox_mols / vol_ncls
 
-        c_red_cls -= (delta_red_mols / vol_cls)
-        c_red_ncls += (delta_red_mols / vol_ncls)
+        c_red_cls -= delta_red_mols / vol_cls
+        c_red_ncls += delta_red_mols / vol_ncls
 
         return c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox_mols, delta_red_mols
