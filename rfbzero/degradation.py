@@ -2,9 +2,8 @@ from abc import ABC, abstractmethod
 
 
 class DegradationMechanism(ABC):
-    """
-    Base class to be overridden by specific degradation mechanisms.
-    """
+    """Base class to be overridden by specific degradation mechanisms."""
+
     @abstractmethod
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """Applies desired degradation mechanisms to oxidized/reduced species at each timestep"""
