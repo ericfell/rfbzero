@@ -1,5 +1,4 @@
 
-
 class Crossover:
     """
     Provides crossover mechanism for optional use in ZeroDModel

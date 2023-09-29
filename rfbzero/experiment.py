@@ -1,8 +1,8 @@
-
-
 from abc import ABC, abstractmethod
-from scipy.optimize import fsolve
+
 import numpy as np
+from scipy.optimize import fsolve
+
 from redox_flow_cell import ZeroDModel
 from degradation import DegradationMechanism
 from crossover import Crossover
@@ -16,6 +16,9 @@ class CyclingProtocolResults:
     ----------
     size : int
         Total number of time steps in desired simulation
+    capacity_only : bool
+        True if only cycle times and capacities will be returned,
+        False if all time series profiles will also be returned.
 
     """
 
@@ -61,16 +64,34 @@ class CyclingProtocolResults:
 
     def structure_data(self, charge_first: bool):
         """Create separate charge/discharge cycle capacities and times from model outputs"""
-        self.time_charge = self.cycle_time[::2] if charge_first else self.cycle_time[1::2]
-        self.time_discharge = self.cycle_time[1::2] if charge_first else self.cycle_time[::2]
-        self.charge_capacity = self.cycle_capacity[::2] if charge_first else self.cycle_capacity[1::2]
-        self.discharge_capacity = self.cycle_capacity[1::2] if charge_first else self.cycle_capacity[::2]
+        if charge_first:
+            self.time_charge = self.cycle_time[::2]
+            self.time_discharge = self.cycle_time[1::2]
+            self.charge_capacity = self.cycle_capacity[::2]
+            self.discharge_capacity = self.cycle_capacity[1::2]
+        else:
+            self.time_charge = self.cycle_time[1::2]
+            self.time_discharge = self.cycle_time[::2]
+            self.charge_capacity = self.cycle_capacity[1::2]
+            self.discharge_capacity = self.cycle_capacity[::2]
 
 
 class CyclingProtocol(ABC):
     """
     Base class to be overridden by specific cycling protocol choice.
+
+    Parameters
+    ----------
+    current : float
+        Instantaneous current flowing (A).
+    charge_first : bool
+        True if CLS charges first, False if CLS discharges first.
+    capacity_only : bool
+        True if only cycle times and capacities will be returned,
+        False if all time series profiles will also be returned.
+
     """
+
     def __init__(self, current: float, charge_first: bool, capacity_only: bool = True):
         self.current = current
         self.charge = charge_first
@@ -127,7 +148,10 @@ class ConstantCurrent(CyclingProtocol):
     current : float
         Instantaneous current flowing (A).
     charge_first : bool
-        If True, charges the cell first.
+        True if CLS charges first, False if CLS discharges first.
+    capacity_only : bool
+        True if only cycle times and capacities will be returned,
+        False if all time series profiles will also be returned.
 
     """
 
@@ -312,7 +336,10 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
     current : float
         Instantaneous current flowing (A).
     charge_first : bool
-        If True, charges the cell first.
+        True if CLS charges first, False if CLS discharges first.
+    capacity_only : bool
+        True if only cycle times and capacities will be returned,
+        False if all time series profiles will also be returned.
 
     """
 

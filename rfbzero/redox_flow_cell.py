@@ -1,7 +1,7 @@
-
-
 from math import log
+
 import scipy.constants as spc
+
 from degradation import DegradationMechanism
 from crossover import Crossover
 
@@ -245,7 +245,7 @@ class ZeroDModel:
             Combined (CLS+NCLS) mass transport overpotential (V).
 
         """
-        # Raise ValueError if a negative concentration is detected
+
         if self.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
@@ -318,7 +318,6 @@ class ZeroDModel:
 
         """
 
-        # Raise ValueError if a negative concentration is detected
         if self.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
@@ -346,17 +345,17 @@ class ZeroDModel:
                         cross_over: Crossover = None) -> tuple[float, float]:
         """
         Updates all species' concentrations at each timestep.
-        Contributions from faradaic current, (optional) degradations
-        mechanisms, and (optional) crossover mechanisms.
+        Contributions from faradaic current, (optional) degradation
+        mechanisms, and (optional) crossover mechanism.
 
         Parameters
         ----------
         current : float
             Instantaneous current flowing (A).
         cls_degradation : DegradationMechanism, optional
-            Degradation class instance for CLS.
+            Degradation mechanism for CLS.
         ncls_degradation: DegradationMechanism, optional
-            Degradation class instance for NCLS.
+            Degradation mechanism for NCLS.
         cross_over : Crossover, optional
             Crossover class instance
 
@@ -384,7 +383,7 @@ class ZeroDModel:
         delta_ox = 0.0
         delta_red = 0.0
 
-        # Coulomb counting from optional degradation/crossover mechanisms
+        # Coulomb counting from optional degradation and/or crossover mechanisms
         if cls_degradation is not None:
             c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
 

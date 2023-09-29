@@ -1,8 +1,8 @@
+import time
 
 import matplotlib.pyplot as plt
-import time
-from scipy import stats
 import numpy as np
+from scipy import stats
 
 from redox_flow_cell import ZeroDModel
 from degradation import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism, AutoReductionO2Release
