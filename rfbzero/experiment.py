@@ -500,7 +500,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                     results.times[count] = (count * cell_model.time_increment) + cell_model.time_increment
 
                 count += 1
-            ##########################################################
+
             else:  # now we're in CV mode
 
                 # record temporary values of concentrations for all species
@@ -620,7 +620,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
     @staticmethod
     def _get_min_current(cell_model: ZeroDModel, i_guess: float, cell_v: float, ocv: float, charge: bool,
-                         i_lim_cls: float, i_lim_ncls: float):
+                         i_lim_cls: float, i_lim_ncls: float) -> float:
         """
         Method wrapper to solve for current during constant voltage cycling.
         Attempts to minimize the difference of voltage, OCV, and losses (function of current).
@@ -649,7 +649,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         min_current : float
             Solved current at given timestep of constant voltage cycling (A).
         """
-        def solver(current: float):
+        def solver(current: float) -> float:
             """Numerical solver for current during constant voltage cycling"""
             loss_solve, *_ = cell_model.total_overpotential(current, charge, i_lim_cls, i_lim_ncls)
             return cell_v - ocv - loss_solve if charge else cell_v - ocv + loss_solve
