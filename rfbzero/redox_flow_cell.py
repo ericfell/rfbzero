@@ -254,7 +254,7 @@ class ZeroDModel:
 
         i = abs(current)
 
-        if (self.cls_negolyte and not charge) or (not self.cls_negolyte and charge):
+        if self.cls_negolyte != charge:
             n_mt = NERNST_CONST\
                    * ((log(1 - ((c_tot_cls * i) / ((self.c_red_cls * i_lim_cls) + (self.c_ox_cls * i)))) / self.n_cls)
                       + (log(1 - ((c_tot_ncls * i) / ((self.c_ox_ncls * i_lim_ncls) + (self.c_red_ncls * i))))
@@ -321,17 +321,11 @@ class ZeroDModel:
         if self.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
-        # CLS is negolyte
-        if self.cls_negolyte:
-            ocv = (self.init_ocv
-                   + ((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
-                   + ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls)))
+        direction = 1 if self.cls_negolyte else -1
 
-        # CLS is posolyte
-        else:
-            ocv = (self.init_ocv
-                   - ((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
-                   - ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls)))
+        ocv = (self.init_ocv
+               + direction * (((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
+                              + ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls))))
         return ocv
 
     @staticmethod

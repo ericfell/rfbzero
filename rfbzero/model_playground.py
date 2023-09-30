@@ -42,10 +42,10 @@ p_red = 1.0e-6  # cm^2/s
 # define the battery design parameters
 cell = ZeroDModel(cls_volume=0.005,     # L
                   ncls_volume=0.05,     # L
-                  cls_start_c_ox=0.1,   # M
-                  cls_start_c_red=0.1,  # M
-                  ncls_start_c_ox=0.1,  # M
-                  ncls_start_c_red=0.1, # M
+                  cls_start_c_ox=0.01,   # M
+                  cls_start_c_red=0.01,  # M
+                  ncls_start_c_ox=0.01,  # M
+                  ncls_start_c_red=0.01,  # M
                   init_ocv=0.0,         # V
                   resistance=1.0,       # ohms
                   k_0_cls=1e-3,         # cm/s
@@ -63,7 +63,7 @@ deg = ChemicalDegradation(rate_order=1,
 # define cycling protocol
 protocol = ConstantCurrent(voltage_cutoff_charge=0.2,       # V
                            voltage_cutoff_discharge=-0.2,   # V
-                           current=0.2,                     # A
+                           current=0.05,                     # A
                            )
 
 # putting it all together
@@ -71,3 +71,5 @@ all_results = protocol.run(cell_model=cell,
                            degradation=deg,
                            duration=1000,   # cycle time to simulate (s)
                            )
+
+print(all_results.cycle_capacity[:5])

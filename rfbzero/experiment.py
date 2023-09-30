@@ -407,10 +407,10 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
         i = self.current_direction() * self.current
 
-        #  check if cell needs to go straight to CV
+        # current surpasses transport limitations, must switch to constant voltage
         if self.current >= i_lim_cls_t or self.current >= i_lim_ncls_t:
             cc_mode = False
-            print("Goes straight to CV cycling due to high current")
+            print("Current >= limiting current, forced to do CV cycling")
         else:
             losses, n_act, n_mt = cell_model.total_overpotential(i, self.charge, i_lim_cls_t, i_lim_ncls_t)
             ocv = cell_model.open_circuit_voltage()
@@ -418,7 +418,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
             if cell_v >= self.voltage_limit_charge or cell_v <= self.voltage_limit_discharge:
                 cc_mode = False
-                print("Goes straight to CV cycling due to high overpotential")
+                print("Overpotential would put cell outside voltage window, forced to do CV cycling")
 
         while count != length_data:
             # record temporary values of concentrations for all species
