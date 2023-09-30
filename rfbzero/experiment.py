@@ -203,6 +203,12 @@ class ConstantCurrent(CyclingProtocol):
 
         # initialize data results object to be sent to user
         length_data = int(duration / cell_model.time_increment)
+        """
+        if int(duration // cell_model.time_increment) != length_data:
+            print("WARNING: 'duration' not evenly dividable by 'time_increment',\
+             \nexperiment duration will not be exactly as requested")
+        """
+
         results = CyclingProtocolResults(length_data, self.capacity_only)
 
         count = 0
@@ -399,6 +405,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         # initialize data object to be sent to user
         length_data = int(duration / cell_model.time_increment)
+
         results = CyclingProtocolResults(length_data, self.capacity_only)
 
         count = 0
