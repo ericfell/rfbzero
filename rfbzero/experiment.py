@@ -45,13 +45,13 @@ class CyclingProtocolResults:
             self.del_red = [0.0] * size
 
         # total cycles is unknown at start, thus size is undetermined
-        self.cycle_capacity = []
-        self.cycle_time = []
+        self.cycle_capacity: list[float] = []
+        self.cycle_time: list[float] = []
 
-        self.time_charge = []
-        self.time_discharge = []
-        self.charge_capacity = []
-        self.discharge_capacity = []
+        self.time_charge: list[float] = []
+        self.time_discharge: list[float] = []
+        self.charge_capacity: list[float] = []
+        self.discharge_capacity: list[float] = []
 
     def state_of_charge(self):
         """Calculate state-of-charge in each reservoir"""
