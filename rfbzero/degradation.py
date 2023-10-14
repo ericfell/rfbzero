@@ -1,3 +1,7 @@
+"""
+TODO: module docstring
+"""
+
 from abc import ABC, abstractmethod
 
 
@@ -269,9 +273,5 @@ class MultiDegradationMechanism(DegradationMechanism):
             c_ox, c_red = mechanism.degrade(c_ox, c_red, timestep)
         return c_ox, c_red
 
-
-"""
-
-# to-dos
-def potential_dependent(potential, c_ox, c_red, timestep, rate=0):
-"""
+# TODO
+# def potential_dependent(potential, c_ox, c_red, timestep, rate=0):

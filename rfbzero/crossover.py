@@ -1,3 +1,6 @@
+"""
+TODO: module docstring
+"""
 
 class Crossover:
     """
@@ -30,7 +33,7 @@ class Crossover:
                            'p_ox': self.p_ox, 'p_red': self.p_red}.items():
             if value <= 0.0 and key == 'membrane_constant':
                 raise ValueError(f"'{key}' must be > 0.0")
-            elif value < 0.0:
+            if value < 0.0:
                 raise ValueError(f"'{key}' must be >= 0.0")
 
         if self.p_ox == 0.0 and self.p_red == 0.0:

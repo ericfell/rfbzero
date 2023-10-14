@@ -1,11 +1,15 @@
+"""
+TODO: module docstring
+"""
+
 from abc import ABC, abstractmethod
 
 import numpy as np
 from scipy.optimize import fsolve
 
-from redox_flow_cell import ZeroDModel
-from degradation import DegradationMechanism
-from crossover import Crossover
+from .redox_flow_cell import ZeroDModel
+from .degradation import DegradationMechanism
+from .crossover import Crossover
 
 
 class CyclingProtocolResults:
@@ -344,7 +348,8 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
     """
 
     def __init__(self, voltage_limit_charge: float, voltage_limit_discharge: float, current_cutoff_charge: float,
-                 current_cutoff_discharge: float, current: float, charge_first: bool = True, capacity_only: bool = True):
+                 current_cutoff_discharge: float, current: float, charge_first: bool = True,
+                 capacity_only: bool = True):
         self.voltage_limit_charge = voltage_limit_charge
         self.voltage_limit_discharge = voltage_limit_discharge
         self.current_cutoff_charge = current_cutoff_charge

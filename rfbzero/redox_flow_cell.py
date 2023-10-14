@@ -1,9 +1,14 @@
+"""
+TODO: module docstring
+"""
+
+
 from math import log
 
 import scipy.constants as spc
 
-from degradation import DegradationMechanism
-from crossover import Crossover
+from .degradation import DegradationMechanism
+from .crossover import Crossover
 
 
 # Faraday constant (C/mol)
@@ -401,4 +406,3 @@ class ZeroDModel:
         self.c_red_ncls = c_red_ncls
 
         return delta_ox, delta_red
-
