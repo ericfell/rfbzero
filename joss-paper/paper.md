@@ -29,41 +29,66 @@ bibliography: paper.bib
 
 # Overview
 
-`rfbzero.py` is a Python package for simulating electrochemical cycling of redox flow batteries. This package includes modules for initial cell setup and electrolyte description, cycling protocol selection, and optional inputs for various capacity degradation mechanisms and active species crossover.
-currently allows for zero dimensional modelling of electrochemical cycling techniques and possible capacity fade mechanisms including:
-<break this down further?>
+`rfbzero.py` is a Python package for zero-dimensional simulation of electrochemical cycling of redox flow batteries. This package currently includes the following modules for initial cell setup and electrolyte description, cycling protocol selection, and optional inputs for various capacity degradation mechanisms and active species crossover:
 - _redox flow cell setup_: easy configuration of flow cell and electrolyte parameters
 - _cycling protocol_: quickly define the desired electrochemical cycling protocol
-- _capacity fade mechanisms_: include optional degradation and crossover mechanism inherent to the electrolytes and cell
+- _capacity fade mechanisms_: include optional electrolyte degradation mechanisms
+- _crossover_: include optional crossover mechanisms inherent to the electrolytes and cell
 
+# Background
+Redox flow batteries (RFBs) are seen as a promising long-duration energy storage technology for grid-scale applications. Zero-dimensional models have previously been developed to understand the electrochemical cycling behaviour of vanadium-based electrolytes in RFBs [@2018_Konig_JPOWERSOURCE; @2018_Murthy_JES; @2018_Pugach_APPENERG; @2019_Lee_JECHEMENERGCONVSTOR], where the dominant capacity fade mechanism involves crossover of active species between negative electrolyte (negolyte) and positive electrolyte (posolyte) reservoirs. The development of next-generation electrolyte chemistries, such as redox-active organic molecules (RAOMs) [@2020_Kwabi_CHEMREV], in the past decade requires new models that incorporate properties inherent to novel chemistries. It is often the case that RAOMs are sufficiently bulky so as not to experience appreciable membrane crossover in an RFB, yet, unlike vanadium-ion-based electrolytes, they can experience chemical degradation leading to capacity decay. Recent work [@2021_Modak_JES; @2022_Neyhouse_JES] has extended VRFB-based zero-dimensional models to now include the effect of chemical degradation of redox-active organics in RFBs. At each time step iteration in zero-dimensional models, the concentrations of reduced and oxidized redox-actives are updated via Coulomb counting and the open-circuit voltage (OCV) of the cell is then calculated from the Nernst equation. Species concentrations and the current are then used to determine the Ohmic, activation, and mass transport overpotentials. Summing the overpotentials and OCV then yields the cell voltage. The cell current for the next time step is then determined by the voltage, through the cycling protocol.
 
-# Introduction
-Redox flow batteries (RFBs) are seen as a promising long-duration energy storage technology for grid-scale applications. Zero-dimensional models have previously been developed to understand the electrochemical cycling behaviour of vanadium-based RFBs [@2018_Konig_JPOWERSOURCE; @2018_Murthy_JES; @2018_Pugach_APPENERG; @2019_Lee_JECHEMENERGCONVSTOR], where the dominant capacity fade mechanism involves crossover of active species between negative electrolyte (negolyte) and positive electrolyte (posolyte) reservoirs. Development of second generation electrolyte chemistries, such as redox-active organic molecules (RAOMs) [@2020_Kwabi_CHEMREV], in the past decade requires new models that incorporate properties inherent to novel chemistries. It is often the case that RAOMs are sufficiently bulky so as not to experience appreciable membrane crossover in an RFB, yet unlike vanadium ion electrolytes, they can experience chemical degradation leading to capacity decay. Recent work [@2021_Modak_JES; @2022_Neyhouse_JES] has extended VRFB-based zero-dimensional models to now include the effect of chemical degradation of redox active organics in RFBs.
+# Statement of need
+To date, zero-dimensional RFB models have typically been disseminated in the literature via ad hoc non-generalizable equations/code and often written in proprietary software languages. With `rfbzero.py` we hope to provide an open-source Python package that proliferates electrochemical engineering learning objectives for RFBs, as well as allows for expansion of battery diagnostics via understanding of capacity fade mechanisms observed in the RAOM flow battery community.
 
-# Statement of Need
-To date, zero-dimensional RFB models have typically been disseminated in the literature via ad hoc non-generalizable code and often written in proprietary software languages. With `rfbzero.py` we hope to provide an open-source Python package that accomplishes electrochemical learning objectives for RFBs, as well as allows for expansion of battery diagnostics via understanding of capacity fade mechanisms observed in the RAOM flow battery community.
-
-The initial cell setup configuration can often dictate the future trend in temporal capacity.
-
-# Current `rfbzero.py` Functionality
-
+# Current `rfbzero.py` functionality
 
 ## Cell design
-The initial cell configuration allows for standard variables which a researcher would normally adapt. Cell specific parameters such as active area, resistance, reservoir volumes of the capacity limiting side (CLS) and non-capacity limiting side (NCLS) are considered in `redox_flow_cell.py`. The initial concentration of redox active species (oxidized and/or reduced), and choice of symmetric cell (identical species both sides, 0 V OCV) or full cell (different species on each side, OCV > 0 V) are also considered.
+The initial cell design can be configured via the `redox_flow_cell.py` module. Examples of adjustable, RFB-specific, parameters include electrode active and geometric area, cell ohmic resistance, initial concentration of redox-active species (oxidized and/or reduced), and reservoir volumes of the capacity limiting side (CLS) and non-capacity limiting side (NCLS) electrolytes. The user can also declare the electrolyte configuration in the RFB: a **Symmetric Cell** with identical redox-actives in both reservoirs and a 0 V open-circuit-voltage (OCV) when both reservoirs are at 50% state-of-charge (SOC), or a **Full Cell** with different redox-actives in each reservoir and OCV > 0 V.
 
 ## Cycling protocol
+Cells can be electrochemically cycled by constant current (CC) or constant current followed by constant voltage (CCCV). The former requires user input of applied current and voltage cutoffs for charge and discharge, while the latter requires the input of applied current, and both voltage limits and current cutoffs for charge and discharge. If the desired applied current during CCCV cycling is higher than what the cell can handle, constant voltage (CV) cycling takes place.
 
 ## Degradation mechanisms
+Optional capacity fade mechanisms can also be incorporated. These include chemical degradation, chemical redox of active species (i.e. self-discharge), or multiple stacked degradation mechanisms. Rate constants and reaction rate orders can be adapted as needed to the electrolyte chemistries in each reservoir.
 
 ## Crossover mechanism
+Crossover of redox-active species through the ion-exchange membrane, driven by concentration gradients, can also be included in simulations. Permeabilities of oxidized and/or reduced species, and membrane thickness, can be set by the user.
+
+## Simulation outputs
+Multiple model outputs can be accessed from the simulation results including: temporal profiles for voltage, current, capacity, SOC, and overpotentials. Half-cycle capacities and duration of cycles can also be accessed.
 
 # An Example of the `rfbzero.py` API
-The documention includes...
+The documentation for `rfbzero.py` includes a getting started guide(insert link) and examples of RFB cells cycled under different protocols. An example for constant current cycling at 100 mA for a full cell with OCV = 1 V, charging voltage = 1.5 V, and discharging voltage = 1.0 V, for 1000 seconds is shown below:
 
 ```python
-# an example
-something = 6.7
-print(something)
+from redox_flow_cell import ZeroDModel
+from experiment import ConstantCurrent
+
+
+# 1. define full cell and electrolyte parameters
+cell = ZeroDModel(
+    cls_volume=0.005,       # liters
+    ncls_volume=0.010,      # liters
+    cls_start_c_ox=0.01,    # molar
+    cls_start_c_red=0.01,   # molar
+    ncls_start_c_ox=0.01,   # molar
+    ncls_start_c_red=0.01,  # molar
+    init_ocv=1.0,           # volts
+    resistance=0.5,         # ohms
+    k_0_cls=1e-3,           # cm/s
+    k_0_ncls=1e-3,          # cm/s
+)
+
+# 2. define cycling protocol
+protocol = ConstantCurrent(
+    voltage_cutoff_charge=1.5,      # volts
+    voltage_cutoff_discharge=0.5,   # volts
+    current=0.1,                    # amps
+)
+
+# 3. simulate the cell via protocol for 1000 seconds
+results = protocol.run(cell_model=cell, duration=1000)
 ```
 
 
