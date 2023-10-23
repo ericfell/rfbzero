@@ -52,29 +52,29 @@ Cells can be electrochemically cycled by constant current (CC) or constant curre
 ## Degradation mechanisms
 Optional capacity fade mechanisms can also be incorporated. These include chemical degradation, chemical redox of active species (i.e. self-discharge), or multiple stacked degradation mechanisms. Rate constants and reaction rate orders can be adapted as needed to the electrolyte chemistries in each reservoir.
 
-## Crossover mechanism
+## Crossover mechanisms
 Crossover of redox-active species through the ion-exchange membrane, driven by concentration gradients, can also be included in simulations. Permeabilities of oxidized and/or reduced species, and membrane thickness, can be set by the user.
 
 ## Simulation outputs
 Multiple model outputs can be accessed from the simulation results including: temporal profiles for voltage, current, capacity, SOC, and overpotentials. Half-cycle capacities and duration of cycles can also be accessed.
 
 # An Example of the `rfbzero.py` API
-The documentation for `rfbzero.py` includes a getting started guide(insert link) and examples of RFB cells cycled under different protocols. An example for constant current cycling at 100 mA for a full cell with OCV = 1 V, charging voltage = 1.5 V, and discharging voltage = 1.0 V, for 1000 seconds is shown below:
+The documentation for `rfbzero.py` includes a getting started guide(insert link) and examples of RFB cells cycled under different protocols. An example for constant current cycling at 100 mA for a symmetric cell with OCV = 0.0 V, charging voltage = 0.2 V, and discharging voltage = -0.2 V, for 500 seconds is shown below:
 
 ```python
 from redox_flow_cell import ZeroDModel
 from experiment import ConstantCurrent
 
 
-# 1. define full cell and electrolyte parameters
+# 1. define symmetric cell and electrolyte parameters
 cell = ZeroDModel(
     cls_volume=0.005,       # liters
-    ncls_volume=0.010,      # liters
+    ncls_volume=0.050,      # liters
     cls_start_c_ox=0.01,    # molar
     cls_start_c_red=0.01,   # molar
     ncls_start_c_ox=0.01,   # molar
     ncls_start_c_red=0.01,  # molar
-    init_ocv=1.0,           # volts
+    init_ocv=0.0,           # volts
     resistance=0.5,         # ohms
     k_0_cls=1e-3,           # cm/s
     k_0_ncls=1e-3,          # cm/s
@@ -82,15 +82,16 @@ cell = ZeroDModel(
 
 # 2. define cycling protocol
 protocol = ConstantCurrent(
-    voltage_cutoff_charge=1.5,      # volts
-    voltage_cutoff_discharge=0.5,   # volts
+    voltage_cutoff_charge=0.2,      # volts
+    voltage_cutoff_discharge=-0.2,   # volts
     current=0.1,                    # amps
 )
 
-# 3. simulate the cell via protocol for 1000 seconds
-results = protocol.run(cell_model=cell, duration=1000)
+# 3. simulate the cell via protocol for 500 seconds
+results = protocol.run(cell_model=cell, duration=500)
 ```
 
+![Simulation outputs can be plotted as desired](./fig_1.png)
 
 # Acknowledgements
 We thank Prof. David Kwabi, Thomas George, and Jordan Sosa for constructive feedback and testing.
