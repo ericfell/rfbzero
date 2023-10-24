@@ -1,11 +1,15 @@
+"""
+TODO: module docstring
+"""
+
 from abc import ABC, abstractmethod
 
 import numpy as np
 from scipy.optimize import fsolve
 
-from redox_flow_cell import ZeroDModel
-from degradation import DegradationMechanism
-from crossover import Crossover
+from .redox_flow_cell import ZeroDModel
+from .degradation import DegradationMechanism
+from .crossover import Crossover
 
 
 class CyclingProtocolResults:
@@ -41,13 +45,13 @@ class CyclingProtocolResults:
             self.del_red = [0.0] * size
 
         # total cycles is unknown at start, thus size is undetermined
-        self.cycle_capacity = []
-        self.cycle_time = []
+        self.cycle_capacity: list[float] = []
+        self.cycle_time: list[float] = []
 
-        self.time_charge = []
-        self.time_discharge = []
-        self.charge_capacity = []
-        self.discharge_capacity = []
+        self.time_charge: list[float] = []
+        self.time_discharge: list[float] = []
+        self.charge_capacity: list[float] = []
+        self.discharge_capacity: list[float] = []
 
     def state_of_charge(self):
         """Calculate state-of-charge in each reservoir"""
@@ -350,7 +354,8 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
     """
 
     def __init__(self, voltage_limit_charge: float, voltage_limit_discharge: float, current_cutoff_charge: float,
-                 current_cutoff_discharge: float, current: float, charge_first: bool = True, capacity_only: bool = True):
+                 current_cutoff_discharge: float, current: float, charge_first: bool = True,
+                 capacity_only: bool = True):
         self.voltage_limit_charge = voltage_limit_charge
         self.voltage_limit_discharge = voltage_limit_discharge
         self.current_cutoff_charge = current_cutoff_charge
