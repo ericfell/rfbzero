@@ -108,6 +108,13 @@ class ZeroDModel:
         self.n_cls = n_cls
         self.n_ncls = n_ncls
 
+        self.prev_c_ox_cls = self.c_ox_cls
+        self.prev_c_red_cls = self.c_red_cls
+        self.prev_c_ox_ncls = self.c_ox_ncls
+        self.prev_c_red_ncls = self.c_red_ncls
+        self.delta_ox = 0.0
+        self.delta_red = 0.0
+
         for key, value in {'cls_volume': self.cls_volume, 'ncls_volume': self.ncls_volume, 'k_0_cls': self.k_0_cls,
                            'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
                            'time_increment': self.time_increment, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
@@ -342,7 +349,7 @@ class ZeroDModel:
     def coulomb_counter(self, current: float,
                         cls_degradation: DegradationMechanism = None,
                         ncls_degradation: DegradationMechanism = None,
-                        cross_over: Crossover = None) -> tuple[float, float]:
+                        cross_over: Crossover = None) -> None:
         """
         Updates all species' concentrations at each timestep.
         Contributions from faradaic current, (optional) degradation
@@ -395,10 +402,22 @@ class ZeroDModel:
              delta_red) = cross_over.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.cls_volume,
                                                self.ncls_volume, self.time_increment)
         # update concentrations to self
+        self.prev_c_ox_cls = self.c_ox_cls
+        self.prev_c_red_cls = self.c_red_cls
+        self.prev_c_ox_ncls = self.c_ox_ncls
+        self.prev_c_red_ncls = self.c_red_ncls
+        
         self.c_ox_cls = c_ox_cls
         self.c_red_cls = c_red_cls
         self.c_ox_ncls = c_ox_ncls
         self.c_red_ncls = c_red_ncls
 
-        return delta_ox, delta_red
+        self.delta_ox = delta_ox
+        self.delta_red = delta_red
+
+    def revert_concentrations(self) -> None:
+        self.c_ox_cls = self.prev_c_ox_cls
+        self.c_red_cls = self.prev_c_red_cls
+        self.c_ox_ncls = self.prev_c_ox_ncls
+        self.c_red_ncls = self.prev_c_red_ncls
 
