@@ -5,7 +5,6 @@ import scipy.constants as spc
 from degradation import DegradationMechanism
 from crossover import Crossover
 
-
 # Faraday constant (C/mol)
 F = spc.value('Faraday constant')
 
@@ -131,6 +130,10 @@ class ZeroDModel:
         if self.init_ocv == 0.0 and self.n_cls != self.n_ncls:
             raise ValueError("Symmetric cell (0 volt OCV) requires 'n_cls' and 'n_ncls' to be equal (same species)")
 
+        if self.time_increment >= 1.0:
+            print("WARNING: 'time_increment' >= 1 second will result in very coarse data.\
+                  \nzero-D model approaches theory as timestep decreases.")
+
     def _exchange_current(self) -> tuple[float, float]:
         """
         Calculates exchange current (i_0) of redox couples in the CLS and NCLS.
@@ -213,8 +216,8 @@ class ZeroDModel:
 
         z_cls = abs(current) / (2 * i_0_cls)
         z_ncls = abs(current) / (2 * i_0_ncls)
-        n_act = NERNST_CONST * ((log(z_cls + ((z_cls**2) + 1)**0.5) / self.n_cls)
-                                + (log(z_ncls + ((z_ncls**2) + 1)**0.5) / self.n_ncls))
+        n_act = NERNST_CONST * ((log(z_cls + ((z_cls ** 2) + 1) ** 0.5) / self.n_cls)
+                                + (log(z_ncls + ((z_ncls ** 2) + 1) ** 0.5) / self.n_ncls))
         return n_act
 
     def negative_concentrations(self) -> bool:
@@ -254,16 +257,19 @@ class ZeroDModel:
 
         i = abs(current)
 
-        if (self.cls_negolyte and not charge) or (not self.cls_negolyte and charge):
-            n_mt = NERNST_CONST\
-                   * ((log(1 - ((c_tot_cls * i) / ((self.c_red_cls * i_lim_cls) + (self.c_ox_cls * i)))) / self.n_cls)
-                      + (log(1 - ((c_tot_ncls * i) / ((self.c_ox_ncls * i_lim_ncls) + (self.c_red_ncls * i))))
-                         / self.n_ncls))
+        if self.cls_negolyte == charge:
+            c1_cls = self.c_ox_cls
+            c2_cls = self.c_red_cls
+            c1_ncls = self.c_red_ncls
+            c2_ncls = self.c_ox_ncls
         else:
-            n_mt = NERNST_CONST\
-                   * ((log(1 - ((c_tot_cls * i) / ((self.c_ox_cls * i_lim_cls) + (self.c_red_cls * i)))) / self.n_cls)
-                      + (log(1 - ((c_tot_ncls * i) / ((self.c_red_ncls * i_lim_ncls) + (self.c_ox_ncls * i))))
-                         / self.n_ncls))
+            c1_cls = self.c_red_cls
+            c2_cls = self.c_ox_cls
+            c1_ncls = self.c_ox_ncls
+            c2_ncls = self.c_red_ncls
+
+        n_mt = NERNST_CONST * ((log(1 - ((c_tot_cls * i) / ((c1_cls * i_lim_cls) + (c2_cls * i)))) / self.n_cls)
+                               + (log(1 - ((c_tot_ncls * i) / ((c1_ncls * i_lim_ncls) + (c2_ncls * i)))) / self.n_ncls))
         return n_mt * -1
 
     def total_overpotential(self, current: float, charge: bool,
@@ -321,17 +327,11 @@ class ZeroDModel:
         if self.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
-        # CLS is negolyte
-        if self.cls_negolyte:
-            ocv = (self.init_ocv
-                   + ((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
-                   + ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls)))
+        direction = 1 if self.cls_negolyte else -1
 
-        # CLS is posolyte
-        else:
-            ocv = (self.init_ocv
-                   - ((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
-                   - ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls)))
+        ocv = (self.init_ocv
+               + direction * (((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
+                              + ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls))))
         return ocv
 
     @staticmethod
@@ -401,4 +401,3 @@ class ZeroDModel:
         self.c_red_ncls = c_red_ncls
 
         return delta_ox, delta_red
-
