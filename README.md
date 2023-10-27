@@ -1,6 +1,9 @@
+[![Documentation Status](https://readthedocs.org/projects/ericfell-rfbzero/badge/?version=latest)](https://ericfell-rfbzero.readthedocs.io/en/latest/?badge=latest)
 
 
-# RFBzero
+
+RFBzero
+------------
 
 `rfbzero` is a Python package for zero dimensional simulation of electrochemical cycling in redox flow batteries (RFBs). 
 
