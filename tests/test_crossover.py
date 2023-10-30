@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from rfbzero.rfbzero.crossover import Crossover
+from rfbzero.crossover import Crossover
 #from crossover import Crossover # uncomment here when running test harness
 
 
