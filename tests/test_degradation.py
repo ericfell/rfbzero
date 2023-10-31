@@ -1,8 +1,8 @@
 import pytest
 #import numpy as np
 
-#from rfbzero.rfbzero.degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism, AutoReductionO2Release)
-from degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism, AutoReductionO2Release) # uncomment here when running test harness
+from rfbzero.degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism, AutoReductionO2Release)
+#from degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism, AutoReductionO2Release) # uncomment here when running test harness
 
 
 class TestDegradationMechanism:

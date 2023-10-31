@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
 
-#from rfbzero.rfbzero.experiment import CyclingProtocolResults, CyclingProtocol, ConstantCurrent, ConstantCurrentConstantVoltage
-from experiment import CyclingProtocolResults, CyclingProtocol, ConstantCurrent, ConstantCurrentConstantVoltage
-#from rfbzero.rfbzero.redox_flow_cell import ZeroDModel
-from redox_flow_cell import ZeroDModel
+from rfbzero.experiment import CyclingProtocolResults, CyclingProtocol, ConstantCurrent, ConstantCurrentConstantVoltage
+#from experiment import CyclingProtocolResults, CyclingProtocol, ConstantCurrent, ConstantCurrentConstantVoltage
+from rfbzero.redox_flow_cell import ZeroDModel
+#from redox_flow_cell import ZeroDModel
 
 class TestCyclingProtocolResults:
 

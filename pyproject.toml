@@ -13,9 +13,3 @@ addopts = [
 ]
 pythonpath = "src"
 testpaths = "tests"
-
-# [tool.coverage.run]
-# omit = [
-#    "model_playground.py",
-#    "tests/*",
-# ]
