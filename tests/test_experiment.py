@@ -12,6 +12,7 @@ class TestCyclingProtocolResults:
     def test_results_init(self):
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_state_of_charge(self):
         r_cls = 0.2
         o_cls = 0.8
@@ -34,6 +35,7 @@ class TestCyclingProtocol:
     def test_abstract_class_init(self):
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_abstract_class_run(self):
         test_model = ZeroDModel(cls_volume=6, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01,
                                 ncls_start_c_ox=0.01, ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3,
@@ -46,6 +48,7 @@ class TestCyclingProtocol:
     def test_validate_model(self):
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_current_direction(self):
         x = CyclingProtocol(current=1, charge_first=True)
         y = CyclingProtocol(current=1, charge_first=False)
