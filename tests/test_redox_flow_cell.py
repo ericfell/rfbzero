@@ -12,8 +12,6 @@ class TestClassRedoxFlowCell:
             ZeroDModel(cls_volume=6, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01, ncls_start_c_ox=0.01,
                        ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3, k_0_ncls=1e-3)
 
-
-
     def test_exchange_current(self):
         cell = ZeroDModel(cls_volume=0.005, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01,
                           ncls_start_c_ox=0.01, ncls_start_c_red=0.01, init_ocv=1.0,resistance=1,k_0_cls=1e-3,
@@ -54,31 +52,29 @@ class TestClassRedoxFlowCell:
         n_activation = cell._activation_overpotential(current, i_0_cls, i_0_ncls)
         assert np.isclose(n_activation, 0.177392243)
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_negative_concentrations(self):
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_mass_transport_overpotential(self):
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_total_overpotential(self):
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_open_circuit_voltage(self):
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_cell_voltage(self):
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_coulomb_counter(self):
         raise NotImplementedError
-
-
-
-
-
-
-
-
 
     def test_cell_voltage(self):
         ocv = 1.0

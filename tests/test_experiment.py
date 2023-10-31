@@ -23,12 +23,14 @@ class TestCyclingProtocolResults:
         assert soc_c == 20.0
         assert soc_n == 30.0
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_structure_data(self):
         raise NotImplementedError
 
 
 class TestCyclingProtocol:
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_abstract_class_init(self):
         raise NotImplementedError
 
@@ -40,6 +42,7 @@ class TestCyclingProtocol:
             abs_class = CyclingProtocol(current=1, charge_first=True)
             abs_class.run(duration=100, cell_model=test_model)
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_validate_model(self):
         raise NotImplementedError
 
@@ -52,21 +55,26 @@ class TestCyclingProtocol:
 
 class TestConstantCurrent:
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_cc_init(self):
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_cc_run(self):  # BIG ONE
         raise NotImplementedError
 
 
 class TestConstantCurrentConstantVoltage:
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_cccv_init(self):
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_cccv_run(self):  # BIG ONE
         raise NotImplementedError
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_get_min_current(self):
         raise NotImplementedError
 
