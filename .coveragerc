@@ -1,3 +1,8 @@
 [run]
-source = rfbzero
-omit = model_playground.py
+; source = rfbzero
+omit =
+    rfbzero/model_playground.py,
+    tests/*,
+
+[report]
+skip_empty = true
