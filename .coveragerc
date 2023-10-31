@@ -3,3 +3,6 @@
 omit =
     rfbzero/model_playground.py,
     tests/*,
+
+[report]
+skip_empty = true
