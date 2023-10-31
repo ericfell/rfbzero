@@ -1,7 +1,7 @@
 [run]
 ; source = rfbzero
 omit =
-    rfbzero/model_playground.py,
+    model_playground.py,
     tests/*,
 
 [report]
