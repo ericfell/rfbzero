@@ -8,6 +8,7 @@ from rfbzero.redox_flow_cell import ZeroDModel
 
 class TestCyclingProtocolResults:
 
+    @pytest.mark.skip(reason="not implemented yet")
     def test_results_init(self):
         raise NotImplementedError
 
