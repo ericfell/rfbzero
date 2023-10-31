@@ -1,4 +1,4 @@
-[![Documentation Status](https://readthedocs.org/projects/ericfell-rfbzero/badge/?version=latest)](https://ericfell-rfbzero.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/ericfell-rfbzero/badge/?version=latest)](https://ericfell-rfbzero.readthedocs.io/en/latest/?badge=latest)  [![codecov](https://codecov.io/github/ericfell/rfbzero/graph/badge.svg)](https://codecov.io/github/ericfell/rfbzero)
 
 
 
