@@ -2,7 +2,6 @@ import pytest
 import numpy as np
 
 from rfbzero.redox_flow_cell import ZeroDModel
-#from redox_flow_cell import ZeroDModel # uncomment here when running test harness
 
 
 class TestClassRedoxFlowCell:
