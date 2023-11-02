@@ -32,4 +32,4 @@ jobs:
         run: mypy src/
 
       - name: pylint
-        run: pylint src/rfbzero/
+        run: pylint src/
