@@ -1,6 +1,7 @@
 """
-TODO: module docstring
+Method to include redox-active crossover mechanisms
 """
+
 
 class Crossover:
     """

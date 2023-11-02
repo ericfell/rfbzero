@@ -1,5 +1,5 @@
 """
-TODO: module docstring
+Methods to define electrochemical cycling protocols
 """
 
 from abc import ABC, abstractmethod

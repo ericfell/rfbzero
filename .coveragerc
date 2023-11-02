@@ -6,3 +6,10 @@ omit =
 
 [report]
 skip_empty = true
+; Regexes for lines to exclude from consideration
+exclude_also =
+    ; Don't complain if tests don't hit notimplementederror:
+    raise NotImplementedError
+
+    ; Don't complain about abstract methods, they aren't run:
+    @(abc\.)?abstractmethod

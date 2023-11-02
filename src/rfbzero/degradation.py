@@ -1,5 +1,5 @@
 """
-TODO: module docstring
+Methods for defining capacity fade mechanism
 """
 
 from abc import ABC, abstractmethod

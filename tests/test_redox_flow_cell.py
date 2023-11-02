@@ -6,14 +6,30 @@ from rfbzero.redox_flow_cell import ZeroDModel
 
 class TestClassRedoxFlowCell:
 
-    def test_class_init(self):
+    @pytest.mark.parametrize("v_cls,v_ncls,ox_cls,red_cls,ox_ncls,red_ncls,ocv,res,k_c,k_n",
+                             [(6, 0.01, 0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3),
+                              (0.001, 0.1, -0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3),
+                              (0.001, 0.1, 0.1, 0.001, -0.01, 0.01, 1, 1, 1e-3, 1e-3),
+                              (0.001, 0, 0.1, 0.001, -0.01, 0.01, 1, 1, 1e-3, 1e-3),
+                              (0.001, 0, 0.1, 0.001, -0.01, 0.01, -1, 0, 1e-3, 1e-3),
+                              ])
+    def test_class_init(self, v_cls, v_ncls, ox_cls, red_cls, ox_ncls, red_ncls, ocv, res, k_c, k_n):
         with pytest.raises(ValueError):
-            ZeroDModel(cls_volume=6, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01, ncls_start_c_ox=0.01,
-                       ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3, k_0_ncls=1e-3)
+            ZeroDModel(cls_volume=v_cls,
+                       ncls_volume=v_ncls,
+                       cls_start_c_ox=ox_cls,
+                       cls_start_c_red=red_cls,
+                       ncls_start_c_ox=ox_ncls,
+                       ncls_start_c_red=red_ncls,
+                       init_ocv=ocv,
+                       resistance=res,
+                       k_0_cls=k_c,
+                       k_0_ncls=k_n,
+                       )
 
     def test_exchange_current(self):
         cell = ZeroDModel(cls_volume=0.005, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01,
-                          ncls_start_c_ox=0.01, ncls_start_c_red=0.01, init_ocv=1.0,resistance=1,k_0_cls=1e-3,
+                          ncls_start_c_ox=0.01, ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3,
                           k_0_ncls=1e-3, n_ncls=2)
         i_0_cls, i_0_ncls = cell._exchange_current()
         assert np.isclose(i_0_cls, 0.12543093175)
