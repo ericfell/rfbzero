@@ -418,6 +418,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
         i = self.current_direction() * self.current
+        i_cv = i
 
         # current surpasses transport limitations, must switch to constant voltage
         if self.current >= i_lim_cls_t or self.current >= i_lim_ncls_t:
