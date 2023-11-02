@@ -17,6 +17,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install mypy
+          pip install pylint
           pip install -e .
 
       - name: Run tests and collect coverage
@@ -29,3 +30,6 @@ jobs:
 
       - name: Mypy static type check
         run: mypy src/
+
+      - name: pylint
+        run: pylint src/rfbzero/
