@@ -8,7 +8,7 @@ name = "rfbzero"
 version = "0.0.1"
 authors = [
     { name="Eric Fell", email="efell@g.harvard.com" },
-    { name="Jeremy Fell"},
+    { name="Jeremy Fell", email="jfell@sfu.ca"},
 ]
 description = "A package for zero dimensional simulation of electrochemical cycling in redox flow batteries"
 readme = "README.md"
