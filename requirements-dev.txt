@@ -1,0 +1,9 @@
+-r requirements.txt
+# Dev dependencies
+numpy
+sphinx-rtd-theme==1.2.2
+pytest
+pytest-cov
+coverage[toml]
+mypy
+pylint

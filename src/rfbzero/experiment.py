@@ -1,10 +1,9 @@
 """
-TODO: module docstring
+Methods to define electrochemical cycling protocols
 """
 
 from abc import ABC, abstractmethod
 
-import numpy as np
 from scipy.optimize import fsolve
 
 from .redox_flow_cell import ZeroDModel
@@ -418,6 +417,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
         i = self.current_direction() * self.current
+        i_cv = i
 
         # current surpasses transport limitations, must switch to constant voltage
         if self.current >= i_lim_cls_t or self.current >= i_lim_ncls_t:
@@ -666,5 +666,5 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             loss_solve, *_ = cell_model.total_overpotential(current, charge, i_lim_cls, i_lim_ncls)
             return cell_v - ocv - loss_solve if charge else cell_v - ocv + loss_solve
 
-        min_current, *_ = fsolve(solver, np.array([i_guess]), xtol=1e-5)
+        min_current, *_ = fsolve(solver, i_guess, xtol=1e-5)
         return min_current

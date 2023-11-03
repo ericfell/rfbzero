@@ -1,6 +1,2 @@
-sphinx-rtd-theme==1.2.2
-pytest
-pytest-cov
-numpy
+# Regular dependencies
 scipy
-coverage[toml]

@@ -1,5 +1,5 @@
 """
-TODO: module docstring
+Methods for cell setup and declaring electrolyte parameters
 """
 
 
@@ -113,11 +113,15 @@ class ZeroDModel:
         self.n_ncls = n_ncls
 
         for key, value in {'cls_volume': self.cls_volume, 'ncls_volume': self.ncls_volume, 'k_0_cls': self.k_0_cls,
+                           'cls_start_c_ox': self.c_ox_cls, 'cls_start_c_red': self.c_red_cls,
+                           'ncls_start_c_ox': self.c_ox_ncls, 'ncls_start_c_red': self.c_red_ncls,
                            'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
                            'time_increment': self.time_increment, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
                            'init_ocv': self.init_ocv, 'resistance': self.resistance}.items():
 
-            if key not in ['init_ocv', 'resistance'] and value <= 0.0:
+            if key not in ['init_ocv', 'resistance',
+                           'cls_start_c_ox', 'cls_start_c_red',
+                           'ncls_start_c_ox', 'ncls_start_c_red'] and value <= 0.0:
                 raise ValueError(f"'{key}' must be > 0.0")
 
             if value < 0.0:

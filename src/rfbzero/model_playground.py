@@ -1,4 +1,5 @@
 # pylint: skip-file
+# mypy: ignore-errors
 
 import time
 import matplotlib.pyplot as plt

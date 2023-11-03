@@ -2,7 +2,6 @@ import pytest
 import numpy as np
 
 from rfbzero.crossover import Crossover
-#from crossover import Crossover # uncomment here when running test harness
 
 
 class TestClassCrossover:
