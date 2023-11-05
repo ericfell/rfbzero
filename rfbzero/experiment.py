@@ -111,18 +111,18 @@ class CyclingProtocol(ABC):
 
     @abstractmethod
     def run(
-        self,
-        duration: int,
-        cell_model: ZeroDModel,
-        degradation: DegradationMechanism = None,
-        cls_degradation: DegradationMechanism = None,
-        ncls_degradation: DegradationMechanism = None,
-        cross_over: Crossover = None,
+            self,
+            duration: int,
+            cell_model: ZeroDModel,
+            degradation: DegradationMechanism = None,
+            cls_degradation: DegradationMechanism = None,
+            ncls_degradation: DegradationMechanism = None,
+            cross_over: Crossover = None,
     ) -> CyclingProtocolResults:
         """Applies a cycling protocol and (optional) degradation mechanisms to a cell model"""
         raise NotImplementedError
 
-    def init_protocol(
+    def _init_protocol(
             self,
             duration: int,
             cell_model: ZeroDModel,
@@ -215,7 +215,7 @@ class ConstantCurrent(CyclingProtocol):
 
         """
 
-        self.init_protocol(duration, cell_model, degradation, cls_degradation, ncls_degradation, cross_over)
+        self._init_protocol(duration, cell_model, degradation, cls_degradation, ncls_degradation, cross_over)
 
         if not self.voltage_limit_discharge < cell_model.init_ocv < self.voltage_limit_charge:
             raise ValueError("Ensure that 'voltage_limit_discharge' < 'init_ocv' < 'voltage_limit_charge'")
@@ -294,6 +294,25 @@ class ConstantCurrent(CyclingProtocol):
 
         return capacity, i_lim_cls_t, i_lim_ncls_t, end_simulation
 
+    # Returns true if the simulation should end
+    def _end_cycle(self, capacity: float) -> bool:
+        self.results.cycle_capacity.append(capacity)
+        self.results.cycle_time.append(self.results.step * self.cell_model.time_increment)
+        self.results.cycles += 1
+
+        # end the simulation if capacity nears zero
+        if capacity < 1.0 and self.results.cycles > 2:
+            print(f"Simulation stopped after {self.results.step} time steps, due to capacity < 1 coulomb")
+            return True
+
+        # switch charge to discharge or vice-versa
+        self.charge = not self.charge
+
+        # set self back to previous, valid, concentration value
+        self.cell_model.revert_concentrations()
+
+        return False
+
     def _handle_cc_mode_voltage_limit_reached(self, capacity, i_lim_cls_t, i_lim_ncls_t):
         # at some point maybe record capacity here too, so you know capacity due to CC and due to CV?
         end_simulation = self._end_cycle(capacity)
@@ -319,26 +338,6 @@ class ConstantCurrent(CyclingProtocol):
         self.results.del_red[step] = self.cell_model.delta_red
 
         self.results.times[step] = self.cell_model.time_increment * (step + 1)
-
-
-    # Returns true if the simulation should end
-    def _end_cycle(self, capacity: float) -> bool:
-        self.results.cycle_capacity.append(capacity)
-        self.results.cycle_time.append(self.results.step * self.cell_model.time_increment)
-        self.results.cycles += 1
-
-        # end the simulation if capacity nears zero
-        if capacity < 1.0 and self.results.cycles > 2:
-            print(f"Simulation stopped after {self.results.step} time steps, due to capacity < 1 coulomb")
-            return True
-
-        # switch charge to discharge or vice-versa
-        self.charge = not self.charge
-
-        # set self back to previous, valid, concentration value
-        self.cell_model.revert_concentrations()
-
-        return False
 
 
 class ConstantCurrentConstantVoltage(ConstantCurrent):
@@ -412,7 +411,7 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
             Object with results from simulation
 
         """
-        self.init_protocol(duration, cell_model, degradation, cls_degradation, ncls_degradation, cross_over)
+        self._init_protocol(duration, cell_model, degradation, cls_degradation, ncls_degradation, cross_over)
 
         print(f"{duration} sec of cycling, time steps: {cell_model.time_increment} sec")
 
@@ -428,7 +427,7 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
             self.cc_mode = False
 
         capacity = 0.0
-        i_cv = 0.0
+        i_cv = 0.0 # This will be set to an initial guess of the current before being used
         end_simulation = False
 
         while not end_simulation and self.results.step < self.results.size:
