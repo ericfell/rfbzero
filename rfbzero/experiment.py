@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable
 
-import numpy as np
 from scipy.optimize import fsolve
 
 from redox_flow_cell import ZeroDModel
@@ -58,8 +56,9 @@ class CyclingProtocolResults:
 
     def _state_of_charge(self):
         """Calculate state-of-charge in each reservoir"""
-        for i, (cls_ox, cls_red, ncls_ox, ncls_red) in enumerate(zip(self.c_ox_cls_profile, self.c_red_cls_profile,
-                                                                     self.c_ox_ncls_profile, self.c_red_ncls_profile)):
+        for i, (cls_ox, cls_red, ncls_ox, ncls_red) in enumerate(zip(
+                self.c_ox_cls_profile, self.c_red_cls_profile, self.c_ox_ncls_profile, self.c_red_ncls_profile
+        )):
 
             if cls_ox + cls_red == 0.0 or ncls_ox + ncls_red == 0.0:
                 break
@@ -99,7 +98,7 @@ class CyclingProtocol(ABC):
         self.charge_first = charge_first
 
         if self.current <= 0.0:
-            raise ValueError("'current must be > 0.0")
+            raise ValueError("'current' must be > 0.0")
 
         if not isinstance(self.charge, bool):
             raise ValueError("'charge_first' must be a boolean")
@@ -135,7 +134,6 @@ class CyclingProtocol(ABC):
         if degradation is not None and (cls_degradation is not None or ncls_degradation is not None):
             raise ValueError("Cannot specify both 'degradation' and '(n)cls_degradation'")
 
-        # Raise ValueError if user inputs a negative concentration
         if cell_model.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
@@ -162,9 +160,9 @@ class ConstantCurrent(CyclingProtocol):
 
     Parameters
     ----------
-    voltage_cutoff_charge : float
+    voltage_limit_charge : float
         Voltage above which cell will switch to discharge (V).
-    voltage_cutoff_discharge : float
+    voltage_limit_discharge : float
         Voltage below which cell will switch to charge (V).
     current : float
         Instantaneous current flowing (A).
@@ -175,14 +173,14 @@ class ConstantCurrent(CyclingProtocol):
 
     def __init__(
             self,
-            voltage_cutoff_charge: float,
-            voltage_cutoff_discharge: float,
+            voltage_limit_charge: float,
+            voltage_limit_discharge: float,
             current: float,
             charge_first: bool = True,
     ):
         super().__init__(current, charge_first)
-        self.voltage_cutoff_charge = voltage_cutoff_charge
-        self.voltage_cutoff_discharge = voltage_cutoff_discharge
+        self.voltage_limit_charge = voltage_limit_charge
+        self.voltage_limit_discharge = voltage_limit_discharge
 
     def run(
             self,
@@ -219,8 +217,8 @@ class ConstantCurrent(CyclingProtocol):
 
         self.init_protocol(duration, cell_model, degradation, cls_degradation, ncls_degradation, cross_over)
 
-        if not self.voltage_cutoff_discharge < cell_model.init_ocv < self.voltage_cutoff_charge:
-            raise ValueError("Ensure that 'voltage_cutoff_discharge' < 'init_ocv' < 'voltage_cutoff_charge'")
+        if not self.voltage_limit_discharge < cell_model.init_ocv < self.voltage_limit_charge:
+            raise ValueError("Ensure that 'voltage_limit_discharge' < 'init_ocv' < 'voltage_limit_charge'")
 
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
 
@@ -228,7 +226,7 @@ class ConstantCurrent(CyclingProtocol):
             raise ValueError("Desired current > limiting current, cell can't run")
 
         if not self._is_voltage_in_limits(i_lim_cls_t, i_lim_ncls_t):
-            raise ValueError("Desired current too high, overpotentials place cell voltage outside voltage cutoffs")
+            raise ValueError("Desired current too high, overpotentials place cell voltage outside voltage limits")
 
         print(f"{duration} sec of cycling, time steps: {cell_model.time_increment} sec")
 
@@ -246,10 +244,10 @@ class ConstantCurrent(CyclingProtocol):
 
     def _is_voltage_in_limits(self, i_lim_cls_t, i_lim_ncls_t):
         i = self.current_direction() * self.current
-        losses, n_act, n_mt = self.cell_model.total_overpotential(i, self.charge, i_lim_cls_t, i_lim_ncls_t)
+        losses, *_ = self.cell_model.total_overpotential(i, self.charge, i_lim_cls_t, i_lim_ncls_t)
         ocv = self.cell_model.open_circuit_voltage()
         cell_v = self.cell_model.cell_voltage(ocv, losses, self.charge)
-        return self.voltage_cutoff_discharge < cell_v < self.voltage_cutoff_charge
+        return self.voltage_limit_discharge < cell_v < self.voltage_limit_charge
 
     def _cc_mode_cycle(
             self,
@@ -278,12 +276,13 @@ class ConstantCurrent(CyclingProtocol):
         ocv = self.cell_model.open_circuit_voltage()
         cell_v = self.cell_model.cell_voltage(ocv, losses, self.charge)
 
+        # check if V limit is reached?
+        if not self.voltage_limit_discharge < cell_v < self.voltage_limit_charge:
+            # TODO, revert or not revert concentrations?
+            capacity, i_lim_cls_t, i_lim_ncls_t, end_simulation = self._handle_cc_mode_voltage_limit_reached(capacity, i_lim_cls_t, i_lim_ncls_t)
+
         # update capacity
         capacity += abs(i * self.cell_model.time_increment)
-
-        # check if V limit is reached?
-        if not self.voltage_cutoff_discharge < cell_v < self.voltage_cutoff_charge:
-            capacity, i_lim_cls_t, i_lim_ncls_t, end_simulation = self._handle_cc_mode_voltage_limit_reached(capacity, i_lim_cls_t, i_lim_ncls_t)
 
         # update concentrations
         self._record_common_results(i, cell_v, ocv)
@@ -374,8 +373,6 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
             charge_first: bool = True,
     ):
         super().__init__(voltage_limit_charge, voltage_limit_discharge, current, charge_first)
-        self.voltage_limit_charge = voltage_limit_charge
-        self.voltage_limit_discharge = voltage_limit_discharge
         self.current_cutoff_charge = current_cutoff_charge
         self.current_cutoff_discharge = current_cutoff_discharge
         self.cc_mode = True
@@ -417,9 +414,6 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
         """
         self.init_protocol(duration, cell_model, degradation, cls_degradation, ncls_degradation, cross_over)
 
-        if not self.voltage_limit_discharge < cell_model.init_ocv < self.voltage_limit_charge:
-            raise ValueError("Ensure that 'voltage_limit_discharge' < 'init_ocv' < 'voltage_limit_charge'")
-
         print(f"{duration} sec of cycling, time steps: {cell_model.time_increment} sec")
 
         i_lim_cls_t, i_lim_ncls_t = cell_model.limiting_concentration(self.charge)
@@ -447,11 +441,7 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
             else:
                 capacity, i_cv, i_lim_cls_t, i_lim_ncls_t, end_simulation = self._cv_mode_cycle(capacity, i_cv, i_lim_cls_t, i_lim_ncls_t)
 
-        # now calculating SOC of cls and ncls
-        self.results.state_of_charge()
-        # structures data into individual charge and discharge cycle times and capacities
-        self.results.structure_data(self.charge_first)
-
+        self.results.finalize()
         return self.results
 
     def _handle_cc_mode_voltage_limit_reached(self, capacity, i_lim_cls_t, i_lim_ncls_t):
@@ -481,7 +471,7 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
         ocv = self.cell_model.open_circuit_voltage()
 
         # adapting the solver's guess to the updated current
-        i_cv = self._get_min_current(i_cv, cell_v, ocv, self.charge, i_lim_cls_t, i_lim_ncls_t)
+        i_cv = self._get_min_current(i_cv, cell_v, ocv, i_lim_cls_t, i_lim_ncls_t)
 
         # if current is below cutoffs, record cycle data and switch to charge/discharge
         if (self.charge and i_cv <= self.current_cutoff_charge) or \
@@ -515,8 +505,7 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
 
         return capacity, i_cv, i_lim_cls_t, i_lim_ncls_t, end_simulation
 
-    def _get_min_current(self, i_guess: float, cell_v: float, ocv: float, charge: bool,
-                         i_lim_cls: float, i_lim_ncls: float) -> float:
+    def _get_min_current(self, i_guess: float, cell_v: float, ocv: float, i_lim_cls: float, i_lim_ncls: float) -> float:
         """
         Method wrapper to solve for current during constant voltage cycling.
         Attempts to minimize the difference of voltage, OCV, and losses (function of current).
@@ -529,8 +518,6 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
             Cell voltage (V).
         ocv : float
             Cell open circuit voltage (V).
-        charge : bool
-            Positive if charging, negative if discharging.
         i_lim_cls : float
             Limiting current of CLS redox couple
             at a given timestep (A).
@@ -545,8 +532,8 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
         """
         def solver(current: float) -> float:
             """Numerical solver for current during constant voltage cycling"""
-            loss_solve, *_ = self.cell_model.total_overpotential(current, charge, i_lim_cls, i_lim_ncls)
-            return cell_v - ocv - loss_solve if charge else cell_v - ocv + loss_solve
+            loss_solve, *_ = self.cell_model.total_overpotential(current, self.charge, i_lim_cls, i_lim_ncls)
+            return cell_v - ocv - self.current_direction() * loss_solve
 
-        min_current, *_ = fsolve(solver, np.array([i_guess]), xtol=1e-5)
+        min_current, *_ = fsolve(solver, i_guess, xtol=1e-5)
         return min_current
