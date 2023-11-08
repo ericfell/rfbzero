@@ -267,6 +267,8 @@ class ConstantCurrent(CyclingProtocol):
         if self.cell_model.negative_concentrations():
             end_simulation = self._end_cycle(capacity)
             if not end_simulation:
+                # set self back to previous, valid, concentration value
+                self.cell_model.revert_concentrations()
                 capacity = 0.0
                 i_lim_cls_t, i_lim_ncls_t = self.cell_model.limiting_concentration(self.charge)
             return capacity, i_lim_cls_t, i_lim_ncls_t, end_simulation
@@ -278,8 +280,9 @@ class ConstantCurrent(CyclingProtocol):
 
         # check if V limit is reached?
         if not self.voltage_limit_discharge < cell_v < self.voltage_limit_charge:
-            # TODO, revert or not revert concentrations?
             capacity, i_lim_cls_t, i_lim_ncls_t, end_simulation = self._handle_cc_mode_voltage_limit_reached(capacity, i_lim_cls_t, i_lim_ncls_t)
+            if end_simulation:
+                return capacity, i_lim_cls_t, i_lim_ncls_t, end_simulation
 
         # update capacity
         capacity += abs(i * self.cell_model.time_increment)
@@ -307,9 +310,6 @@ class ConstantCurrent(CyclingProtocol):
 
         # switch charge to discharge or vice-versa
         self.charge = not self.charge
-
-        # set self back to previous, valid, concentration value
-        self.cell_model.revert_concentrations()
 
         return False
 
@@ -477,6 +477,8 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
                 (not self.charge and i_cv >= self.current_cutoff_discharge):
             end_simulation = self._end_cycle(capacity)
             if not end_simulation:
+                # set self back to previous, valid, concentration value
+                self.cell_model.revert_concentrations()
                 capacity = 0.0
                 i_lim_cls_t, i_lim_ncls_t = self.cell_model.limiting_concentration(self.charge)
                 self.cc_mode = True
@@ -489,6 +491,9 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
         if self.cell_model.negative_concentrations():
             end_simulation = self._end_cycle(capacity)
             if not end_simulation:
+                # TODO: duplicate code of current_cutoff if statement, try to refactor this
+                # set self back to previous, valid, concentration value
+                self.cell_model.revert_concentrations()
                 capacity = 0.0
                 i_lim_cls_t, i_lim_ncls_t = self.cell_model.limiting_concentration(self.charge)
                 self.cc_mode = True
