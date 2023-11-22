@@ -95,7 +95,7 @@ class CyclingProtocol(ABC):
 
     """
 
-    def __init__(self, current: float, charge_first: bool, capacity_only: bool = True):
+    def __init__(self, current: float, charge_first: bool, capacity_only: bool = False):
         self.current = current
         self.charge = charge_first
         self.charge_first = charge_first
@@ -159,7 +159,7 @@ class ConstantCurrent(CyclingProtocol):
     """
 
     def __init__(self, voltage_cutoff_charge: float, voltage_cutoff_discharge: float, current: float,
-                 charge_first: bool = True, capacity_only: bool = True):
+                 charge_first: bool = True, capacity_only: bool = False):
         self.voltage_cutoff_charge = voltage_cutoff_charge
         self.voltage_cutoff_discharge = voltage_cutoff_discharge
         super().__init__(current, charge_first, capacity_only)
@@ -354,7 +354,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
     def __init__(self, voltage_limit_charge: float, voltage_limit_discharge: float, current_cutoff_charge: float,
                  current_cutoff_discharge: float, current: float, charge_first: bool = True,
-                 capacity_only: bool = True):
+                 capacity_only: bool = False):
         self.voltage_limit_charge = voltage_limit_charge
         self.voltage_limit_discharge = voltage_limit_discharge
         self.current_cutoff_charge = current_cutoff_charge
@@ -487,6 +487,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
                 # check if V limit is reached?
                 if cell_v >= self.voltage_limit_charge or cell_v <= self.voltage_limit_discharge:
+                    print('voltage limit', count)
                     cc_mode = not cc_mode
                     # at some point maybe record capacity here too, so you know capacity due to CC and due to CV?
                     continue
