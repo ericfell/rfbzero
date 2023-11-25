@@ -278,15 +278,15 @@ class ConstantCurrent(CyclingProtocol):
         ocv = self.cell_model.open_circuit_voltage()
         cell_v = self.cell_model.cell_voltage(ocv, losses, self.charge)
 
-        # update capacity
-        old_capacity = capacity
-        capacity += abs(i * self.cell_model.time_increment)
-
         # check if V limit is reached?
         if not self.voltage_limit_discharge < cell_v < self.voltage_limit_charge:
-            capacity, i_lim_cls_t, i_lim_ncls_t, end_simulation = self._handle_cc_mode_voltage_limit_reached(old_capacity, i_lim_cls_t, i_lim_ncls_t)
+            capacity, i_lim_cls_t, i_lim_ncls_t, end_simulation = self._handle_cc_mode_voltage_limit_reached(
+                capacity, i_lim_cls_t, i_lim_ncls_t)
             if end_simulation:
                 return capacity, i_lim_cls_t, i_lim_ncls_t, end_simulation
+
+        # update capacity
+        capacity += abs(i * self.cell_model.time_increment)
 
         # update concentrations
         self._record_common_results(i, cell_v, ocv)
