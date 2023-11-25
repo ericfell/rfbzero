@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 
-from redox_flow_cell import ZeroDModel
-from degradation import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism, AutoReductionO2Release
-from crossover import Crossover
-from experiment import ConstantCurrent, ConstantCurrentConstantVoltage
+from .redox_flow_cell import ZeroDModel
+from .degradation import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism, AutoReductionO2Release
+from .crossover import Crossover
+from .experiment import ConstantCurrent, ConstantCurrentConstantVoltage
 
 
 def fade_rate(capacity, time_capacity):

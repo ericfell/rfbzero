@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 
 from scipy.optimize import fsolve
 
-from redox_flow_cell import ZeroDModel
-from degradation import DegradationMechanism
-from crossover import Crossover
+from .redox_flow_cell import ZeroDModel
+from .degradation import DegradationMechanism
+from .crossover import Crossover
 
 
 class CyclingProtocolResults:
