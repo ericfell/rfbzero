@@ -481,6 +481,7 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
                 # set self back to previous, valid, concentration value
                 self.cell_model.revert_concentrations()
                 capacity = 0.0
+                i_cv = 0.0
                 i_lim_cls_t, i_lim_ncls_t = self.cell_model.limiting_concentration(self.charge)
                 self.cc_mode = True
 
@@ -496,6 +497,7 @@ class ConstantCurrentConstantVoltage(ConstantCurrent):
                 # set self back to previous, valid, concentration value
                 self.cell_model.revert_concentrations()
                 capacity = 0.0
+                i_cv = 0.0
                 i_lim_cls_t, i_lim_ncls_t = self.cell_model.limiting_concentration(self.charge)
                 self.cc_mode = True
 
