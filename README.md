@@ -1,6 +1,9 @@
+[![Documentation Status](https://readthedocs.org/projects/ericfell-rfbzero/badge/?version=latest)](https://ericfell-rfbzero.readthedocs.io/en/latest/?badge=latest)  [![codecov](https://codecov.io/github/ericfell/rfbzero/graph/badge.svg)](https://codecov.io/github/ericfell/rfbzero)  [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)  [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 
 
-# RFBzero
+
+RFBzero
+------------
 
 `rfbzero` is a Python package for zero dimensional simulation of electrochemical cycling in redox flow batteries (RFBs). 
 

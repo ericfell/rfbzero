@@ -1,3 +1,7 @@
+"""
+Method to include redox-active crossover mechanisms
+"""
+
 
 class Crossover:
     """
@@ -26,12 +30,11 @@ class Crossover:
         self.p_ox = permeability_ox
         self.p_red = permeability_red
 
-        for key, value in {'membrane_constant': self.membrane_constant,
-                           'p_ox': self.p_ox, 'p_red': self.p_red}.items():
-            if value <= 0.0 and key == 'membrane_constant':
-                raise ValueError(f"'{key}' must be > 0.0")
-            elif value < 0.0:
-                raise ValueError(f"'{key}' must be >= 0.0")
+        if self.membrane_constant <= 0.0:
+            raise ValueError("'membrane_constant' must be > 0")
+
+        if self.p_ox < 0.0 or self.p_red < 0.0:
+            raise ValueError("'p_ox' and 'p_red' cannot be negative")
 
         if self.p_ox == 0.0 and self.p_red == 0.0:
             raise ValueError("'p_ox' and 'p_red' cannot both be zero")

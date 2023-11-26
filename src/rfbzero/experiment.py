@@ -1,3 +1,7 @@
+"""
+Methods to define electrochemical cycling protocols
+"""
+
 from abc import ABC, abstractmethod
 
 from scipy.optimize import fsolve
@@ -59,7 +63,6 @@ class CyclingProtocolResults:
         for i, (cls_ox, cls_red, ncls_ox, ncls_red) in enumerate(zip(
                 self.c_ox_cls_profile, self.c_red_cls_profile, self.c_ox_ncls_profile, self.c_red_ncls_profile
         )):
-
             if cls_ox + cls_red == 0.0 or ncls_ox + ncls_red == 0.0:
                 break
 
@@ -216,6 +219,7 @@ class ConstantCurrent(CyclingProtocol):
         """
 
         self._init_protocol(duration, cell_model, degradation, cls_degradation, ncls_degradation, cross_over)
+
 
         if not self.voltage_limit_discharge < cell_model.init_ocv < self.voltage_limit_charge:
             raise ValueError("Ensure that 'voltage_limit_discharge' < 'init_ocv' < 'voltage_limit_charge'")

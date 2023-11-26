@@ -1,0 +1,2 @@
+# Regular dependencies
+scipy
