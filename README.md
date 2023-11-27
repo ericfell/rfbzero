@@ -50,8 +50,8 @@ cell = ZeroDModel(
 
 # define cycling protocol
 protocol = ConstantCurrent(
-    voltage_cutoff_charge=1.5,      # volts
-    voltage_cutoff_discharge=0.5,   # volts
+    voltage_limit_charge=1.5,      # volts
+    voltage_limit_discharge=0.5,   # volts
     current=0.1,                    # amps
 )
 
@@ -85,8 +85,8 @@ cell = ZeroDModel(
 protocol = ConstantCurrentConstantVoltage(
     voltage_limit_charge=0.2,               # volts
     voltage_limit_discharge=-0.2,           # volts
-    current_cutoff_charge=0.005,            # amps
-    current_cutoff_discharge=-0.005,        # amps
+    current_limit_charge=0.005,            # amps
+    current_limit_discharge=-0.005,        # amps
     current=0.1,                            # amps
 )
 

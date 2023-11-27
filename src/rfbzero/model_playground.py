@@ -63,9 +63,9 @@ deg = ChemicalDegradation(rate_order=1,
                           )
 
 # define cycling protocol
-protocol = ConstantCurrent(voltage_cutoff_charge=0.2,       # V
-                           voltage_cutoff_discharge=-0.2,   # V
-                           current=0.05,                     # A
+protocol = ConstantCurrent(voltage_limit_charge=0.2,      # V
+                           voltage_limit_discharge=-0.2,  # V
+                           current=0.2,                   # A
                            )
 
 # putting it all together
