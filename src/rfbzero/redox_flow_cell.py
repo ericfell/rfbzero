@@ -125,7 +125,8 @@ class ZeroDModel:
                            'ncls_start_c_ox': self.c_ox_ncls, 'ncls_start_c_red': self.c_red_ncls,
                            'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
                            'time_increment': self.time_increment, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
-                           'init_ocv': self.init_ocv, 'resistance': self.resistance}.items():
+                           'init_ocv': self.init_ocv, 'resistance': self.resistance, 'n_cls': self.n_cls,
+                           'n_ncls': self.n_ncls}.items():
 
             if key not in ['init_ocv', 'resistance',
                            'cls_start_c_ox', 'cls_start_c_red',
