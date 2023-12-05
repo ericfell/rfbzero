@@ -31,6 +31,7 @@ bibliography: paper.bib
 # Overview
 
 `rfbzero.py` is a Python package for zero-dimensional simulation of electrochemical cycling of redox flow batteries. This package currently includes the following modules for initial cell setup and electrolyte description, cycling protocol selection, and optional inputs for various capacity degradation mechanisms and active species crossover:
+ 
 - _redox flow cell setup_: easy configuration of flow cell and electrolyte parameters
 - _cycling protocol_: quickly define the desired electrochemical cycling protocol
 - _capacity fade mechanisms_: include optional electrolyte degradation mechanisms
@@ -45,10 +46,10 @@ To date, zero-dimensional RFB models have typically been disseminated in the lit
 # Current `rfbzero.py` functionality
 
 ## Cell design
-The initial flow cell design can be configured via the `redox_flow_cell.py` module. Examples of adjustable, RFB-specific, parameters include electrode active and geometric area, cell ohmic resistance, starting concentrations of redox-active species (oxidized and/or reduced), and reservoir volumes of the capacity limiting side (CLS) and non-capacity limiting side (NCLS) electrolytes. The user can also declare the electrolyte configuration in the RFB: a **Symmetric Cell** with identical redox-actives in both reservoirs and a 0 V open-circuit-voltage (OCV) when both reservoirs are at 50% state-of-charge (SOC), or a **Full Cell** with different redox-actives in each reservoir and an OCV > 0 V.
+The initial flow cell design can be configured via the `redox_flow_cell.py` module. Examples of adjustable, RFB-specific, parameters include electrode active and geometric area, cell ohmic resistance, starting concentrations of redox-active species (oxidized and/or reduced), and reservoir volumes of the capacity limiting side (CLS) and non-capacity limiting side (NCLS) electrolytes. The user can also declare the electrolyte configuration of the RFB: a **Symmetric Cell** with identical redox-actives in both reservoirs and a 0 V OCV when both reservoirs are at 50% state-of-charge (SOC), or a **Full Cell** with different redox-actives in each reservoir and an OCV > 0 V.
 
 ## Cycling protocol
-Cells can be electrochemically cycled by constant current (CC) or constant current followed by constant voltage (CCCV). The former requires user input of applied current and voltage cutoffs for charge and discharge, while the latter requires the input of applied current, and both voltage limits and current cutoffs for charge and discharge. If the desired applied current during CCCV cycling is higher than what the cell can provide, constant voltage (CV) cycling takes place.
+Cells can be electrochemically cycled by constant current (CC), constant current followed by constant voltage (CCCV), or constant voltage (CV). CC and CCCV cycling require user input of applied currents, while CCCV and CV cycling require input of current cutoffs for charge and discharge. All techniques require input of voltage limits for charge and discharge. If the desired applied current during CCCV cycling is higher than what the cell can provide, CV cycling takes place.
 
 ## Degradation mechanisms
 Optional capacity fade mechanisms can also be incorporated. These include chemical degradation, chemical redox of active species (e.g. self-discharge), or multiple stacked degradation mechanisms. Rate constants and reaction rate orders can be adapted as needed to the electrolyte chemistries in each reservoir.
