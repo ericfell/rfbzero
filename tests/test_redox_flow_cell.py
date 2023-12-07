@@ -88,6 +88,17 @@ class TestClassRedoxFlowCell:
 
     @pytest.mark.skip(reason="not implemented yet")
     def test_mass_transport_overpotential(self):
+        """
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(cls_volume=0.005, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01,
+                              ncls_start_c_ox=0.01, ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3,
+                              k_0_ncls=1e-3, n_ncls=2)
+            current = 1
+            i_lim_cls = 1
+            i_lim_ncls = 1
+            n_mass = cell._mass_transport_overpotential(True, current, i_lim_cls, i_lim_ncls)
+        """
+
         raise NotImplementedError
 
     @pytest.mark.skip(reason="not implemented yet")
@@ -98,9 +109,6 @@ class TestClassRedoxFlowCell:
     def test_open_circuit_voltage(self):
         raise NotImplementedError
 
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_cell_voltage(self):
-        raise NotImplementedError
 
     @pytest.mark.skip(reason="not implemented yet")
     def test_coulomb_counter(self):
