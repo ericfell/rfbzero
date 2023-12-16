@@ -61,7 +61,7 @@ Crossover of redox-active species through the ion-exchange membrane, driven by c
 Multiple model outputs can be accessed from the simulation results including: temporal profiles for voltage, current, capacity, SOC, and overpotentials. Half-cycle capacities and duration of cycles can also be accessed.
 
 # An Example of the `rfbzero.py` API
-The documentation for `rfbzero.py` includes a getting started guide(insert link) and examples of RFB cells cycled under different protocols. An example for constant current cycling at 100 mA for a symmetric cell with OCV = 0.0 V, charging voltage = 0.2 V, discharging voltage = -0.2 V, and cycled for 500 seconds, is shown below:
+The documentation for `rfbzero.py` includes a getting started guide(insert link) and examples of RFB cells cycled under different protocols. An example for CC cycling at 100 mA for a symmetric cell with OCV = 0.0 V, charging voltage = 0.2 V, discharging voltage = -0.2 V, and cycled for 500 seconds, is shown below:
 
 ```python
 from redox_flow_cell import ZeroDModel
@@ -84,16 +84,61 @@ cell = ZeroDModel(
 
 # 2. define cycling protocol
 protocol = ConstantCurrent(
-    voltage_limit_charge=0.2,       # volts
-    voltage_limit_discharge=-0.2,   # volts
-    current=0.1,                    # amps
+    voltage_limit_charge=0.2,      # volts
+    voltage_limit_discharge=-0.2,  # volts
+    current=0.1,                   # amps
 )
 
 # 3. simulate the cell, via protocol, for 500 seconds
 results = protocol.run(cell_model=cell, duration=500)
 ```
 
-![Simulation outputs can be plotted as desired](./fig_1.png)
+![Simulation outputs can be plotted as desired.](./fig_1.png)
+
+
+A second example of a symmetric cell with CCCV cycling (&plusmn;50 mA, &plusmn;0.2 V, &plusmn;5 mA cutoffs), an auto-reduction degradation mechanism, and cycled for 4000 seconds, is shown below:
+
+```python
+from redox_flow_cell import ZeroDModel
+from experiment import ConstantCurrentConstantVoltage
+from degradation import AutoReduction
+
+
+# 1. define symmetric cell and electrolyte parameters
+cell = ZeroDModel(
+    cls_volume=0.005,       # liters
+    ncls_volume=0.010,      # liters
+    cls_start_c_ox=0.01,    # molar
+    cls_start_c_red=0.01,   # molar
+    ncls_start_c_ox=0.01,   # molar
+    ncls_start_c_red=0.01,  # molar
+    init_ocv=0.0,           # volts
+    resistance=0.5,         # ohms
+    k_0_cls=1e-3,           # cm/s
+    k_0_ncls=1e-3,          # cm/s
+)
+
+# 2. define cycling protocol
+protocol = ConstantCurrentConstantVoltage(
+    voltage_limit_charge=0.2,         # volts
+    voltage_limit_discharge=-0.2,     # volts
+    current_cutoff_charge=0.005,      # amps
+    current_cutoff_discharge=-0.005,  # amps
+    current=0.05,                     # amps
+)
+
+# 3. define chemical degradation
+deg = AutoReduction(rate_constant=3e-4)
+
+# 4. simulate the cell with degradation, via protocol, for 4000 seconds
+results = protocol.run(
+    cell_model=cell,
+    degradation=deg,
+    duration=4000)
+```
+
+![Half-cycle capacities and individual reservoir states-of-charge are readily accessed.](./fig_2.png)
+
 
 # Acknowledgements
 We thank Prof. David Kwabi, Thomas George, and Jordan Sosa for constructive feedback and testing.
