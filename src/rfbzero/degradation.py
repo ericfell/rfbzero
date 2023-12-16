@@ -287,6 +287,7 @@ class Dimerization(DegradationMechanism):
         First order rate constant for backward reaction (1/s).
     c_dimer : float
         Initial concentration of dimer, defaults to 0 (M).
+        Continuously updated.
 
     """
 
@@ -324,30 +325,10 @@ class Dimerization(DegradationMechanism):
 
         """
 
-
-        #c_dimer = self.c_dimer
         delta = timestep * ((self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_dimer))
-        #
-        #delta = max(delta, 0.0)
-        self.c_dimer = max(self.c_dimer + delta, 0.0)
+
+        self.c_dimer += delta
         c_red -= delta
         c_ox -= delta
-
-
-        #if c_dimer < (0.04 - c_ox - c_red)/2:
-        #    return c_ox, c_red
-
-
-        #if abs(delta) > 0.04: # must adapt to intial concs
-        #    return c_ox, c_red
-        #delta = max(delta, 0.0) # OG, with no max() below
-        #self.c_dimer += delta
-
-
-        #self.c_dimer += delta
-        #if self.c_dimer < 0.0:
-        #    self.c_dimer = 0.0
-        #    return c_ox, c_red
-
 
         return c_ox, c_red
