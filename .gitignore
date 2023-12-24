@@ -4,4 +4,7 @@
 .idea
 .env
 .coverage
+*.ipynb_checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
 

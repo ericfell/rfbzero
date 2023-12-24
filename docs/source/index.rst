@@ -50,7 +50,8 @@ Example Jupyter notebooks are provided in the examples/ directory.
 Examples and Documentation
 ---------------------------
 
-
+The documentation can be found at
+`rfbzero.readthedocs.io <https://ericfell-rfbzero.readthedocs.io/en/latest/>`_.
 
 
 
