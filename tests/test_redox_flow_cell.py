@@ -6,14 +6,25 @@ from rfbzero.redox_flow_cell import ZeroDModel
 
 class TestClassRedoxFlowCell:
 
-    @pytest.mark.parametrize("v_cls,v_ncls,ox_cls,red_cls,ox_ncls,red_ncls,ocv,res,k_c,k_n",
-                             [(6, 0.01, 0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3),
-                              (0.001, 0.1, -0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3),
-                              (0.001, 0.1, 0.1, 0.001, -0.01, 0.01, 1, 1, 1e-3, 1e-3),
-                              (0.001, 0, 0.1, 0.001, -0.01, 0.01, 1, 1, 1e-3, 1e-3),
-                              (0.001, 0, 0.1, 0.001, -0.01, 0.01, -1, 0, 1e-3, 1e-3),
+    @pytest.mark.parametrize("v_cls,v_ncls,ox_cls,red_cls,ox_ncls,red_ncls,ocv,res,k_c,k_n,a_c,a_n,n_c,n_n",
+                             [(6, 0.01, 0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3, 0.5, 0.5, 1, 1),
+                              (0.001, 0.1, -0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3, 0.5, 0.5, 1, 1),
+                              (0.001, 0.1, 0.1, 0.001, -0.01, 0.01, 1, 1, 1e-3, 1e-3, 0.5, 0.5, 1, 1),
+                              (0.001, 0, 0.1, 0.001, -0.01, 0.01, 1, 1, 1e-3, 1e-3, 0.5, 0.5, 1, 1),
+                              (0.001, 0, 0.1, 0.001, -0.01, 0.01, -1, 0, 1e-3, 1e-3, 0.5, 0.5, 1, 1),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 1, 0.1, 1e-3, 1e-3, -0.5, 0.5, 1, 1),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 1, 0.1, 1e-3, 1e-3, 0.5, -0.5, 1, 1),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 1, 0.1, 1e-3, 1e-3, 0.5, 1.5, 1, 1),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 1, 0.1, 1e-3, 1e-3, 1.5, 0.5, 1, 1),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 1, 0.1, 1e-3, 1e-3, 0.5, 0.5, 1.5, 1),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 1, 0.1, 1e-3, 1e-3, 0.5, 0.5, 1, -1),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 0, 0.1, 1e-3, 1e-3, 0.5, 0.5, 1, 2),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 1, 0.1, 1e-3, 1e-3, 0.5, 0.5, 1, 0),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 0, 0.1, 1e-3, 1e-3, 0.5, 0.5, 2, 3),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 1, 0.1, 1e-3, 1e-3, 0.5, 0.5, 2.5, 3),
+                              (0.001, 0.1, 0.1, 0.001, 0.01, 0.01, 1, 0.1, 1e-3, 1e-3, 0.5, 0.5, 1.5, 1.5),
                               ])
-    def test_class_init(self, v_cls, v_ncls, ox_cls, red_cls, ox_ncls, red_ncls, ocv, res, k_c, k_n):
+    def test_class_init(self, v_cls, v_ncls, ox_cls, red_cls, ox_ncls, red_ncls, ocv, res, k_c, k_n, a_c, a_n, n_c, n_n):
         with pytest.raises(ValueError):
             ZeroDModel(cls_volume=v_cls,
                        ncls_volume=v_ncls,
@@ -25,6 +36,10 @@ class TestClassRedoxFlowCell:
                        resistance=res,
                        k_0_cls=k_c,
                        k_0_ncls=k_n,
+                       alpha_cls=a_c,
+                       alpha_ncls=a_n,
+                       n_cls=n_c,
+                       n_ncls=n_n,
                        )
 
     def test_exchange_current(self):
@@ -73,6 +88,17 @@ class TestClassRedoxFlowCell:
 
     @pytest.mark.skip(reason="not implemented yet")
     def test_mass_transport_overpotential(self):
+        """
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(cls_volume=0.005, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01,
+                              ncls_start_c_ox=0.01, ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3,
+                              k_0_ncls=1e-3, n_ncls=2)
+            current = 1
+            i_lim_cls = 1
+            i_lim_ncls = 1
+            n_mass = cell._mass_transport_overpotential(True, current, i_lim_cls, i_lim_ncls)
+        """
+
         raise NotImplementedError
 
     @pytest.mark.skip(reason="not implemented yet")
@@ -83,9 +109,6 @@ class TestClassRedoxFlowCell:
     def test_open_circuit_voltage(self):
         raise NotImplementedError
 
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_cell_voltage(self):
-        raise NotImplementedError
 
     @pytest.mark.skip(reason="not implemented yet")
     def test_coulomb_counter(self):

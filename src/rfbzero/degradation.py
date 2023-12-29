@@ -273,5 +273,64 @@ class MultiDegradationMechanism(DegradationMechanism):
             c_ox, c_red = mechanism.degrade(c_ox, c_red, timestep)
         return c_ox, c_red
 
-# TODO
-# def potential_dependent(potential, c_ox, c_red, timestep, rate=0):
+
+class Dimerization(DegradationMechanism):
+    """
+    Provides a reversible dimerization mechanism:
+        ox + red <--> dimer
+
+    Parameters
+    ----------
+    forward_rate_constant : float
+        Second order rate constant for forward reaction (1/(M s)).
+    backward_rate_constant : float
+        First order rate constant for backward reaction (1/s).
+    c_dimer : float
+        Initial concentration of dimer, defaults to 0 (M).
+
+    """
+
+    def __init__(self, forward_rate_constant: float, backward_rate_constant: float, c_dimer: float = 0.0):
+        self.forward_rate_constant = forward_rate_constant
+        self.backward_rate_constant = backward_rate_constant
+        self.c_dimer = c_dimer
+
+        if self.forward_rate_constant <= 0.0:
+            raise ValueError("'forward_rate_constant' must be > 0.0")
+
+        if self.backward_rate_constant <= 0.0:
+            raise ValueError("'backward_rate_constant' must be > 0.0")
+
+        if self.c_dimer < 0.0:
+            raise ValueError("'c_dimer' must be >= 0.0")
+
+    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+        """
+        Reversible dimerization: ox + red <--> dimer
+        Returns updated concentrations.
+
+        Parameters
+        ----------
+        c_ox : float
+            Concentration of oxidized species (M).
+        c_red : float
+            Concentration of reduced species (M).
+        timestep : float
+            Time interval size (s).
+
+        Returns
+        -------
+        c_ox : float
+            Concentration of oxidized species (M).
+        c_red : float
+            Concentration of reduced species (M).
+
+        """
+
+        delta = timestep * ((self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_dimer))
+
+        self.c_dimer += delta
+        c_red -= delta
+        c_ox -= delta
+
+        return c_ox, c_red
