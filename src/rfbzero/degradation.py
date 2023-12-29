@@ -282,12 +282,11 @@ class Dimerization(DegradationMechanism):
     Parameters
     ----------
     forward_rate_constant : float
-        Second order rate constant for forward reaction (1/M/s).
+        Second order rate constant for forward reaction (1/(M s)).
     backward_rate_constant : float
         First order rate constant for backward reaction (1/s).
     c_dimer : float
         Initial concentration of dimer, defaults to 0 (M).
-        Continuously updated.
 
     """
 
@@ -296,8 +295,11 @@ class Dimerization(DegradationMechanism):
         self.backward_rate_constant = backward_rate_constant
         self.c_dimer = c_dimer
 
-        if self.forward_rate_constant <= 0.0 or self.backward_rate_constant <= 0.0:
-            raise ValueError("'forward/backward_rate_constant' must be > 0.0")
+        if self.forward_rate_constant <= 0.0:
+            raise ValueError("'forward_rate_constant' must be > 0.0")
+
+        if self.backward_rate_constant <= 0.0:
+            raise ValueError("'backward_rate_constant' must be > 0.0")
 
         if self.c_dimer < 0.0:
             raise ValueError("'c_dimer' must be >= 0.0")
