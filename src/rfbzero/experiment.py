@@ -571,7 +571,7 @@ class ConstantVoltage(CyclingProtocol):
         while cycle_status == CycleStatus.NORMAL:
             cycle_status = cycle_mode.cycle_step()
 
-            if cycle_status in [CycleStatus.CURRENT_CUTOFF_REACHED, CycleStatus.LIMITING_CURRENT_REACHED]:
+            if cycle_status in [CycleStatus.CURRENT_CUTOFF_REACHED, CycleStatus.LIMITING_CURRENT_REACHED, CycleStatus.NEGATIVE_CONCENTRATIONS]:
                 # Record info for the half cycle
                 results.record_half_cycle(cycle_mode.charge)
 
