@@ -562,13 +562,12 @@ class ConstantVoltage(CyclingProtocol):
             )
 
         cycle_mode = get_cycle_mode(self.charge_first, 0.0)
-        error_status = cycle_mode.validate()
-        if error_status:
-            raise ValueError(error_status)
+        cycle_status = cycle_mode.validate()
+        if cycle_status != CycleStatus.NORMAL:
+            raise ValueError(cycle_status)
 
         print(f'{duration} sec of cycling, time steps: {cell_model.time_increment} sec')
 
-        cycle_status = CycleStatus.NORMAL
         while cycle_status == CycleStatus.NORMAL:
             cycle_status = cycle_mode.cycle_step()
 
