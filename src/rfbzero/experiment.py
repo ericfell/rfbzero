@@ -247,15 +247,15 @@ class ConstantVoltageCycleMode(CycleMode):
         self.current_cutoff = current_cutoff
         self.voltage_limit = voltage_limit
 
-        if not current_estimate:
-            current_estimate = max(self.current_lim_cls, self.current_lim_ncls)
         self.current = current_estimate  # this can be too big but solver can handle
 
     def validate(self) -> CycleStatus:
         return CycleStatus.NORMAL
 
     def cycle_step(self) -> CycleStatus:
-        if abs(self.current) >= min(self.current_lim_cls, self.current_lim_ncls):
+        if not self.current:
+            self.current = max(self.current_lim_cls, self.current_lim_ncls)
+        elif abs(self.current) >= min(self.current_lim_cls, self.current_lim_ncls):
             return CycleStatus.LIMITING_CURRENT_REACHED
 
         ocv = self.cell_model.open_circuit_voltage()
@@ -263,7 +263,7 @@ class ConstantVoltageCycleMode(CycleMode):
         # Adapting the solver's guess to the updated current
         self._find_min_current(ocv)
 
-        # If current is below cutoffs, record cycle data and switch to charge/discharge
+        # Check if the current is below cutoffs
         if abs(self.current) <= abs(self.current_cutoff):
             self.cell_model.revert_concentrations()
             return self.check_capacity(CycleStatus.CURRENT_CUTOFF_REACHED)
@@ -571,7 +571,7 @@ class ConstantVoltage(CyclingProtocol):
         while cycle_status == CycleStatus.NORMAL:
             cycle_status = cycle_mode.cycle_step()
 
-            if cycle_status in [CycleStatus.CURRENT_CUTOFF_REACHED, CycleStatus.LIMITING_CURRENT_REACHED, CycleStatus.NEGATIVE_CONCENTRATIONS]:
+            if cycle_status in [CycleStatus.CURRENT_CUTOFF_REACHED, CycleStatus.NEGATIVE_CONCENTRATIONS]:
                 # Record info for the half cycle
                 results.record_half_cycle(cycle_mode.charge)
 
