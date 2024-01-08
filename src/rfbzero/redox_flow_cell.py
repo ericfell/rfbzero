@@ -242,17 +242,15 @@ class ZeroDModel:
         """Return True if any concentration is negative"""
         return any(x < 0.0 for x in [self.c_ox_cls, self.c_red_cls, self.c_ox_ncls, self.c_red_ncls])
 
-    def _mass_transport_overpotential(self, charge: bool, current: float, i_lim_cls: float, i_lim_ncls: float) -> float:
+    def _mass_transport_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> float:
         """
         Calculates overall cell mass transport overpotential.
         This is equation 8 of [1].
 
         Parameters
         ----------
-        charge : bool
-            Positive if charging, negative if discharging.
         current : float
-            Instantaneous current flowing (A).
+            Instantaneous current flowing (A). Positive if charging, negative if discharging.
          i_lim_cls : float
             Limiting current of CLS redox couple
             at a given timestep (A).
@@ -273,8 +271,7 @@ class ZeroDModel:
         c_tot_cls = self.c_red_cls + self.c_ox_cls
         c_tot_ncls = self.c_red_ncls + self.c_ox_ncls
 
-        i = abs(current)
-
+        charge = current >= 0
         if self.cls_negolyte == charge:
             c1_cls = self.c_ox_cls
             c2_cls = self.c_red_cls
@@ -286,12 +283,13 @@ class ZeroDModel:
             c1_ncls = self.c_ox_ncls
             c2_ncls = self.c_red_ncls
 
+        i = abs(current)
+
         n_mt = NERNST_CONST * ((log(1 - ((c_tot_cls * i) / ((c1_cls * i_lim_cls) + (c2_cls * i)))) / self.n_cls)
                                + (log(1 - ((c_tot_ncls * i) / ((c1_ncls * i_lim_ncls) + (c2_ncls * i)))) / self.n_ncls))
         return n_mt * -1
 
-    def total_overpotential(self, current: float, charge: bool,
-                            i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
+    def total_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
         """
         Calculates total cell overpotential.
         This is the overpotentials of equation 2 in [1].
@@ -299,9 +297,7 @@ class ZeroDModel:
         Parameters
         ----------
         current : float
-            Instantaneous current flowing (A).
-        charge : bool
-            Positive if charging, negative if discharging.
+            Instantaneous current flowing (A). Positive if charging, negative if discharging.
         i_lim_cls : float
             Limiting current of CLS redox couple
             at a given timestep (A).
@@ -324,7 +320,7 @@ class ZeroDModel:
         # calculate overpotentials
         n_ohmic = abs(current) * self.resistance
         n_act = self._activation_overpotential(current, i_0_cls, i_0_ncls)
-        n_mt = self._mass_transport_overpotential(charge, current, i_lim_cls, i_lim_ncls)
+        n_mt = self._mass_transport_overpotential(current, i_lim_cls, i_lim_ncls)
 
         n_loss = n_ohmic + n_act + n_mt
 
