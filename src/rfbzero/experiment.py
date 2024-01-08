@@ -140,13 +140,18 @@ class CycleMode(ABC):
             cell_model: ZeroDModel,
             results: CyclingProtocolResults,
             update_concentrations: callable,
+            current_lim_cls: float = None,
+            current_lim_ncls: float = None
     ):
         self.charge = charge
         self.cell_model = cell_model
         self.results = results
         self.update_concentrations = update_concentrations
 
-        self.current_lim_cls, self.current_lim_ncls = self.cell_model.limiting_concentration(self.charge)
+        if not current_lim_cls or not current_lim_ncls:
+            current_lim_cls, current_lim_ncls = self.cell_model.limiting_concentration(self.charge)
+        self.current_lim_cls = current_lim_cls
+        self.current_lim_ncls = current_lim_ncls
 
     @abstractmethod
     def validate(self) -> CycleStatus:
@@ -240,9 +245,11 @@ class ConstantVoltageCycleMode(CycleMode):
             update_concentrations: callable,
             current_cutoff: float,
             voltage_limit: float,
-            current_estimate: float
+            current_estimate: float,
+            current_lim_cls: float = None,
+            current_lim_ncls: float = None
     ):
-        super().__init__(charge, cell_model, results, update_concentrations)
+        super().__init__(charge, cell_model, results, update_concentrations, current_lim_cls, current_lim_ncls)
         self.update_concentrations = update_concentrations
         self.current_cutoff = current_cutoff
         self.voltage_limit = voltage_limit
@@ -254,7 +261,9 @@ class ConstantVoltageCycleMode(CycleMode):
 
     def cycle_step(self) -> CycleStatus:
         if not self.current:
-            self.current = max(self.current_lim_cls, self.current_lim_ncls)
+            # Set initial current guess as a function of the limiting currents, however, we want to ensure that the
+            # guess is less than the limiting currents to avoid log errors in the overpotential calculations
+            self.current = 0.99 * min(self.current_lim_cls, self.current_lim_ncls)
         elif abs(self.current) >= min(self.current_lim_cls, self.current_lim_ncls):
             return CycleStatus.LIMITING_CURRENT_REACHED
 
@@ -553,12 +562,12 @@ class ConstantVoltage(CyclingProtocol):
             duration, cell_model, degradation, cls_degradation, ncls_degradation, crossover
         )
 
-        def get_cycle_mode(charge, current_cv):
+        def get_cycle_mode(charge, current):
             return ConstantVoltageCycleMode(
                 charge, cell_model, results, update_concentrations,
-                self.voltage_limit_charge if charge else self.voltage_limit_discharge,
                 self.current_cutoff_charge if charge else self.current_cutoff_discharge,
-                current_cv
+                self.voltage_limit_charge if charge else self.voltage_limit_discharge,
+                current
             )
 
         cycle_mode = get_cycle_mode(self.charge_first, 0.0)
@@ -669,12 +678,12 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 voltage_limit_capacity_check=False
             )
 
-        def get_cv_cycle_mode(charge, current_estimate):
+        def get_cv_cycle_mode(charge, current_estimate, current_lim_cls=None, current_lim_ncls=None):
             return ConstantVoltageCycleMode(
                 charge, cell_model, results, update_concentrations,
                 self.current_cutoff_charge if charge else self.current_cutoff_discharge,
                 self.voltage_limit_charge if charge else self.voltage_limit_discharge,
-                current_estimate
+                current_estimate, current_lim_cls, current_lim_ncls
             )
 
         cycle_mode = get_cc_cycle_mode(self.charge_first)
@@ -699,10 +708,8 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
             if cycle_status == CycleStatus.VOLTAGE_LIMIT_REACHED:
                 is_cc_mode = False
-                # TODO
-                prev_lim_cls, prev_lim_ncls = cycle_mode.current_lim_cls, cycle_mode.current_lim_ncls
-                cycle_mode = get_cv_cycle_mode(cycle_mode.charge, cycle_mode.current)
-                cycle_mode.current_lim_cls, cycle_mode.current_lim_ncls = prev_lim_cls, prev_lim_ncls
+                cycle_mode = get_cv_cycle_mode(cycle_mode.charge, cycle_mode.current,
+                                               cycle_mode.current_lim_cls, cycle_mode.current_lim_ncls)
                 cycle_status = CycleStatus.NORMAL
 
             if cycle_status == CycleStatus.CURRENT_CUTOFF_REACHED:
