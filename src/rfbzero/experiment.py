@@ -719,8 +719,10 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 # Record info for the half cycle
                 results.record_half_cycle(cycle_mode.charge)
 
-                is_cc_mode = True
-                cycle_mode = get_cc_cycle_mode(not cycle_mode.charge)
+                cc_cycle_mode = get_cc_cycle_mode(not cycle_mode.charge)
+                is_cc_mode = cc_cycle_mode.validate() == CycleStatus.NORMAL
+                cycle_mode = cc_cycle_mode if is_cc_mode else get_cv_cycle_mode(not cycle_mode.charge, 0.0)
+
                 cycle_status = CycleStatus.NORMAL
 
             if cycle_status == CycleStatus.NEGATIVE_CONCENTRATIONS:
@@ -731,7 +733,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 if is_cc_mode:
                     cycle_mode = get_cc_cycle_mode(not cycle_mode.charge)
                 else:
-                    cycle_mode = get_cv_cycle_mode(not cycle_mode.charge, cycle_mode.current)
+                    cycle_mode = get_cv_cycle_mode(not cycle_mode.charge, 0.0)
                 cycle_status = CycleStatus.NORMAL
 
         print(f'Simulation stopped after {results.step} time steps: {cycle_status}.')
