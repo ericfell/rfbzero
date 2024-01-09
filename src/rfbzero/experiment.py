@@ -66,6 +66,9 @@ class CyclingProtocolResults:
         self.discharge_cycle_capacity = []
         self.discharge_cycle_time = []
 
+        # The reason for the cycling protocol's termination
+        self.end_status = CycleStatus.NORMAL
+
     def record_step(self, cell_model: ZeroDModel, charge: bool, current: float, cell_v: float, ocv: float,
                     n_act: float = 0.0, n_mt: float = 0.0, losses: float = 0.0):
         # Update capacity
@@ -133,7 +136,7 @@ class CycleStatus(str, Enum):
     TIME_DURATION_REACHED = 'time duration reached'
 
 
-class CycleMode(ABC):
+class _CycleMode(ABC):
     def __init__(
             self,
             charge: bool,
@@ -179,7 +182,7 @@ class CycleMode(ABC):
         return CycleStatus.NORMAL
 
 
-class ConstantCurrentCycleMode(CycleMode):
+class _ConstantCurrentCycleMode(_CycleMode):
     def __init__(
             self,
             charge: bool,
@@ -236,7 +239,7 @@ class ConstantCurrentCycleMode(CycleMode):
         return self.check_time(cycle_status)
 
 
-class ConstantVoltageCycleMode(CycleMode):
+class _ConstantVoltageCycleMode(_CycleMode):
     def __init__(
             self,
             charge: bool,
@@ -293,18 +296,10 @@ class ConstantVoltageCycleMode(CycleMode):
         return 1 if self.charge else -1
 
     def _find_min_current(self, ocv: float):
-        """
-        Method wrapper to solve for current during constant voltage cycling.
-        Attempts to minimize the difference of voltage, OCV, and losses (function of current).
-
-        Returns
-        -------
-        min_current : float
-            Solved current at given timestep of constant voltage cycling (A).
-        """
+        # Solves the current at a given timestep of constant voltage cycling
+        # Attempts to minimize the difference of voltage, OCV, and losses (function of current).
 
         def solver(current: float) -> float:
-            """Numerical solver for current during constant voltage cycling"""
             loss_solve, *_ = self.cell_model.total_overpotential(current, self.current_lim_cls, self.current_lim_ncls)
             return self.voltage_limit - ocv - self._current_direction() * loss_solve
 
@@ -314,7 +309,7 @@ class ConstantVoltageCycleMode(CycleMode):
 
 class CyclingProtocol(ABC):
     """
-    Base class to be overridden by specific cycling protocol choice.
+    Abstract class representing a cycling protocol.
 
     Parameters
     ----------
@@ -342,11 +337,34 @@ class CyclingProtocol(ABC):
             ncls_degradation: DegradationMechanism = None,
             crossover: Crossover = None,
     ) -> CyclingProtocolResults:
-        """Applies a cycling protocol and (optional) degradation mechanisms to a cell model"""
+        """
+        Applies a cycling protocol and (optional) degradation mechanisms to a cell model.
+
+        Parameters
+        ----------
+        duration : int
+            Simulation time (s).
+        cell_model : ZeroDModel
+            Defined cell parameters for simulating.
+        degradation : DegradationMechanism, optional
+            Degradation mechanism(s) applied to CLS and NCLS.
+        cls_degradation : DegradationMechanism, optional
+            Degradation mechanism(s) applied to CLS.
+        ncls_degradation : DegradationMechanism, optional
+            Degradation mechanism(s) applied to NCLS.
+        crossover : Crossover, optional
+            Crossover mechanism applied to cell.
+
+        """
         raise NotImplementedError
 
     @staticmethod
-    def _validate_cycle_values(value: float, value_charge: float, value_discharge: float, name: str) -> tuple[float, float]:
+    def _validate_cycle_values(
+            value: float,
+            value_charge: float,
+            value_discharge: float,
+            name: str
+    ) -> tuple[float, float]:
         if value is not None and (value_charge is not None or value_discharge is not None):
             raise ValueError(f"Cannot specify both '{name}' and f'{name}_(dis)charge'")
 
@@ -393,7 +411,14 @@ class CyclingProtocol(ABC):
         # Initialize data results object to be sent to user
         results = CyclingProtocolResults(duration, cell_model.time_increment, self.charge_first)
 
+        print(f'{duration} sec of cycling, time steps: {cell_model.time_increment} sec')
         return results, update_concentrations
+
+    @staticmethod
+    def _end_protocol(results: CyclingProtocolResults, end_status: CycleStatus):
+        print(f'Simulation stopped after {results.step} time steps: {end_status}.')
+        results.end_status = end_status
+        return results
 
 
 class ConstantCurrent(CyclingProtocol):
@@ -437,6 +462,7 @@ class ConstantCurrent(CyclingProtocol):
             crossover: Crossover = None
     ) -> CyclingProtocolResults:
         """
+        Applies the constant current (CC) protocol and (optional) degradation mechanisms to a cell model.
 
         Parameters
         ----------
@@ -456,7 +482,7 @@ class ConstantCurrent(CyclingProtocol):
         Returns
         -------
         results : CyclingProtocolResults
-            Object with results from simulation
+            Container of simulation results
 
         """
 
@@ -465,7 +491,7 @@ class ConstantCurrent(CyclingProtocol):
         )
 
         def get_cycle_mode(charge):
-            return ConstantCurrentCycleMode(
+            return _ConstantCurrentCycleMode(
                 charge, cell_model, results, update_concentrations,
                 self.current_charge if charge else self.current_discharge,
                 self.voltage_limit_charge if charge else self.voltage_limit_discharge
@@ -478,11 +504,10 @@ class ConstantCurrent(CyclingProtocol):
             new_cycle_status = cycle_mode.validate()
             if new_cycle_status != CycleStatus.NORMAL:
                 raise ValueError(cycle_status)
+
             cycle_name = 'charge' if self.charge_first else 'discharge'
             print(f'Skipping to {cycle_name} cycle: {cycle_status}')
-
-        print(f'{duration} sec of cycling, time steps: {cell_model.time_increment} sec')
-        cycle_status = CycleStatus.NORMAL
+            cycle_status = CycleStatus.NORMAL
 
         while cycle_status == CycleStatus.NORMAL:
             cycle_status = cycle_mode.cycle_step()
@@ -495,8 +520,7 @@ class ConstantCurrent(CyclingProtocol):
                 cycle_mode = get_cycle_mode(not cycle_mode.charge)
                 cycle_status = CycleStatus.NORMAL
 
-        print(f'Simulation stopped after {results.step} time steps: {cycle_status}.')
-        return results
+        return self._end_protocol(results, cycle_status)
 
 
 class ConstantVoltage(CyclingProtocol):
@@ -538,6 +562,7 @@ class ConstantVoltage(CyclingProtocol):
             crossover: Crossover = None
     ) -> CyclingProtocolResults:
         """
+        Applies the constant voltage (CV) cycling protocol and (optional) degradation mechanisms to a cell model.
 
         Parameters
         ----------
@@ -557,7 +582,7 @@ class ConstantVoltage(CyclingProtocol):
         Returns
         -------
         results : CyclingProtocolResults
-            Object with results from simulation
+            Container of simulation results
 
         """
 
@@ -565,20 +590,18 @@ class ConstantVoltage(CyclingProtocol):
             duration, cell_model, degradation, cls_degradation, ncls_degradation, crossover
         )
 
-        def get_cycle_mode(charge, current):
-            return ConstantVoltageCycleMode(
+        def get_cycle_mode(charge):
+            return _ConstantVoltageCycleMode(
                 charge, cell_model, results, update_concentrations,
                 self.current_cutoff_charge if charge else self.current_cutoff_discharge,
                 self.voltage_limit_charge if charge else self.voltage_limit_discharge,
                 0.0
             )
 
-        cycle_mode = get_cycle_mode(self.charge_first, 0.0)
+        cycle_mode = get_cycle_mode(self.charge_first)
         cycle_status = cycle_mode.validate()
         if cycle_status != CycleStatus.NORMAL:
             raise ValueError(cycle_status)
-
-        print(f'{duration} sec of cycling, time steps: {cell_model.time_increment} sec')
 
         while cycle_status == CycleStatus.NORMAL:
             cycle_status = cycle_mode.cycle_step()
@@ -588,11 +611,10 @@ class ConstantVoltage(CyclingProtocol):
                 results.record_half_cycle(cycle_mode.charge)
 
                 # Start the next half cycle
-                cycle_mode = get_cycle_mode(not cycle_mode.charge, cycle_mode.current)
+                cycle_mode = get_cycle_mode(not cycle_mode.charge)
                 cycle_status = CycleStatus.NORMAL
 
-        print(f'Simulation stopped after {results.step} time steps: {cycle_status}.')
-        return results
+        return self._end_protocol(results, cycle_status)
 
 
 class ConstantCurrentConstantVoltage(CyclingProtocol):
@@ -647,6 +669,8 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             crossover: Crossover = None
     ) -> CyclingProtocolResults:
         """
+        Applies the constant current constant voltage (CCCV) cycling protocol and (optional) degradation mechanisms to 
+        a cell model.
 
         Parameters
         ----------
@@ -666,7 +690,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         Returns
         -------
         results : CyclingProtocolResults
-            Object with results from simulation
+            Container of simulation results
 
         """
         results, update_concentrations = self._validate_protocol(
@@ -674,7 +698,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         )
 
         def get_cc_cycle_mode(charge):
-            return ConstantCurrentCycleMode(
+            return _ConstantCurrentCycleMode(
                 charge, cell_model, results, update_concentrations,
                 self.current_charge if charge else self.current_discharge,
                 self.voltage_limit_charge if charge else self.voltage_limit_discharge,
@@ -682,7 +706,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             )
 
         def get_cv_cycle_mode(charge, current_estimate, current_lim_cls=None, current_lim_ncls=None):
-            return ConstantVoltageCycleMode(
+            return _ConstantVoltageCycleMode(
                 charge, cell_model, results, update_concentrations,
                 self.current_cutoff_charge if charge else self.current_cutoff_discharge,
                 self.voltage_limit_charge if charge else self.voltage_limit_discharge,
@@ -699,8 +723,6 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             cv_current = self.current_charge if self.charge_first else self.current_discharge
             cycle_mode = get_cv_cycle_mode(self.charge_first, cv_current)
             cycle_status = cycle_mode.validate()
-
-        print(f'{duration} sec of cycling, time steps: {cell_model.time_increment} sec')
 
         while cycle_status == CycleStatus.NORMAL:
             if is_cc_mode and abs(cycle_mode.current) >= min(cycle_mode.current_lim_cls, cycle_mode.current_lim_ncls):
@@ -736,7 +758,4 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                     cycle_mode = get_cv_cycle_mode(not cycle_mode.charge, 0.0)
                 cycle_status = CycleStatus.NORMAL
 
-        print(f'Simulation stopped after {results.step} time steps: {cycle_status}.')
-
-        return results
-
+        return self._end_protocol(results, cycle_status)
