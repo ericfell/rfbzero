@@ -263,7 +263,7 @@ class ConstantVoltageCycleMode(CycleMode):
         if not self.current:
             # Set initial current guess as a function of the limiting currents, however, we want to ensure that the
             # guess is less than the limiting currents to avoid log errors in the overpotential calculations
-            self.current = 0.99 * min(self.current_lim_cls, self.current_lim_ncls)
+            self.current = self._current_direction() * 0.99 * min(self.current_lim_cls, self.current_lim_ncls)
         elif abs(self.current) >= min(self.current_lim_cls, self.current_lim_ncls):
             return CycleStatus.LIMITING_CURRENT_REACHED
 
@@ -289,6 +289,9 @@ class ConstantVoltageCycleMode(CycleMode):
 
         return self.check_time(CycleStatus.NORMAL)
 
+    def _current_direction(self):
+        return 1 if self.charge else -1
+
     def _find_min_current(self, ocv: float):
         """
         Method wrapper to solve for current during constant voltage cycling.
@@ -299,11 +302,11 @@ class ConstantVoltageCycleMode(CycleMode):
         min_current : float
             Solved current at given timestep of constant voltage cycling (A).
         """
+
         def solver(current: float) -> float:
             """Numerical solver for current during constant voltage cycling"""
             loss_solve, *_ = self.cell_model.total_overpotential(current, self.current_lim_cls, self.current_lim_ncls)
-            current_direction = 1 if self.charge else -1
-            return self.voltage_limit - ocv - current_direction * loss_solve
+            return self.voltage_limit - ocv - self._current_direction() * loss_solve
 
         min_current, *_ = fsolve(solver, self.current, xtol=1e-5)
         self.current = min_current
@@ -567,7 +570,7 @@ class ConstantVoltage(CyclingProtocol):
                 charge, cell_model, results, update_concentrations,
                 self.current_cutoff_charge if charge else self.current_cutoff_discharge,
                 self.voltage_limit_charge if charge else self.voltage_limit_discharge,
-                current
+                0.0
             )
 
         cycle_mode = get_cycle_mode(self.charge_first, 0.0)
