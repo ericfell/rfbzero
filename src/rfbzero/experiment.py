@@ -206,7 +206,7 @@ class _ConstantCurrentCycleMode(_CycleMode):
         ocv = self.cell_model.open_circuit_voltage()
         cell_v = self.cell_model.cell_voltage(ocv, losses, self.charge)
 
-        if abs(cell_v) >= abs(self.voltage_limit):
+        if self.charge and cell_v >= self.voltage_limit or not self.charge and cell_v <= self.voltage_limit:
             return CycleStatus.VOLTAGE_LIMIT_REACHED
 
         return CycleStatus.NORMAL
@@ -228,7 +228,7 @@ class _ConstantCurrentCycleMode(_CycleMode):
         cell_v = self.cell_model.cell_voltage(ocv, losses, self.charge)
 
         # Check if the voltage limit is reached
-        if abs(cell_v) >= abs(self.voltage_limit):
+        if self.charge and cell_v >= self.voltage_limit or not self.charge and cell_v <= self.voltage_limit:
             cycle_status = CycleStatus.VOLTAGE_LIMIT_REACHED
             if self.voltage_limit_capacity_check:
                 cycle_status = self.check_capacity(cycle_status)
@@ -416,6 +416,7 @@ class CyclingProtocol(ABC):
 
     @staticmethod
     def _end_protocol(results: CyclingProtocolResults, end_status: CycleStatus):
+        # Record the status that ended the simulation and log the time
         print(f'Simulation stopped after {results.step} time steps: {end_status}.')
         results.end_status = end_status
         return results
@@ -725,37 +726,28 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             cycle_status = cycle_mode.validate()
 
         while cycle_status == CycleStatus.NORMAL:
-            if is_cc_mode and abs(cycle_mode.current) >= min(cycle_mode.current_lim_cls, cycle_mode.current_lim_ncls):
-                print('trouble')  # todo
-                is_cc_mode = False
-
             cycle_status = cycle_mode.cycle_step()
 
-            if cycle_status == CycleStatus.VOLTAGE_LIMIT_REACHED:
-                is_cc_mode = False
-                cycle_mode = get_cv_cycle_mode(cycle_mode.charge, cycle_mode.current,
-                                               cycle_mode.current_lim_cls, cycle_mode.current_lim_ncls)
-                cycle_status = CycleStatus.NORMAL
+            if is_cc_mode:
+                if cycle_status == CycleStatus.VOLTAGE_LIMIT_REACHED:
+                    is_cc_mode = False
+                    cycle_mode = get_cv_cycle_mode(cycle_mode.charge, cycle_mode.current,
+                                                   cycle_mode.current_lim_cls, cycle_mode.current_lim_ncls)
+                    cycle_status = CycleStatus.NORMAL
+                elif cycle_status == CycleStatus.NEGATIVE_CONCENTRATIONS:
+                    # Record info for the half cycle
+                    results.record_half_cycle(cycle_mode.charge)
 
-            if cycle_status == CycleStatus.CURRENT_CUTOFF_REACHED:
+                    # Start the next half cycle
+                    cycle_mode = get_cc_cycle_mode(not cycle_mode.charge)
+                    cycle_status = CycleStatus.NORMAL
+            elif cycle_status in [CycleStatus.CURRENT_CUTOFF_REACHED, CycleStatus.NEGATIVE_CONCENTRATIONS]:
                 # Record info for the half cycle
                 results.record_half_cycle(cycle_mode.charge)
 
                 cc_cycle_mode = get_cc_cycle_mode(not cycle_mode.charge)
                 is_cc_mode = cc_cycle_mode.validate() == CycleStatus.NORMAL
                 cycle_mode = cc_cycle_mode if is_cc_mode else get_cv_cycle_mode(not cycle_mode.charge, 0.0)
-
-                cycle_status = CycleStatus.NORMAL
-
-            if cycle_status == CycleStatus.NEGATIVE_CONCENTRATIONS:
-                # Record info for the half cycle
-                results.record_half_cycle(cycle_mode.charge)
-
-                # Start the next half cycle
-                if is_cc_mode:
-                    cycle_mode = get_cc_cycle_mode(not cycle_mode.charge)
-                else:
-                    cycle_mode = get_cv_cycle_mode(not cycle_mode.charge, 0.0)
                 cycle_status = CycleStatus.NORMAL
 
         return self._end_protocol(results, cycle_status)
