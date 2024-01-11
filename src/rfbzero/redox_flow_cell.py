@@ -406,8 +406,8 @@ class ZeroDModel:
 
         if cross_over is not None:
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = cross_over.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.cls_volume,
-                                               self.ncls_volume, self.time_increment)
+             delta_red) = cross_over.crossover(self.geometric_area, c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
+                                               self.cls_volume, self.ncls_volume, self.time_increment)
         # update concentrations to self
         self.prev_c_ox_cls = self.c_ox_cls
         self.prev_c_red_cls = self.c_red_cls

@@ -9,8 +9,8 @@ class Crossover:
 
     Parameters
     ----------
-    membrane_constant : float
-        Cell geometric area divided by membrane thickness (cm^2/cm)
+    membrane_thickness : float
+        Membrane thickness, input units are (microns) but converted to cm
     permeability_ox : float
         Permeability of oxidized species through membrane (cm^2/s)
     permeability_red : float
@@ -19,33 +19,45 @@ class Crossover:
 
     Notes
     -----
-    TODO: adapt this functionality to crossover in a full cell
-    which looks similar to chemical degradation.
+    Crossover is only available for a symmetric cell, as it is indistinguishable from a first order degradation
+    mechanism in a single reservoir of a full cell, when no interactions between crossing posolyte/negolyte species
+    are taken into consideration. Current-driven crossover cannot currently be simulated in rfbzero.py.
 
     """
 
-    def __init__(self, membrane_constant: float, permeability_ox: float, permeability_red: float):
+    def __init__(self, membrane_thickness: float, permeability_ox: float, permeability_red: float):
         """Initialize Crossover"""
-        self.membrane_constant = membrane_constant
-        self.p_ox = permeability_ox
-        self.p_red = permeability_red
+        self.membrane_thickness = membrane_thickness / 10000
+        self.permeability_ox = permeability_ox
+        self.permeability_red = permeability_red
 
-        if self.membrane_constant <= 0.0:
-            raise ValueError("'membrane_constant' must be > 0")
+        if self.membrane_thickness <= 0.0:
+            raise ValueError("'membrane_thickness' must be > 0")
 
-        if self.p_ox < 0.0 or self.p_red < 0.0:
-            raise ValueError("'p_ox' and 'p_red' cannot be negative")
+        if self.permeability_ox < 0.0 or self.permeability_red < 0.0:
+            raise ValueError("'permeability_ox' and 'permeability_red' cannot be negative")
 
-        if self.p_ox == 0.0 and self.p_red == 0.0:
-            raise ValueError("'p_ox' and 'p_red' cannot both be zero")
+        if self.permeability_ox == 0.0 and self.permeability_red == 0.0:
+            raise ValueError("'permeability_ox' and 'permeability_red' cannot both be zero")
 
-    def crossover(self, c_ox_cls: float, c_red_cls: float, c_ox_ncls: float, c_red_ncls: float, vol_cls: float,
-                  vol_ncls: float, timestep: float) -> tuple[float, float, float, float, float, float]:
+    def crossover(
+            self,
+            geometric_area: float,
+            c_ox_cls: float,
+            c_red_cls: float,
+            c_ox_ncls: float,
+            c_red_ncls: float,
+            vol_cls: float,
+            vol_ncls: float,
+            timestep: float
+    ) -> tuple[float, float, float, float, float, float]:
         """
         Calculation of crossover species, considering permeabilities of oxidized/reduced species.
 
         Parameters
         ----------
+        geometric_area : float
+            Geometric area of cell (cm^2).
         c_ox_cls : float
             CLS concentration of oxidized species (M).
         c_red_cls : float
@@ -78,15 +90,18 @@ class Crossover:
 
         """
 
-        # driving force from concentration differences (mol/L)
+        # Cell geometric area divided by membrane thickness (cm^2/cm)
+        membrane_constant = geometric_area / self.membrane_thickness
+
+        # driving force from concentration differences (M)
         c_ox_difference = c_ox_cls - c_ox_ncls
         c_red_difference = c_red_cls - c_red_ncls
 
         # amount of species (mols) added/subtracted, divide by 1000 for L to cm^3 conversion
-        delta_ox_mols = timestep * self.p_ox * self.membrane_constant * (c_ox_difference / 1000)
-        delta_red_mols = timestep * self.p_red * self.membrane_constant * (c_red_difference / 1000)
+        delta_ox_mols = timestep * self.permeability_ox * membrane_constant * (c_ox_difference / 1000)
+        delta_red_mols = timestep * self.permeability_red * membrane_constant * (c_red_difference / 1000)
 
-        # update concentrations (mol/L)
+        # update concentrations (M)
         c_ox_cls -= delta_ox_mols / vol_cls
         c_ox_ncls += delta_ox_mols / vol_ncls
 
