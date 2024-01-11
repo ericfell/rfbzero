@@ -1,7 +1,8 @@
 import pytest
 #import numpy as np
 
-from rfbzero.degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism, AutoReductionO2Release)
+from rfbzero.degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction,
+                                 MultiDegradationMechanism, AutoReductionO2Release, Dimerization)
 
 
 class TestDegradationMechanism:
@@ -97,4 +98,17 @@ class TestMultiDegradationMechanism:
         c_o, c_r = test_multi.degrade(c_ox=1, c_red=0.5, timestep=0.1)
         assert c_o == 0.9951
         assert c_r == 0.5049
-        #raise NotImplementedError
+
+
+class TestDimerization:
+
+    @pytest.mark.parametrize("k_f,k_b,c_dim", [(-1,-1,-1), (1,-1,1), (4,11,-1)])
+    def test_dimerization_init(self, k_f, k_b, c_dim):
+        with pytest.raises(ValueError):
+            Dimerization(forward_rate_constant=k_f, backward_rate_constant=k_b, c_dimer=c_dim)
+
+    def test_dimerization_degrade(self):
+        test_dimerize = Dimerization(forward_rate_constant=2, backward_rate_constant=1, c_dimer=0.5)
+        c_o, c_r = test_dimerize.degrade(c_ox=1, c_red=0.5, timestep=1)
+        assert c_o == 0.5
+        assert c_r == 0.0
