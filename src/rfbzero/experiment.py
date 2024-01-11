@@ -125,6 +125,27 @@ class CyclingProtocolResults:
 
         self.capacity = 0.0
 
+    def finalize(self):
+        self.step_time = self.step_time[:self.step]
+        self.step_is_charge = self.step_is_charge[:self.step]
+
+        self.current = self.current[:self.step]
+        self.cell_v = self.cell_v[:self.step]
+        self.ocv = self.ocv[:self.step]
+
+        self.c_ox_cls = self.c_ox_cls[:self.step]
+        self.c_red_cls = self.c_red_cls[:self.step]
+        self.c_ox_ncls = self.c_ox_ncls[:self.step]
+        self.c_red_ncls = self.c_red_ncls[:self.step]
+        self.delta_ox = self.delta_ox[:self.step]
+        self.delta_red = self.delta_red[:self.step]
+        self.soc_cls = self.soc_cls[:self.step]
+        self.soc_ncls = self.soc_ncls[:self.step]
+
+        self.act = self.act[:self.step]
+        self.mt = self.mt[:self.step]
+        self.loss = self.loss[:self.step]
+
 
 class CycleStatus(str, Enum):
     NORMAL = 'normal'
@@ -275,11 +296,6 @@ class _ConstantVoltageCycleMode(_CycleMode):
         # Adapting the solver's guess to the updated current
         self._find_min_current(ocv)
 
-        # Check if the current is below cutoffs
-        if abs(self.current) <= abs(self.current_cutoff):
-            self.cell_model.revert_concentrations()
-            return self.check_capacity(CycleStatus.CURRENT_CUTOFF_REACHED)
-
         self.update_concentrations(self.current)
 
         # Check if any reactant remains
@@ -289,6 +305,9 @@ class _ConstantVoltageCycleMode(_CycleMode):
 
         # Update results
         self.results.record_step(self.cell_model, self.charge, self.current, self.voltage_limit, ocv)
+
+        if abs(self.current) <= abs(self.current_cutoff):
+            return self.check_capacity(CycleStatus.CURRENT_CUTOFF_REACHED)
 
         return self.check_time(CycleStatus.NORMAL)
 
@@ -366,13 +385,15 @@ class CyclingProtocol(ABC):
             name: str
     ) -> tuple[float, float]:
         if value is not None and (value_charge is not None or value_discharge is not None):
-            raise ValueError(f"Cannot specify both '{name}' and f'{name}_(dis)charge'")
+            raise ValueError(f"Cannot specify both '{name}' and '{name}_(dis)charge'")
 
         if value is not None:
             if value <= 0.0:
                 raise ValueError(f"'{name}' must be > 0.0")
             value_charge = value
             value_discharge = -value
+        elif value_charge is None or value_discharge is None:
+            raise ValueError(f"Must specify both '{name}_charge' and '{name}_discharge', cannot specify only one")
 
         if value_charge <= 0.0:
             raise ValueError(f"'{name}_charge' must be > 0.0")
@@ -419,6 +440,7 @@ class CyclingProtocol(ABC):
         # Record the status that ended the simulation and log the time
         print(f'Simulation stopped after {results.step} time steps: {end_status}.')
         results.end_status = end_status
+        results.finalize()
         return results
 
 
