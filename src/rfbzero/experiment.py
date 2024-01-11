@@ -58,13 +58,13 @@ class CyclingProtocolResults:
         # Total number of cycles is unknown at start, thus sizes are undetermined
         self.half_cycles = 0
         self.capacity = 0.0
-        self.half_cycle_capacity = []
-        self.half_cycle_time = []
-        self.half_cycle_is_charge = []
-        self.charge_cycle_capacity = []
-        self.charge_cycle_time = []
-        self.discharge_cycle_capacity = []
-        self.discharge_cycle_time = []
+        self.half_cycle_capacity: list[float] = []
+        self.half_cycle_time: list[float] = []
+        self.half_cycle_is_charge: list[bool] = []
+        self.charge_cycle_capacity: list[float] = []
+        self.charge_cycle_time: list[float] = []
+        self.discharge_cycle_capacity: list[float] = []
+        self.discharge_cycle_time: list[float] = []
 
         # The reason for the cycling protocol's termination
         self.end_status = CycleStatus.NORMAL
@@ -244,7 +244,8 @@ class _ConstantCurrentCycleMode(_CycleMode):
             return self.check_capacity(CycleStatus.NEGATIVE_CONCENTRATIONS)
 
         # Calculate overpotentials and the resulting cell voltage
-        losses, n_act, n_mt = self.cell_model.total_overpotential(self.current, self.current_lim_cls, self.current_lim_ncls)
+        losses, n_act, n_mt = self.cell_model.total_overpotential(
+            self.current, self.current_lim_cls, self.current_lim_ncls)
         ocv = self.cell_model.open_circuit_voltage()
         cell_v = self.cell_model.cell_voltage(ocv, losses, self.charge)
 
@@ -379,9 +380,9 @@ class CyclingProtocol(ABC):
 
     @staticmethod
     def _validate_cycle_values(
-            value: float,
-            value_charge: float,
-            value_discharge: float,
+            value: float | None,
+            value_charge: float | None,
+            value_discharge: float | None,
             name: str
     ) -> tuple[float, float]:
         if value is not None and (value_charge is not None or value_discharge is not None):
@@ -406,13 +407,14 @@ class CyclingProtocol(ABC):
             self,
             duration: int,
             cell_model: ZeroDModel,
-            degradation: DegradationMechanism,
-            cls_degradation: DegradationMechanism,
-            ncls_degradation: DegradationMechanism,
-            crossover: Crossover
+            degradation: DegradationMechanism | None,
+            cls_degradation: DegradationMechanism | None,
+            ncls_degradation: DegradationMechanism | None,
+            crossover: Crossover | None
     ) -> tuple[CyclingProtocolResults, callable]:
         if not self.voltage_limit_discharge < cell_model.init_ocv < self.voltage_limit_charge:
             raise ValueError("Ensure that 'voltage_limit_discharge' < 'init_ocv' < 'voltage_limit_charge'")
+
         if cell_model.init_ocv > 0.0 and self.voltage_limit_discharge < 0.0:
             raise ValueError("Ensure that 'voltage_limit_discharge' >= 0.0 when 'init_ocv' > 0.0")
 
@@ -642,8 +644,8 @@ class ConstantVoltage(CyclingProtocol):
 
 class ConstantCurrentConstantVoltage(CyclingProtocol):
     """
-    Provides a constant current constant voltage (CCCV) cycling method which, in the limit of a high current demanded of
-    a cell that it cannot maintain, becomes a constant voltage (CV) cycling method.
+    Provides a constant current constant voltage (CCCV) cycling method which, in the limit of a high current
+    demanded of a cell that it cannot maintain, becomes a constant voltage (CV) cycling method.
 
     Parameters
     ----------
