@@ -137,7 +137,7 @@ results = protocol.run(
     duration=4000)
 ```
 
-![Half-cycle capacities and individual reservoir states-of-charge are readily accessed.](./fig_2.png)
+![Half-cycle capacities (left) and temporal evolution of reservoir states-of-charge (right) are readily accessed. Symmetric cell starts with both reservoirs at 50% state-of-charge (blue circle).](./fig_2.png)
 
 
 # Acknowledgements
