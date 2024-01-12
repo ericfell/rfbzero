@@ -25,7 +25,7 @@ class Crossover:
 
     """
 
-    def __init__(self, membrane_thickness: float, permeability_ox: float, permeability_red: float):
+    def __init__(self, membrane_thickness: float, permeability_ox: float, permeability_red: float) -> None:
         """Initialize Crossover"""
         self.membrane_thickness = membrane_thickness / 10000
         self.permeability_ox = permeability_ox
