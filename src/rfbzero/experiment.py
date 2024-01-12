@@ -81,6 +81,7 @@ class CyclingProtocolResults:
             n_mt: float = 0.0,
             losses: float = 0.0
     ) -> None:
+        """Records simulation data at valid time steps"""
         # Update capacity
         self.capacity += abs(current) * cell_model.time_increment
 
@@ -120,6 +121,7 @@ class CyclingProtocolResults:
         self.step += 1
 
     def record_half_cycle(self, charge: bool) -> None:
+        """Records charge and discharge half-cycle times and capacities, and resets capacity after each half-cycle"""
         time = self.step * self.time_increment
         self.half_cycle_capacity.append(self.capacity)
         self.half_cycle_time.append(time)
@@ -136,6 +138,7 @@ class CyclingProtocolResults:
         self.capacity = 0.0
 
     def finalize(self) -> None:
+        """Trims empty simulation values (initialized zeroes) if simulation ends earlier than desired"""
         self.step_time = self.step_time[:self.step]
         self.step_is_charge = self.step_is_charge[:self.step]
 
@@ -158,6 +161,7 @@ class CyclingProtocolResults:
 
 
 class CycleStatus(str, Enum):
+    """Used for keeping track of cycle status throughout simulation"""
     NORMAL = 'normal'
     NEGATIVE_CONCENTRATIONS = 'negative species concentrations'
     VOLTAGE_LIMIT_REACHED = 'voltage limits reached'
@@ -168,6 +172,25 @@ class CycleStatus(str, Enum):
 
 
 class _CycleMode(ABC):
+    """
+    Abstract class representing cycling modes (charge/discharge) for portions of a cycling protocol.
+
+    Parameters
+    ----------
+    charge : bool
+        True if charging, False if discharging.
+    cell_model : ZeroDModel
+        Defined cell parameters for simulating.
+    results: CyclingProtocolResults
+        Container for the simulation result data.
+    update_concentrations: callable
+        Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
+    current_lim_cls: float
+        Limiting current of CLS (A).
+    current_lim_ncls: float
+        Limiting current of NCLS (A).
+
+    """
     def __init__(
             self,
             charge: bool,
@@ -189,20 +212,25 @@ class _CycleMode(ABC):
 
     @abstractmethod
     def validate(self) -> CycleStatus:
+        """Determines cycle status based on current/voltage limits, as required."""
         raise NotImplementedError
 
     @abstractmethod
     def cycle_step(self) -> CycleStatus:
+        """Updates concentrations and step limits, as required."""
         raise NotImplementedError
 
     def check_capacity(self, cycle_status: CycleStatus) -> CycleStatus:
+        """Ends the simulation early if capacity approaches zero."""
         # End the simulation if the half cycle capacity nears zero
+        # TODO make this a % of initial capacity
         if self.results.capacity < 1.0 and self.results.half_cycles > 2:
             return CycleStatus.LOW_CAPACITY
 
         return cycle_status
 
     def check_time(self, cycle_status: CycleStatus) -> CycleStatus:
+        """Ends the simulation if desired simulation duration is reached."""
         if cycle_status != CycleStatus.NORMAL:
             return cycle_status
 
@@ -214,6 +242,27 @@ class _CycleMode(ABC):
 
 
 class _ConstantCurrentCycleMode(_CycleMode):
+    """
+    Provides cycling modes (charge/discharge) for a constant current (CC) portion of a cycling protocol.
+
+    Parameters
+    ----------
+    charge : bool
+        True if charging, False if discharging.
+    cell_model : ZeroDModel
+        Defined cell parameters for simulating.
+    results: CyclingProtocolResults
+        Container for the simulation result data.
+    update_concentrations: callable
+        Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
+    current: float
+        Desired current for CC cycling during cycling mode (A).
+    voltage_limit: float
+        Desired voltage limit for CC cycling during cycling mode (V).
+    voltage_limit_capacity_check : bool
+        True if CC mode, False if constant voltage (CV) mode.
+
+    """
     def __init__(
             self,
             charge: bool,
@@ -230,6 +279,12 @@ class _ConstantCurrentCycleMode(_CycleMode):
         self.voltage_limit_capacity_check = voltage_limit_capacity_check
 
     def validate(self) -> CycleStatus:
+        """
+        If current exceeds lower of the CLS/NCLS limiting currents, returns cycling status indicating that the
+        current limit has been reached.
+        Otherwise, calculates cell voltage then checks if voltage limit has been reached.
+
+        """
         if abs(self.current) >= min(self.current_lim_cls, self.current_lim_ncls):
             return CycleStatus.LIMITING_CURRENT_REACHED
 
@@ -243,6 +298,12 @@ class _ConstantCurrentCycleMode(_CycleMode):
         return CycleStatus.NORMAL
 
     def cycle_step(self) -> CycleStatus:
+        """
+        Updates concentrations, checks if negative concentrations occurred.
+        Calculates cell voltage and checks if voltage limits have been reached.
+        Then updates simulation results.
+
+        """
         cycle_status = CycleStatus.NORMAL
 
         # Calculate species' concentrations
@@ -272,6 +333,31 @@ class _ConstantCurrentCycleMode(_CycleMode):
 
 
 class _ConstantVoltageCycleMode(_CycleMode):
+    """
+    Provides cycling modes (charge/discharge) for a constant voltage (CV) portion of a cycling protocol.
+
+    Parameters
+    ----------
+    charge : bool
+        True if charging, False if discharging.
+    cell_model : ZeroDModel
+        Defined cell parameters for simulating.
+    results: CyclingProtocolResults
+        Container for the simulation result data.
+    update_concentrations: callable
+        Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
+    current_cutoff: float
+        Current cutoff for CV mode, below it, simulation switches from charge to discharge and vice versa (A).
+    voltage_limit: float
+        Desired voltage limit for CV cycling during cycling mode (V).
+    current_estimate: float
+        Guess for next step's current value, used for the solver (A).
+    current_lim_cls: float
+        Limiting current of CLS (A).
+    current_lim_ncls: float
+        Limiting current of NCLS (A).
+
+        """
     def __init__(
             self,
             charge: bool,
@@ -323,11 +409,15 @@ class _ConstantVoltageCycleMode(_CycleMode):
         return self.check_time(CycleStatus.NORMAL)
 
     def _current_direction(self) -> int:
+        """Return 1 if charging, -1 if discharging"""
         return 1 if self.charge else -1
 
     def _find_min_current(self, ocv: float) -> None:
-        # Solves the current at a given timestep of constant voltage cycling
-        # Attempts to minimize the difference of voltage, OCV, and losses (function of current).
+        """
+        Solves the current at a given timestep of constant voltage cycling.
+        Attempts to minimize the difference of voltage, OCV, and losses (function of current).
+
+        """
 
         def solver(current: float) -> float:
             loss_solve, *_ = self.cell_model.total_overpotential(current, self.current_lim_cls, self.current_lim_ncls)
@@ -395,6 +485,7 @@ class CyclingProtocol(ABC):
             value_discharge: float | None,
             name: str
     ) -> tuple[float, float]:
+        """Checks validity of user inputs for current limits and/or cutoffs."""
         if value is not None and (value_charge is not None or value_discharge is not None):
             raise ValueError(f"Cannot specify both '{name}' and '{name}_(dis)charge'")
 
@@ -422,6 +513,7 @@ class CyclingProtocol(ABC):
             ncls_degradation: DegradationMechanism | None,
             crossover: Crossover | None
     ) -> tuple[CyclingProtocolResults, callable]:
+        """Checks validity of user inputs for voltage limits and optional degradation and crossover mechanisms."""
         if not self.voltage_limit_discharge < cell_model.init_ocv < self.voltage_limit_charge:
             raise ValueError("Ensure that 'voltage_limit_discharge' < 'init_ocv' < 'voltage_limit_charge'")
 
@@ -438,8 +530,9 @@ class CyclingProtocol(ABC):
         if cell_model.negative_concentrations():
             raise ValueError('Negative concentration detected')
 
-        def update_concentrations(i: float):
-            return cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover)
+        def update_concentrations(i: float) -> None:
+            """Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms"""
+            cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover)
 
         # Initialize data results object to be sent to user
         results = CyclingProtocolResults(duration, cell_model.time_increment, self.charge_first)
@@ -449,7 +542,7 @@ class CyclingProtocol(ABC):
 
     @staticmethod
     def _end_protocol(results: CyclingProtocolResults, end_status: CycleStatus) -> CyclingProtocolResults:
-        # Record the status that ended the simulation and log the time
+        """Records the status that ended the simulation and logs the time."""
         print(f'Simulation stopped after {results.step} time steps: {end_status}.')
         results.end_status = end_status
         results.finalize()
@@ -526,6 +619,7 @@ class ConstantCurrent(CyclingProtocol):
         )
 
         def get_cycle_mode(charge: bool) -> _ConstantCurrentCycleMode:
+            """Returns constant current (CC) cycle mode"""
             return _ConstantCurrentCycleMode(
                 charge,
                 cell_model,

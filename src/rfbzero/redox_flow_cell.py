@@ -382,9 +382,8 @@ class ZeroDModel:
             cross_over: Crossover = None
     ) -> None:
         """
-        Updates all species' concentrations at each timestep.
-        Contributions from faradaic current, (optional) degradation
-        mechanisms, and (optional) crossover mechanism.
+        Updates all species' concentrations at each timestep. Contributions from faradaic current, (optional)
+        degradation mechanisms, and (optional) crossover mechanism.
 
         Parameters
         ----------
@@ -437,7 +436,7 @@ class ZeroDModel:
         self.prev_c_red_cls = self.c_red_cls
         self.prev_c_ox_ncls = self.c_ox_ncls
         self.prev_c_red_ncls = self.c_red_ncls
-        
+
         self.c_ox_cls = c_ox_cls
         self.c_red_cls = c_red_cls
         self.c_ox_ncls = c_ox_ncls
@@ -447,6 +446,7 @@ class ZeroDModel:
         self.delta_red = delta_red
 
     def revert_concentrations(self) -> None:
+        """Resets concentrations to previous value if a (invalid) negative concentration is calculated"""
         self.c_ox_cls = self.prev_c_ox_cls
         self.c_red_cls = self.prev_c_red_cls
         self.c_ox_ncls = self.prev_c_ox_ncls
