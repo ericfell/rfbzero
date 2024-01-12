@@ -4,7 +4,7 @@ Classes to define electrochemical cycling protocols.
 
 from abc import ABC, abstractmethod
 from enum import Enum
-#from typing import Tuple
+# from typing import Tuple
 
 from scipy.optimize import fsolve
 

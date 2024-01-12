@@ -10,7 +10,7 @@ class Crossover:
     Parameters
     ----------
     membrane_thickness : float
-        Membrane thickness, input units are (microns) but converted to cm
+        Membrane thickness (microns)
     permeability_ox : float
         Permeability of oxidized species through membrane (cm^2/s)
     permeability_red : float
@@ -27,7 +27,7 @@ class Crossover:
 
     def __init__(self, membrane_thickness: float, permeability_ox: float, permeability_red: float) -> None:
         """Initialize Crossover"""
-        self.membrane_thickness = membrane_thickness / 10000
+        self.membrane_thickness = membrane_thickness / 10000  # convert microns to cm
         self.permeability_ox = permeability_ox
         self.permeability_red = permeability_red
 

@@ -17,7 +17,7 @@ F = spc.value('Faraday constant')
 # Molar gas constant (J/K/mol)
 R = spc.R
 
-# make these parameters at some point?
+# TODO make temperature a variable
 TEMPERATURE = 298  # Kelvins, for S.T.P.
 NERNST_CONST = (R * TEMPERATURE) / F
 

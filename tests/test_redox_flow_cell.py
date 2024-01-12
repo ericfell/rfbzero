@@ -44,6 +44,30 @@ class TestClassRedoxFlowCell:
                        n_ncls=n_n,
                        )
 
+    @pytest.mark.parametrize("v_cls,v_ncls,ox_cls,red_cls,ox_ncls,red_ncls,ocv,res,k_c,k_n,time_i",
+                             [(0.01, 0.05, 0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3, 1.0),
+                              (0.01, 0.05, 0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3, 5.0),
+                              (0.01, 0.05, 0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3, 11.2),
+                              ])
+    def test_timestep_warning(self,v_cls,v_ncls,ox_cls,red_cls,ox_ncls,red_ncls,ocv,res,k_c,k_n,time_i,capsys):
+        ZeroDModel(cls_volume=v_cls,
+                   ncls_volume=v_ncls,
+                   cls_start_c_ox=ox_cls,
+                   cls_start_c_red=red_cls,
+                   ncls_start_c_ox=ox_ncls,
+                   ncls_start_c_red=red_ncls,
+                   init_ocv=ocv,
+                   resistance=res,
+                   k_0_cls=k_c,
+                   k_0_ncls=k_n,
+                   time_increment=time_i
+                   )
+
+        warn_out = "WARNING: 'time_increment' >= 1 second will result in very coarse data.\
+                  \nzero-D model approaches theory as timestep decreases."
+        captured = capsys.readouterr()
+        assert captured.out.strip() == warn_out
+
     def test_exchange_current(self):
         cell = ZeroDModel(cls_volume=0.005, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01,
                           ncls_start_c_ox=0.01, ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3,
