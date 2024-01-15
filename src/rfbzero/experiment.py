@@ -4,7 +4,6 @@ Classes to define electrochemical cycling protocols.
 
 from abc import ABC, abstractmethod
 from enum import Enum
-# from typing import Tuple
 
 from scipy.optimize import fsolve
 
@@ -347,7 +346,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
     update_concentrations: callable
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
     current_cutoff: float
-        Current cutoff for CV mode, below it, simulation switches from charge to discharge and vice versa (A).
+        Current cutoff for CV mode. Below it, simulation switches from charge to discharge and vice versa (A).
     voltage_limit: float
         Desired voltage limit for CV cycling during cycling mode (V).
     current_estimate: float
@@ -531,7 +530,7 @@ class CyclingProtocol(ABC):
             raise ValueError('Negative concentration detected')
 
         def update_concentrations(i: float) -> None:
-            """Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms"""
+            # Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms
             cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover)
 
         # Initialize data results object to be sent to user
@@ -832,7 +831,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             duration, cell_model, degradation, cls_degradation, ncls_degradation, crossover
         )
 
-        def get_cc_cycle_mode(charge: bool):
+        def get_cc_cycle_mode(charge: bool) -> _ConstantCurrentCycleMode:
             return _ConstantCurrentCycleMode(
                 charge,
                 cell_model,
