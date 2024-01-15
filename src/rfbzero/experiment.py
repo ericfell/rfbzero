@@ -561,6 +561,11 @@ class ConstantCurrent(CyclingProtocol):
         Voltage below which cell will switch to charge (V).
     current : float
         Instantaneous current flowing (A).
+    current_charge: float
+        Desired charging current for CC cycling (A).
+    current_discharge:
+        Desired discharging current for CC cycling (A).
+        Input must be a negative value.
     charge_first : bool
         True if CLS charges first, False if CLS discharges first.
 
@@ -661,10 +666,17 @@ class ConstantVoltage(CyclingProtocol):
 
     Parameters
     ----------
+    voltage_limit_charge : float
+        Voltage the cell is held at during charge (V).
+    voltage_limit_discharge : float
+        Voltage the cell is held at during discharge (V).
+    current_cutoff : float
+        Current below which cell will switch to charge, and
+        above (the negative of this value) which will switch to discharge (A).
     current_cutoff_charge : float
-        Current below which cell will switch to discharge (V).
+        Current below which cell will switch to discharge (A).
     current_cutoff_discharge : float
-        Current above which cell will switch to charge (V).
+        Current above which cell will switch to charge (A).
     charge_first : bool
         True if CLS charges first, False if CLS discharges first.
 
@@ -763,12 +775,20 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         Voltage above which cell will switch to CV mode, charging (V).
     voltage_limit_discharge : float
         Voltage below which cell will switch to CV mode, discharging (V).
+    current_cutoff : float
+        Current below which cell will switch to charge, and
+        above (the negative of this value) which will switch to discharge (A).
     current_cutoff_charge : float
         Current below which CV charging will switch to CC portion of CCCV discharge (A).
     current_cutoff_discharge : float
         Current above which CV discharging will switch to CC portion of CCCV charge (A).
     current : float
         Instantaneous current flowing (A).
+    current_charge: float
+        Desired charging current for CC cycling (A).
+    current_discharge:
+        Desired discharging current for CC cycling (A).
+        Input must be a negative value.
     charge_first : bool
         True if CLS charges first, False if CLS discharges first.
 
