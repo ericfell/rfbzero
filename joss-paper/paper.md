@@ -141,7 +141,7 @@ results = protocol.run(
 
 
 # Acknowledgements
-We thank Prof. David Kwabi, Thomas George, and Jordan Sosa for constructive feedback and testing.
+This research was supported by U.S. DOE award DE-AC05-76RL01830 through PNNL subcontract 535264. We thank Prof. David Kwabi, Thomas George, and Jordan Sosa for constructive feedback and testing.
 
 # References
 
