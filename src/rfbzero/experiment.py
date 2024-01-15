@@ -4,6 +4,7 @@ Classes to define electrochemical cycling protocols.
 
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Callable, Optional
 
 from scipy.optimize import fsolve
 
@@ -182,7 +183,7 @@ class _CycleMode(ABC):
         Defined cell parameters for simulating.
     results: CyclingProtocolResults
         Container for the simulation result data.
-    update_concentrations: callable
+    update_concentrations: Callable[[float], None]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
     current_lim_cls: float
         Limiting current of CLS (A).
@@ -195,7 +196,7 @@ class _CycleMode(ABC):
             charge: bool,
             cell_model: ZeroDModel,
             results: CyclingProtocolResults,
-            update_concentrations: callable,
+            update_concentrations: Callable[[float], None],
             current_lim_cls: float = None,
             current_lim_ncls: float = None
     ) -> None:
@@ -252,7 +253,7 @@ class _ConstantCurrentCycleMode(_CycleMode):
         Defined cell parameters for simulating.
     results: CyclingProtocolResults
         Container for the simulation result data.
-    update_concentrations: callable
+    update_concentrations: Callable[[float], None]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
     current: float
         Desired current for CC cycling during cycling mode (A).
@@ -267,7 +268,7 @@ class _ConstantCurrentCycleMode(_CycleMode):
             charge: bool,
             cell_model: ZeroDModel,
             results: CyclingProtocolResults,
-            update_concentrations: callable,
+            update_concentrations: Callable[[float], None],
             current: float,
             voltage_limit: float,
             voltage_limit_capacity_check: bool = True
@@ -343,7 +344,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
         Defined cell parameters for simulating.
     results: CyclingProtocolResults
         Container for the simulation result data.
-    update_concentrations: callable
+    update_concentrations: Callable[[float], None]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
     current_cutoff: float
         Current cutoff for CV mode. Below it, simulation switches from charge to discharge and vice versa (A).
@@ -362,7 +363,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
             charge: bool,
             cell_model: ZeroDModel,
             results: CyclingProtocolResults,
-            update_concentrations: callable,
+            update_concentrations: Callable[[float], None],
             current_cutoff: float,
             voltage_limit: float,
             current_estimate: float,
@@ -479,9 +480,9 @@ class CyclingProtocol(ABC):
 
     @staticmethod
     def _validate_cycle_values(
-            value: float | None,
-            value_charge: float | None,
-            value_discharge: float | None,
+            value: Optional[float],
+            value_charge: Optional[float],
+            value_discharge: Optional[float],
             name: str
     ) -> tuple[float, float]:
         """Checks validity of user inputs for current limits and/or cutoffs."""
@@ -507,11 +508,11 @@ class CyclingProtocol(ABC):
             self,
             duration: int,
             cell_model: ZeroDModel,
-            degradation: DegradationMechanism | None,
-            cls_degradation: DegradationMechanism | None,
-            ncls_degradation: DegradationMechanism | None,
-            crossover: Crossover | None
-    ) -> tuple[CyclingProtocolResults, callable]:
+            degradation: Optional[DegradationMechanism],
+            cls_degradation: Optional[DegradationMechanism],
+            ncls_degradation: Optional[DegradationMechanism],
+            crossover: Optional[Crossover]
+    ) -> tuple[CyclingProtocolResults, Callable[[float], None]]:
         """Checks validity of user inputs for voltage limits and optional degradation and crossover mechanisms."""
         if not self.voltage_limit_discharge < cell_model.init_ocv < self.voltage_limit_charge:
             raise ValueError("Ensure that 'voltage_limit_discharge' < 'init_ocv' < 'voltage_limit_charge'")
