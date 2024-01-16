@@ -29,7 +29,7 @@ class ChemicalDegradation(DegradationMechanism):
 
     """
 
-    def __init__(self, rate_order: int, rate_constant: float, species: str = 'red'):
+    def __init__(self, rate_order: int, rate_constant: float, species: str = 'red') -> None:
         self.rate_order = rate_order
         self.rate_constant = rate_constant
         self.species = species
@@ -86,7 +86,7 @@ class AutoOxidation(DegradationMechanism):
         First order rate of auto-oxidation (1/s).
 
     """
-    def __init__(self, rate_constant: float):
+    def __init__(self, rate_constant: float) -> None:
         self.rate_constant = rate_constant
 
         if self.rate_constant <= 0.0:
@@ -133,7 +133,7 @@ class AutoReduction(DegradationMechanism):
         First order rate of auto-oxidation (1/s).
 
     """
-    def __init__(self, rate_constant: float):
+    def __init__(self, rate_constant: float) -> None:
         self.rate_constant = rate_constant
 
         if self.rate_constant <= 0.0:
@@ -184,7 +184,7 @@ class AutoReductionO2Release(DegradationMechanism):
 
     """
 
-    def __init__(self, rate_constant: float, release_factor: float):
+    def __init__(self, rate_constant: float, release_factor: float) -> None:
         self.rate_constant = rate_constant
         self.release_factor = release_factor
 
@@ -239,7 +239,7 @@ class MultiDegradationMechanism(DegradationMechanism):
         List of degradation mechanism subclass instances.
 
     """
-    def __init__(self, mechanisms: list[DegradationMechanism]):
+    def __init__(self, mechanisms: list[DegradationMechanism]) -> None:
         self.mechanisms = mechanisms
 
         for mechanism in self.mechanisms:
@@ -290,7 +290,7 @@ class Dimerization(DegradationMechanism):
 
     """
 
-    def __init__(self, forward_rate_constant: float, backward_rate_constant: float, c_dimer: float = 0.0):
+    def __init__(self, forward_rate_constant: float, backward_rate_constant: float, c_dimer: float = 0.0) -> None:
         self.forward_rate_constant = forward_rate_constant
         self.backward_rate_constant = backward_rate_constant
         self.c_dimer = c_dimer

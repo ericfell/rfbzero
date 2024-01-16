@@ -17,7 +17,7 @@ F = spc.value('Faraday constant')
 # Molar gas constant (J/K/mol)
 R = spc.R
 
-# make these parameters at some point?
+# TODO make temperature a variable
 TEMPERATURE = 298  # Kelvins, for S.T.P.
 NERNST_CONST = (R * TEMPERATURE) / F
 
@@ -87,11 +87,28 @@ class ZeroDModel:
     Electrochemical Society, 168, 2021, 080528.
     """
 
-    def __init__(self, cls_volume: float, ncls_volume: float, cls_start_c_ox: float, cls_start_c_red: float,
-                 ncls_start_c_ox: float, ncls_start_c_red: float, init_ocv: float, resistance: float, k_0_cls: float,
-                 k_0_ncls: float, alpha_cls: float = 0.5, alpha_ncls: float = 0.5, geometric_area: float = 5.0,
-                 cls_negolyte: bool = True, time_increment: float = 0.01, k_mt: float = 0.8,
-                 roughness_factor: float = 26.0, n_cls: int = 1, n_ncls: int = 1) -> None:
+    def __init__(
+            self,
+            cls_volume: float,
+            ncls_volume: float,
+            cls_start_c_ox: float,
+            cls_start_c_red: float,
+            ncls_start_c_ox: float,
+            ncls_start_c_red: float,
+            init_ocv: float,
+            resistance: float,
+            k_0_cls: float,
+            k_0_ncls: float,
+            alpha_cls: float = 0.5,
+            alpha_ncls: float = 0.5,
+            geometric_area: float = 5.0,
+            cls_negolyte: bool = True,
+            time_increment: float = 0.01,
+            k_mt: float = 0.8,
+            roughness_factor: float = 26.0,
+            n_cls: int = 1,
+            n_ncls: int = 1
+    ) -> None:
         """Initialize ZeroDModel"""
         self.cls_volume = cls_volume
         self.ncls_volume = ncls_volume
@@ -142,11 +159,16 @@ class ZeroDModel:
         if not isinstance(self.n_cls, int) or not isinstance(self.n_ncls, int):
             raise ValueError("'n_cls' and 'n_ncls' must be integers")
 
-        if self.cls_volume >= self.ncls_volume:
-            raise ValueError("'cls_volume' must be < 'ncls_volume'")
+        if self.init_ocv == 0.0 and self.cls_volume >= self.ncls_volume:
+            raise ValueError("'cls_volume' must be < 'ncls_volume' in a symmetric cell")
 
         if self.init_ocv == 0.0 and self.n_cls != self.n_ncls:
             raise ValueError("Symmetric cell (0 volt OCV) requires 'n_cls' and 'n_ncls' to be equal (same species)")
+
+        self.init_cls_capacity = self.cls_volume * self.n_cls * (self.c_ox_cls + self.c_red_cls)
+        init_ncls_capacity = self.ncls_volume * self.n_ncls * (self.c_ox_ncls + self.c_red_ncls)
+        if self.init_cls_capacity >= init_ncls_capacity:
+            raise ValueError("Initial capacity of CLS must be less than initial capacity of NCLS")
 
         if self.time_increment >= 1.0:
             print("WARNING: 'time_increment' >= 1 second will result in very coarse data.\
@@ -353,14 +375,16 @@ class ZeroDModel:
         """If charging, add overpotentials to OCV, else subtract them"""
         return ocv + losses if charge else ocv - losses
 
-    def coulomb_counter(self, current: float,
-                        cls_degradation: DegradationMechanism = None,
-                        ncls_degradation: DegradationMechanism = None,
-                        cross_over: Crossover = None) -> None:
+    def coulomb_counter(
+            self,
+            current: float,
+            cls_degradation: DegradationMechanism = None,
+            ncls_degradation: DegradationMechanism = None,
+            cross_over: Crossover = None
+    ) -> None:
         """
-        Updates all species' concentrations at each timestep.
-        Contributions from faradaic current, (optional) degradation
-        mechanisms, and (optional) crossover mechanism.
+        Updates all species' concentrations at each timestep. Contributions from faradaic current, (optional)
+        degradation mechanisms, and (optional) crossover mechanism.
 
         Parameters
         ----------
@@ -406,14 +430,14 @@ class ZeroDModel:
 
         if cross_over is not None:
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = cross_over.crossover(c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, self.cls_volume,
-                                               self.ncls_volume, self.time_increment)
+             delta_red) = cross_over.crossover(self.geometric_area, c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
+                                               self.cls_volume, self.ncls_volume, self.time_increment)
         # update concentrations to self
         self.prev_c_ox_cls = self.c_ox_cls
         self.prev_c_red_cls = self.c_red_cls
         self.prev_c_ox_ncls = self.c_ox_ncls
         self.prev_c_red_ncls = self.c_red_ncls
-        
+
         self.c_ox_cls = c_ox_cls
         self.c_red_cls = c_red_cls
         self.c_ox_ncls = c_ox_ncls
@@ -423,6 +447,7 @@ class ZeroDModel:
         self.delta_red = delta_red
 
     def revert_concentrations(self) -> None:
+        """Resets concentrations to previous value if a (invalid) negative concentration is calculated"""
         self.c_ox_cls = self.prev_c_ox_cls
         self.c_red_cls = self.prev_c_red_cls
         self.c_ox_ncls = self.prev_c_ox_ncls
