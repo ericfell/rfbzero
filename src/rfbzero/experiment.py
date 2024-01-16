@@ -221,10 +221,8 @@ class _CycleMode(ABC):
         raise NotImplementedError
 
     def check_capacity(self, cycle_status: CycleStatus) -> CycleStatus:
-        """Ends the simulation early if capacity approaches zero."""
-        # End the simulation if the half cycle capacity nears zero
-        # TODO make this a % of initial capacity
-        if self.results.capacity < 1.0 and self.results.half_cycles > 2:
+        """Ends the simulation early if capacity goes below 1% of initial CLS capacity."""
+        if self.results.capacity < 0.01 * self.cell_model.init_cls_capacity and self.results.half_cycles > 2:
             return CycleStatus.LOW_CAPACITY
 
         return cycle_status
@@ -419,12 +417,17 @@ class _ConstantVoltageCycleMode(_CycleMode):
 
         """
 
-        def solver(current: float) -> float:
-            loss_solve, *_ = self.cell_model.total_overpotential(current, self.current_lim_cls, self.current_lim_ncls)
+        def solver(current) -> float:
+            # current is passed in as a ndarray, we use .item() to get the scalar float value
+            loss_solve, *_ = self.cell_model.total_overpotential(
+                current.item(),
+                self.current_lim_cls,
+                self.current_lim_ncls
+            )
             return self.voltage_limit - ocv - self._current_direction() * loss_solve
 
         min_current, *_ = fsolve(solver, self.current, xtol=1e-5)
-        self.current = min_current
+        self.current = min_current.item()
 
 
 class CyclingProtocol(ABC):
@@ -866,8 +869,8 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         def get_cv_cycle_mode(
                 charge: bool,
                 current_estimate: float,
-                current_lim_cls=None,
-                current_lim_ncls=None
+                current_lim_cls: Optional[float] = None,
+                current_lim_ncls: Optional[float] = None,
         ):
             return _ConstantVoltageCycleMode(
                 charge,

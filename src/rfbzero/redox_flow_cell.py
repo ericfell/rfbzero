@@ -165,9 +165,9 @@ class ZeroDModel:
         if self.init_ocv == 0.0 and self.n_cls != self.n_ncls:
             raise ValueError("Symmetric cell (0 volt OCV) requires 'n_cls' and 'n_ncls' to be equal (same species)")
 
-        init_cls_capacity = self.cls_volume * self.n_cls * (self.c_ox_cls + self.c_red_cls)
+        self.init_cls_capacity = self.cls_volume * self.n_cls * (self.c_ox_cls + self.c_red_cls)
         init_ncls_capacity = self.ncls_volume * self.n_ncls * (self.c_ox_ncls + self.c_red_ncls)
-        if init_cls_capacity >= init_ncls_capacity:
+        if self.init_cls_capacity >= init_ncls_capacity:
             raise ValueError("Initial capacity of CLS must be less than initial capacity of NCLS")
 
         if self.time_increment >= 1.0:
