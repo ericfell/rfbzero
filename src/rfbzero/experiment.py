@@ -185,6 +185,8 @@ class _CycleMode(ABC):
         Container for the simulation result data.
     update_concentrations: Callable[[float], None]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
+    current: float
+        Desired initial current for cycling.
     current_lim_cls: float
         Limiting current of CLS (A).
     current_lim_ncls: float
@@ -197,6 +199,7 @@ class _CycleMode(ABC):
             cell_model: ZeroDModel,
             results: CyclingProtocolResults,
             update_concentrations: Callable[[float], None],
+            current: float,
             current_lim_cls: float = None,
             current_lim_ncls: float = None
     ) -> None:
@@ -204,6 +207,7 @@ class _CycleMode(ABC):
         self.cell_model = cell_model
         self.results = results
         self.update_concentrations = update_concentrations
+        self.current = current
 
         if not current_lim_cls or not current_lim_ncls:
             current_lim_cls, current_lim_ncls = self.cell_model.limiting_concentration(self.charge)
@@ -271,8 +275,7 @@ class _ConstantCurrentCycleMode(_CycleMode):
             voltage_limit: float,
             voltage_limit_capacity_check: bool = True
     ) -> None:
-        super().__init__(charge, cell_model, results, update_concentrations)
-        self.current = current
+        super().__init__(charge, cell_model, results, update_concentrations, current)
         self.voltage_limit = voltage_limit
         self.voltage_limit_capacity_check = voltage_limit_capacity_check
 
@@ -368,12 +371,10 @@ class _ConstantVoltageCycleMode(_CycleMode):
             current_lim_cls: float = None,
             current_lim_ncls: float = None
     ) -> None:
-        super().__init__(charge, cell_model, results, update_concentrations, current_lim_cls, current_lim_ncls)
-        self.update_concentrations = update_concentrations
+        super().__init__(charge, cell_model, results, update_concentrations, current_estimate,
+                         current_lim_cls, current_lim_ncls)
         self.current_cutoff = current_cutoff
         self.voltage_limit = voltage_limit
-
-        self.current = current_estimate  # this can be too big but solver can handle
 
     def validate(self) -> CycleStatus:
         return CycleStatus.NORMAL
@@ -871,7 +872,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 current_estimate: float,
                 current_lim_cls: Optional[float] = None,
                 current_lim_ncls: Optional[float] = None,
-        ):
+        ) -> _ConstantVoltageCycleMode:
             return _ConstantVoltageCycleMode(
                 charge,
                 cell_model,
@@ -884,7 +885,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 current_lim_ncls
             )
 
-        cycle_mode = get_cc_cycle_mode(self.charge_first)
+        cycle_mode: _CycleMode = get_cc_cycle_mode(self.charge_first)
 
         # Check if cell needs to go straight to CV
         cycle_status = cycle_mode.validate()
