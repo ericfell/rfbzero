@@ -31,8 +31,6 @@ using pip:
 
    pip install ??
 
-See :doc:`./getting-started` for instructions
-on getting started from scratch.
 
 
 Dependencies
@@ -44,13 +42,12 @@ rfbzero.py requires:
 -   SciPy
 
 
-Example Jupyter notebooks are provided in the examples/ directory.
 
 Examples and Documentation
 ---------------------------
 
-The documentation can be found at
-`rfbzero.readthedocs.io <https://ericfell-rfbzero.readthedocs.io/en/latest/>`_.
+See :doc:`./getting-started` for instructions
+on getting started with simulations.
 
 
 

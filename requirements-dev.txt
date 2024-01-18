@@ -3,6 +3,7 @@
 numpy
 sphinx-rtd-theme==1.2.2
 nbsphinx
+iPython
 pytest
 pytest-cov
 coverage[toml]
