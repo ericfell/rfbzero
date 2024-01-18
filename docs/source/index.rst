@@ -42,7 +42,6 @@ rfbzero.py requires:
 
 -   Python (>=3.10)
 -   SciPy
--   NumPy
 
 
 Example Jupyter notebooks are provided in the examples/ directory.
