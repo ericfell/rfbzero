@@ -524,6 +524,9 @@ class CyclingProtocol(ABC):
         if cell_model.init_ocv > 0.0 > self.voltage_limit_discharge:
             raise ValueError("Ensure that 'voltage_limit_discharge' >= 0.0 when 'init_ocv' > 0.0")
 
+        if crossover and cell_model.init_ocv > 0.0:
+            raise ValueError("Cannot use crossover mechanism for a full cell ('init_ocv' > 0.0)")
+
         if degradation is not None and (cls_degradation is not None or ncls_degradation is not None):
             raise ValueError("Cannot specify both 'degradation' and '(n)cls_degradation'")
 
