@@ -1,7 +1,7 @@
 """
 Classes to define electrochemical cycling protocols.
 """
-
+import copy
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Callable, Optional
@@ -533,6 +533,9 @@ class CyclingProtocol(ABC):
         if degradation is not None:
             cls_degradation = degradation
             ncls_degradation = degradation
+
+        cls_degradation = copy.deepcopy(cls_degradation)
+        ncls_degradation = copy.deepcopy(ncls_degradation)
 
         if cell_model.negative_concentrations():
             raise ValueError('Negative concentration detected')
