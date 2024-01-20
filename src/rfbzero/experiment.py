@@ -167,7 +167,7 @@ class CycleStatus(str, Enum):
     VOLTAGE_LIMIT_REACHED = 'voltage limits reached'
     CURRENT_CUTOFF_REACHED = 'current cutoffs reached'
     LIMITING_CURRENT_REACHED = 'current has exceeded the limiting currents for the cell concentrations'
-    LOW_CAPACITY = 'capacity is less than 1 coulomb'
+    LOW_CAPACITY = 'capacity is less than 1% of initial CLS capacity'
     TIME_DURATION_REACHED = 'time duration reached'
 
 
