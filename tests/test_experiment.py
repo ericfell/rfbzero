@@ -37,7 +37,7 @@ class TestConstantCurrent:
                           cls_start_c_red=0.01,  # M
                           ncls_start_c_ox=0.01,  # M
                           ncls_start_c_red=0.01,  # M
-                          init_ocv=0.0,  # V
+                          ocv_50_soc=0.0,  # V
                           resistance=1.0,  # ohms
                           k_0_cls=1e-3,  # cm/s
                           k_0_ncls=1e-3,  # cm/s
@@ -73,7 +73,7 @@ class TestConstantVoltage:
                           cls_start_c_red=0.01,  # M
                           ncls_start_c_ox=0.01,  # M
                           ncls_start_c_red=0.01,  # M
-                          init_ocv=0.0,  # V
+                          ocv_50_soc=0.0,  # V
                           resistance=1.0,  # ohms
                           k_0_cls=1e-3,  # cm/s
                           k_0_ncls=1e-3,  # cm/s
@@ -115,7 +115,7 @@ class TestConstantCurrentConstantVoltage:
                               cls_start_c_red=0.01,  # M
                               ncls_start_c_ox=0.01,  # M
                               ncls_start_c_red=0.01,  # M
-                              init_ocv=1.1,  # V
+                              ocv_50_soc=1.1,  # V
                               resistance=0.8,  # ohms
                               k_0_cls=1e-3,  # cm/s
                               k_0_ncls=1e-3,  # cm/s
@@ -154,7 +154,7 @@ class TestConstantCurrentConstantVoltage:
                           cls_start_c_red=0.01,  # M
                           ncls_start_c_ox=0.01,  # M
                           ncls_start_c_red=0.01,  # M
-                          init_ocv=0.0,  # V
+                          ocv_50_soc=0.0,  # V
                           resistance=0.8,  # ohms
                           k_0_cls=1e-3,  # cm/s
                           k_0_ncls=1e-3,  # cm/s

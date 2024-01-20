@@ -40,7 +40,7 @@ class ZeroDModel:
         NCLS initial concentration of oxidized species (M).
     ncls_start_c_red : float
         NCLS initial concentration of reduced species (M).
-    init_ocv : float
+    ocv_50_soc : float
         Cell voltage (formal potentials E_+ - E_-) (V).
         If voltage > 0 then it's a Full cell.
         If voltage = 0 then it's a Symmetric cell.
@@ -95,7 +95,7 @@ class ZeroDModel:
             cls_start_c_red: float,
             ncls_start_c_ox: float,
             ncls_start_c_red: float,
-            init_ocv: float,
+            ocv_50_soc: float,
             resistance: float,
             k_0_cls: float,
             k_0_ncls: float,
@@ -116,7 +116,7 @@ class ZeroDModel:
         self.c_red_cls = cls_start_c_red
         self.c_ox_ncls = ncls_start_c_ox
         self.c_red_ncls = ncls_start_c_red
-        self.init_ocv = init_ocv
+        self.ocv_50_soc = ocv_50_soc
         self.resistance = resistance
         self.k_0_cls = k_0_cls
         self.k_0_ncls = k_0_ncls
@@ -142,10 +142,10 @@ class ZeroDModel:
                            'ncls_start_c_ox': self.c_ox_ncls, 'ncls_start_c_red': self.c_red_ncls,
                            'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
                            'time_increment': self.time_increment, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
-                           'init_ocv': self.init_ocv, 'resistance': self.resistance, 'n_cls': self.n_cls,
+                           'ocv_50_soc': self.ocv_50_soc, 'resistance': self.resistance, 'n_cls': self.n_cls,
                            'n_ncls': self.n_ncls}.items():
 
-            if key not in ['init_ocv', 'resistance',
+            if key not in ['ocv_50_soc', 'resistance',
                            'cls_start_c_ox', 'cls_start_c_red',
                            'ncls_start_c_ox', 'ncls_start_c_red'] and value <= 0.0:
                 raise ValueError(f"'{key}' must be > 0.0")
@@ -159,10 +159,10 @@ class ZeroDModel:
         if not isinstance(self.n_cls, int) or not isinstance(self.n_ncls, int):
             raise ValueError("'n_cls' and 'n_ncls' must be integers")
 
-        if self.init_ocv == 0.0 and self.cls_volume >= self.ncls_volume:
+        if self.ocv_50_soc == 0.0 and self.cls_volume >= self.ncls_volume:
             raise ValueError("'cls_volume' must be < 'ncls_volume' in a symmetric cell")
 
-        if self.init_ocv == 0.0 and self.n_cls != self.n_ncls:
+        if self.ocv_50_soc == 0.0 and self.n_cls != self.n_ncls:
             raise ValueError("Symmetric cell (0 volt OCV) requires 'n_cls' and 'n_ncls' to be equal (same species)")
 
         self.init_cls_capacity = self.cls_volume * self.n_cls * (self.c_ox_cls + self.c_red_cls)
@@ -365,7 +365,7 @@ class ZeroDModel:
 
         direction = 1 if self.cls_negolyte else -1
 
-        ocv = (self.init_ocv
+        ocv = (self.ocv_50_soc
                + direction * (((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
                               + ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls))))
         return ocv
