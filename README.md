@@ -52,7 +52,7 @@ cell = ZeroDModel(
 protocol = ConstantCurrent(
     voltage_limit_charge=1.5,      # volts
     voltage_limit_discharge=0.5,   # volts
-    current=0.1,                    # amps
+    current=0.1,                   # amps
 )
 
 # simulate cell via protocol for 1000 seconds

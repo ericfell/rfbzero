@@ -81,7 +81,7 @@ class CyclingProtocolResults:
             n_mt: float = 0.0,
             losses: float = 0.0
     ) -> None:
-        """Records simulation data at valid time steps"""
+        """Records simulation data at valid time steps."""
         # Update capacity
         self.capacity += abs(current) * cell_model.time_increment
 
@@ -121,7 +121,7 @@ class CyclingProtocolResults:
         self.step += 1
 
     def record_half_cycle(self, charge: bool) -> None:
-        """Records charge and discharge half-cycle times and capacities, and resets capacity after each half-cycle"""
+        """Records charge and discharge half-cycle times and capacities, and resets capacity after each half-cycle."""
         time = self.step * self.time_increment
         self.half_cycle_capacity.append(self.capacity)
         self.half_cycle_time.append(time)
@@ -138,7 +138,7 @@ class CyclingProtocolResults:
         self.capacity = 0.0
 
     def finalize(self) -> None:
-        """Trims empty simulation values (initialized zeroes) if simulation ends earlier than desired"""
+        """Trims empty simulation values (initialized zeroes) if simulation ends earlier than desired."""
         self.step_time = self.step_time[:self.step]
         self.step_is_charge = self.step_is_charge[:self.step]
 
@@ -161,7 +161,7 @@ class CyclingProtocolResults:
 
 
 class CycleStatus(str, Enum):
-    """Used for keeping track of cycle status throughout simulation"""
+    """Used for keeping track of cycle status throughout simulation."""
     NORMAL = 'normal'
     NEGATIVE_CONCENTRATIONS = 'negative species concentrations'
     VOLTAGE_LIMIT_REACHED = 'voltage limits reached'
@@ -408,7 +408,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
         return self.check_time(CycleStatus.NORMAL)
 
     def _current_direction(self) -> int:
-        """Return 1 if charging, -1 if discharging"""
+        """Return 1 if charging, -1 if discharging."""
         return 1 if self.charge else -1
 
     def _find_min_current(self, ocv: float) -> None:
@@ -627,7 +627,7 @@ class ConstantCurrent(CyclingProtocol):
         Returns
         -------
         results : CyclingProtocolResults
-            Container of simulation results
+            Container of simulation results.
 
         """
 
@@ -636,7 +636,7 @@ class ConstantCurrent(CyclingProtocol):
         )
 
         def get_cycle_mode(charge: bool) -> _ConstantCurrentCycleMode:
-            """Returns constant current (CC) cycle mode"""
+            """Returns constant current (CC) cycle mode."""
             return _ConstantCurrentCycleMode(
                 charge,
                 cell_model,
@@ -738,7 +738,7 @@ class ConstantVoltage(CyclingProtocol):
         Returns
         -------
         results : CyclingProtocolResults
-            Container of simulation results
+            Container of simulation results.
 
         """
 
@@ -857,7 +857,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         Returns
         -------
         results : CyclingProtocolResults
-            Container of simulation results
+            Container of simulation results.
 
         """
         results, update_concentrations = self._validate_protocol(
