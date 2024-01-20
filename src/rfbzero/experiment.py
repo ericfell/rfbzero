@@ -534,6 +534,8 @@ class CyclingProtocol(ABC):
             cls_degradation = degradation
             ncls_degradation = degradation
 
+        # Create copies of the degradation mechanisms, so that even if they maintain some internal state,
+        # the passed in instances can be reused across protocol runs.
         cls_degradation = copy.deepcopy(cls_degradation)
         ncls_degradation = copy.deepcopy(ncls_degradation)
 
