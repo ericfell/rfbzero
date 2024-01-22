@@ -188,13 +188,13 @@ class CyclingProtocolResults:
 
 class CycleStatus(str, Enum):
     """Used for keeping track of cycle status throughout simulation, and to report how the simulation terminated."""
-    NORMAL = 'normal'
-    NEGATIVE_CONCENTRATIONS = 'negative species concentrations'
-    VOLTAGE_LIMIT_REACHED = 'voltage limits reached'
-    CURRENT_CUTOFF_REACHED = 'current cutoffs reached'
-    LIMITING_CURRENT_REACHED = 'current has exceeded the limiting currents for the cell concentrations'
-    LOW_CAPACITY = 'capacity is less than 1 coulomb'
-    TIME_DURATION_REACHED = 'time duration reached'
+    NORMAL = 'normal'  #:
+    NEGATIVE_CONCENTRATIONS = 'negative species concentrations'  #:
+    VOLTAGE_LIMIT_REACHED = 'voltage limits reached'  #:
+    CURRENT_CUTOFF_REACHED = 'current cutoffs reached'  #:
+    LIMITING_CURRENT_REACHED = 'current has exceeded the limiting currents for the cell concentrations'  #:
+    LOW_CAPACITY = 'capacity is less than 1 coulomb'  #:
+    TIME_DURATION_REACHED = 'time duration reached'  #:
 
 
 class _CycleMode(ABC):
