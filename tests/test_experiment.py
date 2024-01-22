@@ -216,7 +216,7 @@ class TestAsymmetricCurrents:
                                        )
         vals_1 = all_results_1.half_cycle_capacity[:5]
 
-        #
+        # make identical cell, but define currents for charge and discharge separately
         cell_2 = ZeroDModel(cls_volume=0.005,  # L
                             ncls_volume=0.03,  # L
                             cls_start_c_ox=0.01,  # M
