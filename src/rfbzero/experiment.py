@@ -236,7 +236,7 @@ class _CycleMode(ABC):
         self.current = current
 
         if not current_lim_cls or not current_lim_ncls:
-            current_lim_cls, current_lim_ncls = self.cell_model.limiting_concentration(self.charge)
+            current_lim_cls, current_lim_ncls = self.cell_model._limiting_concentration(self.charge)
         self.current_lim_cls = current_lim_cls
         self.current_lim_ncls = current_lim_ncls
 
@@ -315,9 +315,9 @@ class _ConstantCurrentCycleMode(_CycleMode):
         if abs(self.current) >= min(self.current_lim_cls, self.current_lim_ncls):
             return CycleStatus.LIMITING_CURRENT_REACHED
 
-        losses, *_ = self.cell_model.total_overpotential(self.current, self.current_lim_cls, self.current_lim_ncls)
-        ocv = self.cell_model.open_circuit_voltage()
-        cell_v = self.cell_model.cell_voltage(ocv, losses, self.charge)
+        losses, *_ = self.cell_model._total_overpotential(self.current, self.current_lim_cls, self.current_lim_ncls)
+        ocv = self.cell_model._open_circuit_voltage()
+        cell_v = self.cell_model._cell_voltage(ocv, losses, self.charge)
 
         if self.charge and cell_v >= self.voltage_limit or not self.charge and cell_v <= self.voltage_limit:
             return CycleStatus.VOLTAGE_LIMIT_REACHED
@@ -337,15 +337,15 @@ class _ConstantCurrentCycleMode(_CycleMode):
         self.update_concentrations(self.current)
 
         # Handle edge case where the voltage limits are never reached
-        if self.cell_model.negative_concentrations():
-            self.cell_model.revert_concentrations()
+        if self.cell_model._negative_concentrations():
+            self.cell_model._revert_concentrations()
             return self._check_capacity(CycleStatus.NEGATIVE_CONCENTRATIONS)
 
         # Calculate overpotentials and the resulting cell voltage
-        losses, n_act, n_mt = self.cell_model.total_overpotential(
+        losses, n_act, n_mt = self.cell_model._total_overpotential(
             self.current, self.current_lim_cls, self.current_lim_ncls)
-        ocv = self.cell_model.open_circuit_voltage()
-        cell_v = self.cell_model.cell_voltage(ocv, losses, self.charge)
+        ocv = self.cell_model._open_circuit_voltage()
+        cell_v = self.cell_model._cell_voltage(ocv, losses, self.charge)
 
         # Check if the voltage limit is reached
         if self.charge and cell_v >= self.voltage_limit or not self.charge and cell_v <= self.voltage_limit:
@@ -413,7 +413,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
         elif abs(self.current) >= min(self.current_lim_cls, self.current_lim_ncls):
             return CycleStatus.LIMITING_CURRENT_REACHED
 
-        ocv = self.cell_model.open_circuit_voltage()
+        ocv = self.cell_model._open_circuit_voltage()
 
         # Adapting the solver's guess to the updated current
         self.__find_min_current(ocv)
@@ -421,8 +421,8 @@ class _ConstantVoltageCycleMode(_CycleMode):
         self.update_concentrations(self.current)
 
         # Check if any reactant remains
-        if self.cell_model.negative_concentrations():
-            self.cell_model.revert_concentrations()
+        if self.cell_model._negative_concentrations():
+            self.cell_model._revert_concentrations()
             return self._check_capacity(CycleStatus.NEGATIVE_CONCENTRATIONS)
 
         # Update results
@@ -446,7 +446,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
 
         def solver(current) -> float:
             # current is passed in as a ndarray, we use .item() to get the scalar float value
-            loss_solve, *_ = self.cell_model.total_overpotential(
+            loss_solve, *_ = self.cell_model._total_overpotential(
                 current.item(),
                 self.current_lim_cls,
                 self.current_lim_ncls
@@ -565,12 +565,12 @@ class CyclingProtocol(ABC):
         cls_degradation = copy.deepcopy(cls_degradation)
         ncls_degradation = copy.deepcopy(ncls_degradation)
 
-        if cell_model.negative_concentrations():
+        if cell_model._negative_concentrations():
             raise ValueError('Negative concentration detected')
 
         def update_concentrations(i: float) -> None:
             # Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms
-            cell_model.coulomb_counter(i, cls_degradation, ncls_degradation, crossover)
+            cell_model._coulomb_counter(i, cls_degradation, ncls_degradation, crossover)
 
         # Initialize data results object to be sent to user
         results = CyclingProtocolResults(duration, cell_model.time_increment, self.charge_first)

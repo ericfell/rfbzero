@@ -203,7 +203,7 @@ class ZeroDModel:
         # div by 1000 for conversion from L to cm^3
         return F * self.k_mt * c_lim * self.geometric_area * 0.001
 
-    def limiting_concentration(self, charge: bool) -> tuple[float, float]:
+    def _limiting_concentration(self, charge: bool) -> tuple[float, float]:
         """
         Selects limiting concentration and calculates limiting current for CLS and NCLS.
         Multiplies by number of electrons transferred per molecule, for the given species.
@@ -260,7 +260,7 @@ class ZeroDModel:
                                 + (log(z_ncls + ((z_ncls ** 2) + 1) ** 0.5) / self.n_ncls))
         return n_act
 
-    def negative_concentrations(self) -> bool:
+    def _negative_concentrations(self) -> bool:
         """Return True if any concentration is negative"""
         return any(x < 0.0 for x in [self.c_ox_cls, self.c_red_cls, self.c_ox_ncls, self.c_red_ncls])
 
@@ -287,7 +287,7 @@ class ZeroDModel:
 
         """
 
-        if self.negative_concentrations():
+        if self._negative_concentrations():
             raise ValueError('Negative concentration detected')
 
         c_tot_cls = self.c_red_cls + self.c_ox_cls
@@ -311,7 +311,7 @@ class ZeroDModel:
                                + (log(1 - ((c_tot_ncls * i) / ((c1_ncls * i_lim_ncls) + (c2_ncls * i)))) / self.n_ncls))
         return n_mt * -1
 
-    def total_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
+    def _total_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
         """
         Calculates total cell overpotential.
         This is the overpotentials of equation 2 in [1].
@@ -348,7 +348,7 @@ class ZeroDModel:
 
         return n_loss, n_act, n_mt
 
-    def open_circuit_voltage(self) -> float:
+    def _open_circuit_voltage(self) -> float:
         """
         Nernstian calculation of cell's open circuit voltage.
         This is equivalent to equation 3 of [1].
@@ -360,7 +360,7 @@ class ZeroDModel:
 
         """
 
-        if self.negative_concentrations():
+        if self._negative_concentrations():
             raise ValueError('Negative concentration detected')
 
         direction = 1 if self.cls_negolyte else -1
@@ -371,11 +371,11 @@ class ZeroDModel:
         return ocv
 
     @staticmethod
-    def cell_voltage(ocv: float, losses: float, charge: bool) -> float:
+    def _cell_voltage(ocv: float, losses: float, charge: bool) -> float:
         """If charging, add overpotentials to OCV, else subtract them"""
         return ocv + losses if charge else ocv - losses
 
-    def coulomb_counter(
+    def _coulomb_counter(
             self,
             current: float,
             cls_degradation: DegradationMechanism = None,
@@ -446,7 +446,7 @@ class ZeroDModel:
         self.delta_ox = delta_ox
         self.delta_red = delta_red
 
-    def revert_concentrations(self) -> None:
+    def _revert_concentrations(self) -> None:
         """Resets concentrations to previous value if a (invalid) negative concentration is calculated"""
         self.c_ox_cls = self.prev_c_ox_cls
         self.c_red_cls = self.prev_c_red_cls
