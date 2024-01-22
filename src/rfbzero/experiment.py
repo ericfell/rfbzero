@@ -31,44 +31,70 @@ class CyclingProtocolResults:
     def __init__(self, duration: float, time_increment: float, charge_first: bool = True) -> None:
         self.duration = duration
         self.time_increment = time_increment
-        self.size = int(duration / time_increment)
         self.charge_first = charge_first
         self.compute_soc = True
 
-        self.step = 0
-        self.step_time = [0.0] * self.size
-        self.step_is_charge = [False] * self.size
+        #: The maximum number of time steps that could be performed by the simulation.
+        self.max_steps: int = int(duration / time_increment)
+        #: The number of time steps performed before the simulation terminated.
+        self.step: int = 0
+        #: The simulation time, at each time step.
+        self.step_time: list[float] = [0.0] * self.max_steps
+        #: Whether the half cycle was charge (True) or discharge (False), at each time step.
+        self.step_is_charge: list[bool] = [False] * self.max_steps
 
-        self.current = [0.0] * self.size
-        self.cell_v = [0.0] * self.size
-        self.ocv = [0.0] * self.size
+        #: The instantaneous current flowing (A), at each time step.
+        self.current: list[float] = [0.0] * self.max_steps
+        #: The cell voltage (V), at each time step.
+        self.cell_v: list[float] = [0.0] * self.max_steps
+        #: The cell open circuit voltage (V), at each time step.
+        self.ocv: list[float] = [0.0] * self.max_steps
 
-        self.c_ox_cls = [0.0] * self.size
-        self.c_red_cls = [0.0] * self.size
-        self.c_ox_ncls = [0.0] * self.size
-        self.c_red_ncls = [0.0] * self.size
-        self.delta_ox = [0.0] * self.size
-        self.delta_red = [0.0] * self.size
-        self.soc_cls = [0.0] * self.size
-        self.soc_ncls = [0.0] * self.size
+        #: The CLS concentration of oxidized species (M), at each time step.
+        self.c_ox_cls: list[float] = [0.0] * self.max_steps
+        #: The CLS concentration of reduced species (M), at each time step.
+        self.c_red_cls: list[float] = [0.0] * self.max_steps
+        #: The NCLS concentration of oxidized species (M), at each time step.
+        self.c_ox_ncls: list[float] = [0.0] * self.max_steps
+        #: The NCLS concentration of reduced species (M), at each time step.
+        self.c_red_ncls: list[float] = [0.0] * self.max_steps
+        #: The concentration difference (CLS-NCLS) of oxidized species (M), at each time step.
+        self.delta_ox: list[float] = [0.0] * self.max_steps
+        #: The concentration difference (CLS-NCLS) of reduced species (M), at each time step.
+        self.delta_red: list[float] = [0.0] * self.max_steps
+        #: The CLS state of charge, at each time step.
+        self.soc_cls: list[float] = [0.0] * self.max_steps
+        #: The NCLS state of charge, at each time step.
+        self.soc_ncls: list[float] = [0.0] * self.max_steps
 
-        self.act = [0.0] * self.size
-        self.mt = [0.0] * self.size
-        self.loss = [0.0] * self.size
+        #: The combined (CLS+NCLS) activation overpotential (V), at each time step.
+        self.act: list[float] = [0.0] * self.max_steps
+        #: The combined (CLS+NCLS) mass transport overpotential (V), at each time step.
+        self.mt: list[float] = [0.0] * self.max_steps
+        #: The total cell overpotential (V), at each time step.
+        self.loss: list[float] = [0.0] * self.max_steps
 
-        # Total number of cycles is unknown at start, thus sizes are undetermined
-        self.half_cycles = 0
+        # Total number of cycles is unknown at start, thus list sizes are undetermined
         self.capacity = 0.0
+        #: The number of complete half cycles performed during the simulation.
+        self.half_cycles: int = 0
+        #: The cell capacity (Ah), for each half cycle.
         self.half_cycle_capacity: list[float] = []
+        #: The last time step, for each half cycle.
         self.half_cycle_time: list[float] = []
+        #: Whether the half cycle was charge (True) or discharge (False), for each half cycle.
         self.half_cycle_is_charge: list[bool] = []
+        #: The cell capacity (Ah), for each charge half cycle.
         self.charge_cycle_capacity: list[float] = []
+        #: The last time step, for each charge half cycle.
         self.charge_cycle_time: list[float] = []
+        #: The cell capacity (Ah), for each discharge half cycle.
         self.discharge_cycle_capacity: list[float] = []
+        #: The last time step, for each discharge half cycle.
         self.discharge_cycle_time: list[float] = []
 
-        # The reason for the cycling protocol's termination
-        self.end_status = CycleStatus.NORMAL
+        #: The reason for the simulation's termination
+        self.end_status: CycleStatus = CycleStatus.NORMAL
 
     def record_step(
             self,
@@ -237,7 +263,7 @@ class _CycleMode(ABC):
             return cycle_status
 
         # End the simulation if the time limit is reached
-        if self.results.step >= self.results.size:
+        if self.results.step >= self.results.max_steps:
             return CycleStatus.TIME_DURATION_REACHED
 
         return CycleStatus.NORMAL
