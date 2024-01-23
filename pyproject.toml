@@ -7,20 +7,24 @@ build-backend = "hatchling.build"
 name = "rfbzero"
 version = "0.0.1"
 authors = [
-    { name="Eric Fell", email="efell@g.harvard.com" },
+    { name="Eric Fell", email="efell@g.harvard.edu" },
     { name="Jeremy Fell", email="jfell@sfu.ca"},
 ]
 description = "A package for zero dimensional simulation of electrochemical cycling in redox flow batteries"
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = ["scipy"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+keywords = ["electrochemistry", "batteries", "redox flow"]
 
 [project.urls]
-"Homepage" = "https://github.com/ericfell/rfbzero"
+Homepage = "https://github.com/ericfell/rfbzero"
+Documentation = "https://ericfell-rfbzero.readthedocs.io/en/latest/index.html#"
+
 
 [tool.pytest.ini_options]
 addopts = [
