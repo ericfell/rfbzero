@@ -34,11 +34,11 @@ class CyclingProtocolResults:
         self.charge_first = charge_first
         self.compute_soc = True
 
-        #: The maximum number of time steps that could be performed by the simulation.
+        #: The desired number of time steps to be performed by the simulation.
         self.max_steps: int = int(duration / time_increment)
-        #: The number of time steps performed before the simulation terminated.
+        #: The number of time steps that were actually performed before the simulation terminated.
         self.step: int = 0
-        #: The simulation time, at each time step.
+        #: The simulation time (s), at each time step.
         self.step_time: list[float] = [0.0] * self.max_steps
         #: Whether the half cycle was charge (True) or discharge (False), at each time step.
         self.step_is_charge: list[bool] = [False] * self.max_steps
@@ -59,8 +59,10 @@ class CyclingProtocolResults:
         #: The NCLS concentration of reduced species (M), at each time step.
         self.c_red_ncls: list[float] = [0.0] * self.max_steps
         #: The concentration difference (CLS-NCLS) of oxidized species (M), at each time step.
+        #: Only meaningful for symmetric cell.
         self.delta_ox: list[float] = [0.0] * self.max_steps
         #: The concentration difference (CLS-NCLS) of reduced species (M), at each time step.
+        #: Only meaningful for symmetric cell.
         self.delta_red: list[float] = [0.0] * self.max_steps
         #: The CLS state of charge, at each time step.
         self.soc_cls: list[float] = [0.0] * self.max_steps
@@ -78,17 +80,17 @@ class CyclingProtocolResults:
         self.capacity = 0.0
         #: The number of complete half cycles performed during the simulation.
         self.half_cycles: int = 0
-        #: The cell capacity (Ah), for each half cycle.
+        #: The cell capacity (C), for each half cycle.
         self.half_cycle_capacity: list[float] = []
         #: The last time step, for each half cycle.
         self.half_cycle_time: list[float] = []
         #: Whether the half cycle was charge (True) or discharge (False), for each half cycle.
         self.half_cycle_is_charge: list[bool] = []
-        #: The cell capacity (Ah), for each charge half cycle.
+        #: The cell capacity (C), for each charge half cycle.
         self.charge_cycle_capacity: list[float] = []
         #: The last time step, for each charge half cycle.
         self.charge_cycle_time: list[float] = []
-        #: The cell capacity (Ah), for each discharge half cycle.
+        #: The cell capacity (C), for each discharge half cycle.
         self.discharge_cycle_capacity: list[float] = []
         #: The last time step, for each discharge half cycle.
         self.discharge_cycle_time: list[float] = []
