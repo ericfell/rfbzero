@@ -9,22 +9,7 @@ from rfbzero.crossover import Crossover
 
 
 class TestCyclingProtocolResults:
-
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_state_of_charge(self):
-        r_cls = 0.2
-        o_cls = 0.8
-        r_ncls = 0.3
-        o_ncls = 0.7
-
-        soc_c, soc_n = CyclingProtocolResults.state_of_charge(o_cls, r_cls, o_ncls, r_ncls)
-
-        assert soc_c == 20.0
-        assert soc_n == 30.0
-
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_structure_data(self):
-        raise NotImplementedError
+    pass
 
 
 class TestConstantCurrent:

@@ -2,7 +2,6 @@
 Class for cell setup and declaring electrolyte parameters.
 """
 
-
 from math import log
 
 import scipy.constants as spc
@@ -10,16 +9,11 @@ import scipy.constants as spc
 from .degradation import DegradationMechanism
 from .crossover import Crossover
 
-
 # Faraday constant (C/mol)
 F = spc.value('Faraday constant')
 
 # Molar gas constant (J/K/mol)
 R = spc.R
-
-# TODO make temperature a variable
-TEMPERATURE = 298  # Kelvins, for S.T.P.
-NERNST_CONST = (R * TEMPERATURE) / F
 
 
 class ZeroDModel:
@@ -75,7 +69,9 @@ class ZeroDModel:
         Number of electrons transferred per active species molecule in the CLS.
     n_ncls : int
         Number of electrons transferred per active species molecule in the NCLS.
-
+    temperature : float
+        Temperature of battery and electrolytes (K).
+        Default is 298 K (25C).
 
     Notes
     -----
@@ -106,7 +102,8 @@ class ZeroDModel:
             k_mt: float = 0.8,
             roughness_factor: float = 26.0,
             n_cls: int = 1,
-            n_ncls: int = 1
+            n_ncls: int = 1,
+            temperature: float = 298.0
     ) -> None:
         self.cls_volume = cls_volume
         self.ncls_volume = ncls_volume
@@ -135,13 +132,15 @@ class ZeroDModel:
         self.delta_ox = 0.0
         self.delta_red = 0.0
 
+        self.nernst_const = (R * temperature) / F
+
         for key, value in {'cls_volume': self.cls_volume, 'ncls_volume': self.ncls_volume, 'k_0_cls': self.k_0_cls,
                            'cls_start_c_ox': self.c_ox_cls, 'cls_start_c_red': self.c_red_cls,
                            'ncls_start_c_ox': self.c_ox_ncls, 'ncls_start_c_red': self.c_red_ncls,
                            'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
                            'time_increment': self.time_increment, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
                            'ocv_50_soc': self.ocv_50_soc, 'resistance': self.resistance, 'n_cls': self.n_cls,
-                           'n_ncls': self.n_ncls}.items():
+                           'n_ncls': self.n_ncls, 'temperature': temperature}.items():
 
             if key not in ['ocv_50_soc', 'resistance',
                            'cls_start_c_ox', 'cls_start_c_red',
@@ -201,7 +200,7 @@ class ZeroDModel:
         # div by 1000 for conversion from L to cm^3
         return F * self.k_mt * c_lim * self.geometric_area * 0.001
 
-    def limiting_concentration(self, charge: bool) -> tuple[float, float]:
+    def _limiting_concentration(self, charge: bool) -> tuple[float, float]:
         """
         Selects limiting concentration and calculates limiting current for CLS and NCLS.
         Multiplies by number of electrons transferred per molecule, for the given species.
@@ -251,15 +250,15 @@ class ZeroDModel:
 
         z_cls = abs(current) / (2 * i_0_cls)
         z_ncls = abs(current) / (2 * i_0_ncls)
-        n_act = NERNST_CONST * ((log(z_cls + ((z_cls ** 2) + 1) ** 0.5) / self.n_cls)
-                                + (log(z_ncls + ((z_ncls ** 2) + 1) ** 0.5) / self.n_ncls))
+        n_act = self.nernst_const * ((log(z_cls + ((z_cls ** 2) + 1) ** 0.5) / self.n_cls)
+                                     + (log(z_ncls + ((z_ncls ** 2) + 1) ** 0.5) / self.n_ncls))
         return n_act
 
-    def negative_concentrations(self) -> bool:
+    def _negative_concentrations(self) -> bool:
         """Return True if any concentration is negative."""
         return any(x < 0.0 for x in [self.c_ox_cls, self.c_red_cls, self.c_ox_ncls, self.c_red_ncls])
 
-    def _mass_transport_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> float:
+    def __mass_transport_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> float:
         """
         Calculates overall cell mass transport overpotential.
         This is equation 8 of [1].
@@ -280,7 +279,7 @@ class ZeroDModel:
 
         """
 
-        if self.negative_concentrations():
+        if self._negative_concentrations():
             raise ValueError('Negative concentration detected')
 
         c_tot_cls = self.c_red_cls + self.c_ox_cls
@@ -300,11 +299,13 @@ class ZeroDModel:
 
         i = abs(current)
 
-        n_mt = NERNST_CONST * ((log(1 - ((c_tot_cls * i) / ((c1_cls * i_lim_cls) + (c2_cls * i)))) / self.n_cls)
-                               + (log(1 - ((c_tot_ncls * i) / ((c1_ncls * i_lim_ncls) + (c2_ncls * i)))) / self.n_ncls))
+        n_mt = self.nernst_const * (
+                (log(1 - ((c_tot_cls * i) / ((c1_cls * i_lim_cls) + (c2_cls * i)))) / self.n_cls)
+                + (log(1 - ((c_tot_ncls * i) / ((c1_ncls * i_lim_ncls) + (c2_ncls * i)))) / self.n_ncls)
+        )
         return n_mt * -1
 
-    def total_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
+    def _total_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
         """
         Calculates total cell overpotential.
         This is the sum of overpotentials of equation 2 in [1].
@@ -333,13 +334,13 @@ class ZeroDModel:
         # calculate overpotentials
         n_ohmic = abs(current) * self.resistance
         n_act = self._activation_overpotential(current, i_0_cls, i_0_ncls)
-        n_mt = self._mass_transport_overpotential(current, i_lim_cls, i_lim_ncls)
+        n_mt = self.__mass_transport_overpotential(current, i_lim_cls, i_lim_ncls)
 
         n_loss = n_ohmic + n_act + n_mt
 
         return n_loss, n_act, n_mt
 
-    def open_circuit_voltage(self) -> float:
+    def _open_circuit_voltage(self) -> float:
         """
         Nernstian calculation of the cell open circuit voltage.
         This is equivalent to equation 3 of [1].
@@ -351,22 +352,22 @@ class ZeroDModel:
 
         """
 
-        if self.negative_concentrations():
+        if self._negative_concentrations():
             raise ValueError('Negative concentration detected')
 
         direction = 1 if self.cls_negolyte else -1
 
         ocv = (self.ocv_50_soc
-               + direction * (((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
-                              + ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls))))
+               + direction * (((self.nernst_const / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
+                              + ((self.nernst_const / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls))))
         return ocv
 
     @staticmethod
-    def cell_voltage(ocv: float, losses: float, charge: bool) -> float:
+    def _cell_voltage(ocv: float, losses: float, charge: bool) -> float:
         """If charging, add overpotentials to OCV, else subtract them."""
         return ocv + losses if charge else ocv - losses
 
-    def coulomb_counter(
+    def _coulomb_counter(
             self,
             current: float,
             cls_degradation: DegradationMechanism = None,
@@ -437,7 +438,7 @@ class ZeroDModel:
         self.delta_ox = delta_ox
         self.delta_red = delta_red
 
-    def revert_concentrations(self) -> None:
+    def _revert_concentrations(self) -> None:
         """Resets concentrations to previous value if a (invalid) negative concentration is calculated."""
         self.c_ox_cls = self.prev_c_ox_cls
         self.c_red_cls = self.prev_c_red_cls

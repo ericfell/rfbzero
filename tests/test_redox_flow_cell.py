@@ -90,11 +90,11 @@ class TestClassRedoxFlowCell:
                           ncls_start_c_ox=0.02, ncls_start_c_red=0.01, ocv_50_soc=1.0, resistance=1, k_0_cls=1e-3,
                           k_0_ncls=1e-3, n_ncls=2)
 
-        i_lim_cls, i_lim_ncls = cell.limiting_concentration(True)
+        i_lim_cls, i_lim_ncls = cell._limiting_concentration(True)
         assert np.isclose(i_lim_cls, 3.85941328)
         assert np.isclose(i_lim_ncls, 7.71882656)
 
-        i_lim_cls, i_lim_ncls = cell.limiting_concentration(False)
+        i_lim_cls, i_lim_ncls = cell._limiting_concentration(False)
         assert np.isclose(i_lim_cls, 7.71882656)
         assert np.isclose(i_lim_ncls, 15.43765312)
 
@@ -108,44 +108,12 @@ class TestClassRedoxFlowCell:
         n_activation = cell._activation_overpotential(current, i_0_cls, i_0_ncls)
         assert np.isclose(n_activation, 0.177392243)
 
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_negative_concentrations(self):
-        raise NotImplementedError
-
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_mass_transport_overpotential(self):
-        """
-        with pytest.raises(ValueError):
-            cell = ZeroDModel(cls_volume=0.005, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01,
-                              ncls_start_c_ox=0.01, ncls_start_c_red=0.01, ocv_50_soc=1.0, resistance=1, k_0_cls=1e-3,
-                              k_0_ncls=1e-3, n_ncls=2)
-            current = 1
-            i_lim_cls = 1
-            i_lim_ncls = 1
-            n_mass = cell._mass_transport_overpotential(True, current, i_lim_cls, i_lim_ncls)
-        """
-
-        raise NotImplementedError
-
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_total_overpotential(self):
-        raise NotImplementedError
-
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_open_circuit_voltage(self):
-        raise NotImplementedError
-
-
-    @pytest.mark.skip(reason="not implemented yet")
-    def test_coulomb_counter(self):
-        raise NotImplementedError
-
     def test_cell_voltage(self):
         ocv = 1.0
         loss = 0.2
 
-        cell_v1 = ZeroDModel.cell_voltage(ocv, loss, True)
-        cell_v2 = ZeroDModel.cell_voltage(ocv, loss, False)
+        cell_v1 = ZeroDModel._cell_voltage(ocv, loss, True)
+        cell_v2 = ZeroDModel._cell_voltage(ocv, loss, False)
 
         assert cell_v1 == 1.2
         assert cell_v2 == 0.8
