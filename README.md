@@ -42,7 +42,7 @@ cell = ZeroDModel(
     cls_start_c_red=0.01,   # molar
     ncls_start_c_ox=0.01,   # molar
     ncls_start_c_red=0.01,  # molar
-    init_ocv=1.0,           # volts
+    ocv_50_soc=1.0,         # volts
     resistance=0.5,         # ohms
     k_0_cls=1e-3,           # cm/s
     k_0_ncls=1e-3,          # cm/s
@@ -52,7 +52,7 @@ cell = ZeroDModel(
 protocol = ConstantCurrent(
     voltage_limit_charge=1.5,      # volts
     voltage_limit_discharge=0.5,   # volts
-    current=0.1,                    # amps
+    current=0.1,                   # amps
 )
 
 # simulate cell via protocol for 1000 seconds
@@ -75,7 +75,7 @@ cell = ZeroDModel(
     cls_start_c_red=0.01,   # molar
     ncls_start_c_ox=0.01,   # molar
     ncls_start_c_red=0.01,  # molar
-    init_ocv=0.0,           # volts
+    ocv_50_soc=0.0,         # volts
     resistance=0.5,         # ohms
     k_0_cls=1e-3,           # cm/s
     k_0_ncls=1e-3,          # cm/s

@@ -34,7 +34,7 @@ class TestClassRedoxFlowCell:
                        cls_start_c_red=red_cls,
                        ncls_start_c_ox=ox_ncls,
                        ncls_start_c_red=red_ncls,
-                       init_ocv=ocv,
+                       ocv_50_soc=ocv,
                        resistance=res,
                        k_0_cls=k_c,
                        k_0_ncls=k_n,
@@ -56,7 +56,7 @@ class TestClassRedoxFlowCell:
                    cls_start_c_red=red_cls,
                    ncls_start_c_ox=ox_ncls,
                    ncls_start_c_red=red_ncls,
-                   init_ocv=ocv,
+                   ocv_50_soc=ocv,
                    resistance=res,
                    k_0_cls=k_c,
                    k_0_ncls=k_n,
@@ -70,7 +70,7 @@ class TestClassRedoxFlowCell:
 
     def test_exchange_current(self):
         cell = ZeroDModel(cls_volume=0.005, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01,
-                          ncls_start_c_ox=0.01, ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3,
+                          ncls_start_c_ox=0.01, ncls_start_c_red=0.01, ocv_50_soc=1.0, resistance=1, k_0_cls=1e-3,
                           k_0_ncls=1e-3, n_ncls=2)
         i_0_cls, i_0_ncls = cell._exchange_current()
         assert np.isclose(i_0_cls, 0.12543093175)
@@ -79,7 +79,7 @@ class TestClassRedoxFlowCell:
     def test_limiting_current(self):
         limiting_c = 0.2
         cell = ZeroDModel(cls_volume=0.005, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01,
-                          ncls_start_c_ox=0.01, ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3,
+                          ncls_start_c_ox=0.01, ncls_start_c_red=0.01, ocv_50_soc=1.0, resistance=1, k_0_cls=1e-3,
                           k_0_ncls=1e-3, n_ncls=2)
 
         i_lim = cell._limiting_current(limiting_c)
@@ -87,7 +87,7 @@ class TestClassRedoxFlowCell:
 
     def test_limiting_concentration(self):
         cell = ZeroDModel(cls_volume=0.005, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.02,
-                          ncls_start_c_ox=0.02, ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3,
+                          ncls_start_c_ox=0.02, ncls_start_c_red=0.01, ocv_50_soc=1.0, resistance=1, k_0_cls=1e-3,
                           k_0_ncls=1e-3, n_ncls=2)
 
         i_lim_cls, i_lim_ncls = cell._limiting_concentration(True)
@@ -100,7 +100,7 @@ class TestClassRedoxFlowCell:
 
     def test_activation_overpotential(self):
         cell = ZeroDModel(cls_volume=0.005, ncls_volume=0.01, cls_start_c_ox=0.01, cls_start_c_red=0.01,
-                          ncls_start_c_ox=0.01, ncls_start_c_red=0.01, init_ocv=1.0, resistance=1, k_0_cls=1e-3,
+                          ncls_start_c_ox=0.01, ncls_start_c_red=0.01, ocv_50_soc=1.0, resistance=1, k_0_cls=1e-3,
                           k_0_ncls=1e-3, n_ncls=2)
         current = 1
         i_0_cls = 0.01

@@ -3,7 +3,8 @@ import numpy as np
 
 from rfbzero.experiment import ConstantCurrent, ConstantCurrentConstantVoltage, ConstantVoltage
 from rfbzero.redox_flow_cell import ZeroDModel
-from rfbzero.degradation import ChemicalDegradation, AutoOxidation, AutoReduction, MultiDegradationMechanism#, Dimerization
+from rfbzero.degradation import ChemicalDegradation, AutoOxidation, AutoReduction, \
+    MultiDegradationMechanism  # , Dimerization
 from rfbzero.crossover import Crossover
 
 
@@ -21,7 +22,7 @@ class TestConstantCurrent:
                           cls_start_c_red=0.01,  # M
                           ncls_start_c_ox=0.01,  # M
                           ncls_start_c_red=0.01,  # M
-                          init_ocv=0.0,  # V
+                          ocv_50_soc=0.0,  # V
                           resistance=1.0,  # ohms
                           k_0_cls=1e-3,  # cm/s
                           k_0_ncls=1e-3,  # cm/s
@@ -57,7 +58,7 @@ class TestConstantVoltage:
                           cls_start_c_red=0.01,  # M
                           ncls_start_c_ox=0.01,  # M
                           ncls_start_c_red=0.01,  # M
-                          init_ocv=0.0,  # V
+                          ocv_50_soc=0.0,  # V
                           resistance=1.0,  # ohms
                           k_0_cls=1e-3,  # cm/s
                           k_0_ncls=1e-3,  # cm/s
@@ -71,12 +72,11 @@ class TestConstantVoltage:
                                   species='red',
                                   )
 
-        protocol = ConstantCurrentConstantVoltage(
+        protocol = ConstantVoltage(
             voltage_limit_charge=0.2,  # volts
             voltage_limit_discharge=-0.2,  # volts
             current_cutoff_charge=0.005,  # amps
             current_cutoff_discharge=-0.005,  # amps
-            current=1.5,  # amps
         )
 
         # putting it all together
@@ -84,7 +84,8 @@ class TestConstantVoltage:
                                    degradation=deg,
                                    duration=1000,  # cycle time to simulate (s)
                                    )
-        expected = [4.809806770737516, 9.616034709809167, 9.61843069453628, 9.611898460659235, 9.611890636955804]
+
+        expected = [4.809806770737513, 9.616034709809167, 9.61843069453628, 9.611898460659237, 9.611890636955808]
         vals = all_results.half_cycle_capacity[:5]
         assert np.isclose(vals, expected).all()
 
@@ -99,7 +100,7 @@ class TestConstantCurrentConstantVoltage:
                               cls_start_c_red=0.01,  # M
                               ncls_start_c_ox=0.01,  # M
                               ncls_start_c_red=0.01,  # M
-                              init_ocv=1.1,  # V
+                              ocv_50_soc=1.1,  # V
                               resistance=0.8,  # ohms
                               k_0_cls=1e-3,  # cm/s
                               k_0_ncls=1e-3,  # cm/s
@@ -138,7 +139,7 @@ class TestConstantCurrentConstantVoltage:
                           cls_start_c_red=0.01,  # M
                           ncls_start_c_ox=0.01,  # M
                           ncls_start_c_red=0.01,  # M
-                          init_ocv=0.0,  # V
+                          ocv_50_soc=0.0,  # V
                           resistance=0.8,  # ohms
                           k_0_cls=1e-3,  # cm/s
                           k_0_ncls=1e-3,  # cm/s
@@ -175,3 +176,84 @@ class TestConstantCurrentConstantVoltage:
         assert np.isclose(vals, expected).all()
 
 
+class TestAsymmetricCurrents:
+    def test_cc(self):
+        deg = ChemicalDegradation(rate_order=2, rate_constant=3e-5, species='red')
+
+        cell_1 = ZeroDModel(cls_volume=0.005,  # L
+                            ncls_volume=0.03,  # L
+                            cls_start_c_ox=0.01,  # M
+                            cls_start_c_red=0.01,  # M
+                            ncls_start_c_ox=0.01,  # M
+                            ncls_start_c_red=0.01,  # M
+                            ocv_50_soc=0.0,  # V
+                            resistance=0.8,  # ohms
+                            k_0_cls=1e-3,  # cm/s
+                            k_0_ncls=1e-3,  # cm/s
+                            )
+        protocol_1 = ConstantCurrent(voltage_limit_charge=0.2,  # V
+                                     voltage_limit_discharge=-0.2,  # V
+                                     current=0.05,  # A
+                                     )
+        all_results_1 = protocol_1.run(cell_model=cell_1,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       degradation=deg,
+                                       )
+        vals_1 = all_results_1.half_cycle_capacity[:5]
+
+        # make identical cell, but define currents for charge and discharge separately
+        cell_2 = ZeroDModel(cls_volume=0.005,  # L
+                            ncls_volume=0.03,  # L
+                            cls_start_c_ox=0.01,  # M
+                            cls_start_c_red=0.01,  # M
+                            ncls_start_c_ox=0.01,  # M
+                            ncls_start_c_red=0.01,  # M
+                            ocv_50_soc=0.0,  # V
+                            resistance=0.8,  # ohms
+                            k_0_cls=1e-3,  # cm/s
+                            k_0_ncls=1e-3,  # cm/s
+                            )
+        protocol_2 = ConstantCurrent(voltage_limit_charge=0.2,  # V
+                                     voltage_limit_discharge=-0.2,  # V
+                                     current_charge=0.05,  # A
+                                     current_discharge=-0.05,  # A
+                                     )
+        all_results_2 = protocol_2.run(cell_model=cell_2,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       degradation=deg,
+                                       )
+        vals_2 = all_results_2.half_cycle_capacity[:5]
+
+        assert vals_1 == vals_2
+
+
+class TestLowCapacity:
+
+    def test_cc(self, capsys):
+        deg = ChemicalDegradation(rate_order=2, rate_constant=10, species='red')
+
+        cell = ZeroDModel(cls_volume=0.005,  # L
+                          ncls_volume=0.03,  # L
+                          cls_start_c_ox=0.01,  # M
+                          cls_start_c_red=0.01,  # M
+                          ncls_start_c_ox=0.01,  # M
+                          ncls_start_c_red=0.01,  # M
+                          ocv_50_soc=0.0,  # V
+                          resistance=0.8,  # ohms
+                          k_0_cls=1e-3,  # cm/s
+                          k_0_ncls=1e-3,  # cm/s
+                          )
+        protocol = ConstantCurrent(voltage_limit_charge=0.2,  # V
+                                   voltage_limit_discharge=-0.2,  # V
+                                   current=0.05,  # A
+                                   )
+        all_results = protocol.run(cell_model=cell,
+                                   duration=1000,  # cycle time to simulate (s)
+                                   degradation=deg,
+                                   )
+
+        warn_out = "capacity is less than 1% of initial CLS capacity."
+        captured = capsys.readouterr()
+
+        cyclestatus = captured.out.strip().rsplit('time steps: ', 1)[1]
+        assert cyclestatus == warn_out

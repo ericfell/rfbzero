@@ -1,5 +1,5 @@
 """
-Methods for cell setup and declaring electrolyte parameters
+Class for cell setup and declaring electrolyte parameters.
 """
 
 from math import log
@@ -34,7 +34,7 @@ class ZeroDModel:
         NCLS initial concentration of oxidized species (M).
     ncls_start_c_red : float
         NCLS initial concentration of reduced species (M).
-    init_ocv : float
+    ocv_50_soc : float
         Cell voltage (formal potentials E_+ - E_-) (V).
         If voltage > 0 then it's a Full cell.
         If voltage = 0 then it's a Symmetric cell.
@@ -66,21 +66,20 @@ class ZeroDModel:
         Total surface area divided by geometric surface area.
         Default is 26.0, as used in [1].
     n_cls : int
-        Number of electrons transferred per active species molecule in the CLS
+        Number of electrons transferred per active species molecule in the CLS.
     n_ncls : int
-        Number of electrons transferred per active species molecule in the NCLS
+        Number of electrons transferred per active species molecule in the NCLS.
     temperature : float
         Temperature of battery and electrolytes (K).
         Default is 298 K (25C).
 
     Notes
     -----
-    Most equations are adapted from [1]. If ZeroDModel has been
-    significant to your research please cite the paper.
+    Most equations are adapted from [1]. If ZeroDModel has been significant to your research please cite the paper.
 
-    [1] Modak, S.; Kwabi, D. G. A Zero-Dimensional Model for Electrochemical
-    Behavior and Capacity Retention in Organic Flow Cells, Journal of The
-    Electrochemical Society, 168, 2021, 080528.
+    [1] Modak, S.; Kwabi, D. G. A Zero-Dimensional Model for Electrochemical Behavior and Capacity Retention
+    in Organic Flow Cells, Journal of The Electrochemical Society, 168, 2021, 080528. DOI 10.1149/1945-7111/ac1c1f
+
     """
 
     def __init__(
@@ -91,7 +90,7 @@ class ZeroDModel:
             cls_start_c_red: float,
             ncls_start_c_ox: float,
             ncls_start_c_red: float,
-            init_ocv: float,
+            ocv_50_soc: float,
             resistance: float,
             k_0_cls: float,
             k_0_ncls: float,
@@ -106,14 +105,13 @@ class ZeroDModel:
             n_ncls: int = 1,
             temperature: float = 298.0
     ) -> None:
-        """Initialize ZeroDModel"""
         self.cls_volume = cls_volume
         self.ncls_volume = ncls_volume
         self.c_ox_cls = cls_start_c_ox
         self.c_red_cls = cls_start_c_red
         self.c_ox_ncls = ncls_start_c_ox
         self.c_red_ncls = ncls_start_c_red
-        self.init_ocv = init_ocv
+        self.ocv_50_soc = ocv_50_soc
         self.resistance = resistance
         self.k_0_cls = k_0_cls
         self.k_0_ncls = k_0_ncls
@@ -141,10 +139,10 @@ class ZeroDModel:
                            'ncls_start_c_ox': self.c_ox_ncls, 'ncls_start_c_red': self.c_red_ncls,
                            'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
                            'time_increment': self.time_increment, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
-                           'init_ocv': self.init_ocv, 'resistance': self.resistance, 'n_cls': self.n_cls,
+                           'ocv_50_soc': self.ocv_50_soc, 'resistance': self.resistance, 'n_cls': self.n_cls,
                            'n_ncls': self.n_ncls, 'temperature': temperature}.items():
 
-            if key not in ['init_ocv', 'resistance',
+            if key not in ['ocv_50_soc', 'resistance',
                            'cls_start_c_ox', 'cls_start_c_red',
                            'ncls_start_c_ox', 'ncls_start_c_red'] and value <= 0.0:
                 raise ValueError(f"'{key}' must be > 0.0")
@@ -158,10 +156,10 @@ class ZeroDModel:
         if not isinstance(self.n_cls, int) or not isinstance(self.n_ncls, int):
             raise ValueError("'n_cls' and 'n_ncls' must be integers")
 
-        if self.init_ocv == 0.0 and self.cls_volume >= self.ncls_volume:
+        if self.ocv_50_soc == 0.0 and self.cls_volume >= self.ncls_volume:
             raise ValueError("'cls_volume' must be < 'ncls_volume' in a symmetric cell")
 
-        if self.init_ocv == 0.0 and self.n_cls != self.n_ncls:
+        if self.ocv_50_soc == 0.0 and self.n_cls != self.n_ncls:
             raise ValueError("Symmetric cell (0 volt OCV) requires 'n_cls' and 'n_ncls' to be equal (same species)")
 
         self.init_cls_capacity = self.cls_volume * self.n_cls * (self.c_ox_cls + self.c_red_cls)
@@ -196,8 +194,8 @@ class ZeroDModel:
     def _limiting_current(self, c_lim: float) -> float:
         """
         Calculates limiting current (i_lim) for a single reservoir.
-        Value returned is in Amps.
-        This is equation 6 of [1].
+        Value returned is in Amps. This is equation 6 of [1].
+
         """
         # div by 1000 for conversion from L to cm^3
         return F * self.k_mt * c_lim * self.geometric_area * 0.001
@@ -215,11 +213,9 @@ class ZeroDModel:
         Returns
         -------
         i_lim_cls : float
-            Limiting current of CLS redox couple
-            at a given timestep (A).
+            Limiting current of CLS redox couple at a given timestep (A).
         i_lim_ncls : float
-            Limiting current of NCLS redox couple
-            at a given timestep (A).
+            Limiting current of NCLS redox couple at a given timestep (A).
 
         """
         if self.cls_negolyte == charge:
@@ -241,16 +237,15 @@ class ZeroDModel:
         current : float
             Instantaneous current flowing (A).
         i_0_cls : float
-            Exchange current of CLS redox couple
-            at a given timestep (A).
+            Exchange current of CLS redox couple at a given timestep (A).
         i_0_ncls : float
-            Exchange current of NCLS redox couple
-            at a given timestep (A).
+            Exchange current of NCLS redox couple at a given timestep (A).
 
         Returns
         -------
         n_act : float
             Combined (CLS+NCLS) activation overpotential (V).
+
         """
 
         z_cls = abs(current) / (2 * i_0_cls)
@@ -260,7 +255,7 @@ class ZeroDModel:
         return n_act
 
     def _negative_concentrations(self) -> bool:
-        """Return True if any concentration is negative"""
+        """Return True if any concentration is negative."""
         return any(x < 0.0 for x in [self.c_ox_cls, self.c_red_cls, self.c_ox_ncls, self.c_red_ncls])
 
     def __mass_transport_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> float:
@@ -273,11 +268,9 @@ class ZeroDModel:
         current : float
             Instantaneous current flowing (A). Positive if charging, negative if discharging.
          i_lim_cls : float
-            Limiting current of CLS redox couple
-            at a given timestep (A).
+            Limiting current of CLS redox couple at a given timestep (A).
         i_lim_ncls : float
-            Limiting current of NCLS redox couple
-            at a given timestep (A).
+            Limiting current of NCLS redox couple at a given timestep (A).
 
         Returns
         -------
@@ -315,18 +308,16 @@ class ZeroDModel:
     def _total_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
         """
         Calculates total cell overpotential.
-        This is the overpotentials of equation 2 in [1].
+        This is the sum of overpotentials of equation 2 in [1].
 
         Parameters
         ----------
         current : float
             Instantaneous current flowing (A). Positive if charging, negative if discharging.
         i_lim_cls : float
-            Limiting current of CLS redox couple
-            at a given timestep (A).
+            Limiting current of CLS redox couple at a given timestep (A).
         i_lim_ncls : float
-            Limiting current of NCLS redox couple
-            at a given timestep (A).
+            Limiting current of NCLS redox couple at a given timestep (A).
 
         Returns
         -------
@@ -351,7 +342,7 @@ class ZeroDModel:
 
     def _open_circuit_voltage(self) -> float:
         """
-        Nernstian calculation of cell's open circuit voltage.
+        Nernstian calculation of the cell open circuit voltage.
         This is equivalent to equation 3 of [1].
 
         Returns
@@ -366,14 +357,14 @@ class ZeroDModel:
 
         direction = 1 if self.cls_negolyte else -1
 
-        ocv = (self.init_ocv
+        ocv = (self.ocv_50_soc
                + direction * (((self.nernst_const / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
                               + ((self.nernst_const / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls))))
         return ocv
 
     @staticmethod
     def _cell_voltage(ocv: float, losses: float, charge: bool) -> float:
-        """If charging, add overpotentials to OCV, else subtract them"""
+        """If charging, add overpotentials to OCV, else subtract them."""
         return ocv + losses if charge else ocv - losses
 
     def _coulomb_counter(
@@ -396,7 +387,7 @@ class ZeroDModel:
         ncls_degradation: DegradationMechanism, optional
             Degradation mechanism for NCLS.
         cross_over : Crossover, optional
-            Crossover class instance
+            Crossover class instance.
 
         Returns
         -------
@@ -448,7 +439,7 @@ class ZeroDModel:
         self.delta_red = delta_red
 
     def _revert_concentrations(self) -> None:
-        """Resets concentrations to previous value if a (invalid) negative concentration is calculated"""
+        """Resets concentrations to previous value if a (invalid) negative concentration is calculated."""
         self.c_ox_cls = self.prev_c_ox_cls
         self.c_red_cls = self.prev_c_red_cls
         self.c_ox_ncls = self.prev_c_ox_ncls

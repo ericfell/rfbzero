@@ -1,5 +1,5 @@
 """
-Methods for defining capacity fade mechanism
+Classes for defining capacity fade mechanisms.
 """
 
 from abc import ABC, abstractmethod
@@ -10,7 +10,7 @@ class DegradationMechanism(ABC):
 
     @abstractmethod
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
-        """Applies desired degradation mechanisms to oxidized/reduced species at each timestep"""
+        """Applies desired degradation mechanisms to oxidized/reduced species at each timestep."""
         raise NotImplementedError
 
 
@@ -94,7 +94,7 @@ class AutoOxidation(DegradationMechanism):
 
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
-        Assumes first order process: red --> ox
+        Assumes first order process: red --> ox.
 
         Parameters
         ----------
@@ -141,7 +141,7 @@ class AutoReduction(DegradationMechanism):
 
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
-        Assumes first order process: ox --> red
+        Assumes first order process: ox --> red.
 
         Parameters
         ----------
@@ -195,7 +195,7 @@ class AutoReductionO2Release(DegradationMechanism):
 
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
-        Assumes first order process: ox --> red
+        Assumes first order process: ox --> red.
 
         Parameters
         ----------
@@ -276,8 +276,7 @@ class MultiDegradationMechanism(DegradationMechanism):
 
 class Dimerization(DegradationMechanism):
     """
-    Provides a reversible dimerization mechanism:
-        ox + red <--> dimer
+    Provides a reversible dimerization mechanism: ox + red <--> dimer.
 
     Parameters
     ----------
@@ -306,7 +305,7 @@ class Dimerization(DegradationMechanism):
 
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
-        Reversible dimerization: ox + red <--> dimer
+        Reversible dimerization: ox + red <--> dimer.
         Returns updated concentrations.
 
         Parameters

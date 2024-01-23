@@ -1,20 +1,20 @@
 """
-Method to include redox-active crossover mechanisms
+Class to include redox-active crossover mechanisms.
 """
 
 
 class Crossover:
     """
-    Provides crossover mechanism for optional use in ZeroDModel
+    Provides crossover mechanism for optional use in ZeroDModel.
 
     Parameters
     ----------
     membrane_thickness : float
-        Membrane thickness (microns)
+        Membrane thickness (microns).
     permeability_ox : float
-        Permeability of oxidized species through membrane (cm^2/s)
+        Permeability of oxidized species through membrane (cm^2/s).
     permeability_red : float
-        Permeability of reduced species through membrane (cm^2/s)
+        Permeability of reduced species through membrane (cm^2/s).
 
 
     Notes
@@ -26,7 +26,6 @@ class Crossover:
     """
 
     def __init__(self, membrane_thickness: float, permeability_ox: float, permeability_red: float) -> None:
-        """Initialize Crossover"""
         self.membrane_thickness = membrane_thickness / 10000  # convert microns to cm
         self.permeability_ox = permeability_ox
         self.permeability_red = permeability_red
