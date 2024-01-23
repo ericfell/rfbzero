@@ -174,7 +174,7 @@ class ZeroDModel:
             print("WARNING: 'time_increment' >= 1 second will result in very coarse data.\
                   \nzero-D model approaches theory as timestep decreases.")
 
-    def __exchange_current(self) -> tuple[float, float]:
+    def _exchange_current(self) -> tuple[float, float]:
         """
         Calculates exchange current (i_0) of redox couples in the CLS and NCLS.
         Value returned is in Amps.
@@ -194,7 +194,7 @@ class ZeroDModel:
                     * (self.c_ox_ncls ** (1 - self.alpha_ncls)) * 0.001)
         return i_0_cls, i_0_ncls
 
-    def __limiting_current(self, c_lim: float) -> float:
+    def _limiting_current(self, c_lim: float) -> float:
         """
         Calculates limiting current (i_lim) for a single reservoir.
         Value returned is in Amps.
@@ -224,15 +224,15 @@ class ZeroDModel:
 
         """
         if self.cls_negolyte == charge:
-            i_lim_cls = self.__limiting_current(self.c_ox_cls) * self.n_cls
-            i_lim_ncls = self.__limiting_current(self.c_red_ncls) * self.n_ncls
+            i_lim_cls = self._limiting_current(self.c_ox_cls) * self.n_cls
+            i_lim_ncls = self._limiting_current(self.c_red_ncls) * self.n_ncls
         else:
-            i_lim_cls = self.__limiting_current(self.c_red_cls) * self.n_cls
-            i_lim_ncls = self.__limiting_current(self.c_ox_ncls) * self.n_ncls
+            i_lim_cls = self._limiting_current(self.c_red_cls) * self.n_cls
+            i_lim_ncls = self._limiting_current(self.c_ox_ncls) * self.n_ncls
 
         return i_lim_cls, i_lim_ncls
 
-    def __activation_overpotential(self, current: float, i_0_cls: float, i_0_ncls: float) -> float:
+    def _activation_overpotential(self, current: float, i_0_cls: float, i_0_ncls: float) -> float:
         """
         Calculates overall cell activation overpotential.
         This is equation 4 of [1].
@@ -338,10 +338,10 @@ class ZeroDModel:
 
         """
 
-        i_0_cls, i_0_ncls = self.__exchange_current()
+        i_0_cls, i_0_ncls = self._exchange_current()
         # calculate overpotentials
         n_ohmic = abs(current) * self.resistance
-        n_act = self.__activation_overpotential(current, i_0_cls, i_0_ncls)
+        n_act = self._activation_overpotential(current, i_0_cls, i_0_ncls)
         n_mt = self.__mass_transport_overpotential(current, i_lim_cls, i_lim_ncls)
 
         n_loss = n_ohmic + n_act + n_mt
