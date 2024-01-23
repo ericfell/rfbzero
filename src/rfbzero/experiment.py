@@ -21,9 +21,9 @@ class CyclingProtocolResults:
     ----------
     duration : float
         Simulation time (s).
-    time_increment: float
+    time_increment : float
         Simulation time step (s).
-    charge_first: bool
+    charge_first : bool
         True if CLS charges first, False if CLS discharges first.
 
     """
@@ -209,15 +209,15 @@ class _CycleMode(ABC):
         True if charging, False if discharging.
     cell_model : ZeroDModel
         Defined cell parameters for simulating.
-    results: CyclingProtocolResults
+    results : CyclingProtocolResults
         Container for the simulation result data.
-    update_concentrations: Callable[[float], None]
+    update_concentrations : Callable[[float], None]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
-    current: float
+    current : float
         Desired initial current for cycling.
-    current_lim_cls: float
+    current_lim_cls : float
         Limiting current of CLS (A).
-    current_lim_ncls: float
+    current_lim_ncls : float
         Limiting current of NCLS (A).
 
     """
@@ -281,13 +281,13 @@ class _ConstantCurrentCycleMode(_CycleMode):
         True if charging, False if discharging.
     cell_model : ZeroDModel
         Defined cell parameters for simulating.
-    results: CyclingProtocolResults
+    results : CyclingProtocolResults
         Container for the simulation result data.
-    update_concentrations: Callable[[float], None]
+    update_concentrations : Callable[[float], None]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
-    current: float
+    current : float
         Desired current for CC cycling during cycling mode (A).
-    voltage_limit: float
+    voltage_limit : float
         Desired voltage limit for CC cycling during cycling mode (V).
     voltage_limit_capacity_check : bool
         True if CC mode, False if constant voltage (CV) mode.
@@ -371,19 +371,19 @@ class _ConstantVoltageCycleMode(_CycleMode):
         True if charging, False if discharging.
     cell_model : ZeroDModel
         Defined cell parameters for simulating.
-    results: CyclingProtocolResults
+    results : CyclingProtocolResults
         Container for the simulation result data.
-    update_concentrations: Callable[[float], None]
+    update_concentrations : Callable[[float], None]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
-    current_cutoff: float
+    current_cutoff : float
         Current cutoff for CV mode. Below it, simulation switches from charge to discharge and vice versa (A).
-    voltage_limit: float
+    voltage_limit : float
         Desired voltage limit for CV cycling during cycling mode (V).
-    current_estimate: float
+    current_estimate : float
         Guess for next step's current value, used for the solver (A).
-    current_lim_cls: float
+    current_lim_cls : float
         Limiting current of CLS (A).
-    current_lim_ncls: float
+    current_lim_ncls : float
         Limiting current of NCLS (A).
 
         """
@@ -601,9 +601,9 @@ class ConstantCurrent(CyclingProtocol):
         Voltage below which cell will switch to charge (V).
     current : float
         Instantaneous current flowing (A).
-    current_charge: float
+    current_charge : float
         Desired charging current for CC cycling (A).
-    current_discharge:
+    current_discharge : float
         Desired discharging current for CC cycling (A).
         Input must be a negative value.
     charge_first : bool
@@ -824,9 +824,9 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         Current above which CV discharging will switch to CC portion of CCCV charge (A).
     current : float
         Instantaneous current flowing (A).
-    current_charge: float
+    current_charge : float
         Desired charging current for CC cycling (A).
-    current_discharge:
+    current_discharge : float
         Desired discharging current for CC cycling (A).
         Input must be a negative value.
     charge_first : bool
