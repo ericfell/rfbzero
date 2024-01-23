@@ -2,7 +2,6 @@
 Methods for cell setup and declaring electrolyte parameters
 """
 
-
 from math import log
 
 import scipy.constants as spc
@@ -10,16 +9,11 @@ import scipy.constants as spc
 from .degradation import DegradationMechanism
 from .crossover import Crossover
 
-
 # Faraday constant (C/mol)
 F = spc.value('Faraday constant')
 
 # Molar gas constant (J/K/mol)
 R = spc.R
-
-# TODO make temperature a variable
-TEMPERATURE = 298  # Kelvins, for S.T.P.
-NERNST_CONST = (R * TEMPERATURE) / F
 
 
 class ZeroDModel:
@@ -75,7 +69,9 @@ class ZeroDModel:
         Number of electrons transferred per active species molecule in the CLS
     n_ncls : int
         Number of electrons transferred per active species molecule in the NCLS
-
+    temperature : float
+        Temperature of battery and electrolytes (K).
+        Default is 298 K (25C).
 
     Notes
     -----
@@ -107,7 +103,8 @@ class ZeroDModel:
             k_mt: float = 0.8,
             roughness_factor: float = 26.0,
             n_cls: int = 1,
-            n_ncls: int = 1
+            n_ncls: int = 1,
+            temperature: float = 298.0
     ) -> None:
         """Initialize ZeroDModel"""
         self.cls_volume = cls_volume
@@ -137,13 +134,15 @@ class ZeroDModel:
         self.delta_ox = 0.0
         self.delta_red = 0.0
 
+        self.nernst_const = (R * temperature) / F
+
         for key, value in {'cls_volume': self.cls_volume, 'ncls_volume': self.ncls_volume, 'k_0_cls': self.k_0_cls,
                            'cls_start_c_ox': self.c_ox_cls, 'cls_start_c_red': self.c_red_cls,
                            'ncls_start_c_ox': self.c_ox_ncls, 'ncls_start_c_red': self.c_red_ncls,
                            'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
                            'time_increment': self.time_increment, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
                            'init_ocv': self.init_ocv, 'resistance': self.resistance, 'n_cls': self.n_cls,
-                           'n_ncls': self.n_ncls}.items():
+                           'n_ncls': self.n_ncls, 'temperature': temperature}.items():
 
             if key not in ['init_ocv', 'resistance',
                            'cls_start_c_ox', 'cls_start_c_red',
@@ -256,8 +255,8 @@ class ZeroDModel:
 
         z_cls = abs(current) / (2 * i_0_cls)
         z_ncls = abs(current) / (2 * i_0_ncls)
-        n_act = NERNST_CONST * ((log(z_cls + ((z_cls ** 2) + 1) ** 0.5) / self.n_cls)
-                                + (log(z_ncls + ((z_ncls ** 2) + 1) ** 0.5) / self.n_ncls))
+        n_act = self.nernst_const * ((log(z_cls + ((z_cls ** 2) + 1) ** 0.5) / self.n_cls)
+                                     + (log(z_ncls + ((z_ncls ** 2) + 1) ** 0.5) / self.n_ncls))
         return n_act
 
     def _negative_concentrations(self) -> bool:
@@ -307,8 +306,10 @@ class ZeroDModel:
 
         i = abs(current)
 
-        n_mt = NERNST_CONST * ((log(1 - ((c_tot_cls * i) / ((c1_cls * i_lim_cls) + (c2_cls * i)))) / self.n_cls)
-                               + (log(1 - ((c_tot_ncls * i) / ((c1_ncls * i_lim_ncls) + (c2_ncls * i)))) / self.n_ncls))
+        n_mt = self.nernst_const * (
+                (log(1 - ((c_tot_cls * i) / ((c1_cls * i_lim_cls) + (c2_cls * i)))) / self.n_cls)
+                + (log(1 - ((c_tot_ncls * i) / ((c1_ncls * i_lim_ncls) + (c2_ncls * i)))) / self.n_ncls)
+        )
         return n_mt * -1
 
     def _total_overpotential(self, current: float, i_lim_cls: float, i_lim_ncls: float) -> tuple[float, float, float]:
@@ -366,8 +367,8 @@ class ZeroDModel:
         direction = 1 if self.cls_negolyte else -1
 
         ocv = (self.init_ocv
-               + direction * (((NERNST_CONST / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
-                              + ((NERNST_CONST / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls))))
+               + direction * (((self.nernst_const / self.n_cls) * log(self.c_red_cls / self.c_ox_cls))
+                              + ((self.nernst_const / self.n_ncls) * log(self.c_ox_ncls / self.c_red_ncls))))
         return ocv
 
     @staticmethod
