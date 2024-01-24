@@ -107,6 +107,9 @@ class AutoOxidation(DegradationMechanism):
         if self.oxidant_stoich < 0:
             raise ValueError("'oxidant_stoich' must be >= 0")
 
+        if (self.oxidant_stoich > 0 and c_oxidant == 0.0) or (self.oxidant_stoich == 0.0 and c_oxidant > 0):
+            raise ValueError("'c_oxidant' and 'oxidant_stoich' must both be zero, or both be non-zero")
+
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
         Defaults to first order process: red --> ox.
@@ -169,6 +172,9 @@ class AutoReduction(DegradationMechanism):
 
         if self.reductant_stoich < 0:
             raise ValueError("'reductant_stoich' must be >= 0")
+
+        if (self.reductant_stoich > 0 and c_reductant == 0.0) or (self.reductant_stoich == 0.0 and c_reductant > 0):
+            raise ValueError("'c_reductant' and 'reductant_stoich' must both be zero, or both be non-zero")
 
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """

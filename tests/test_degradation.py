@@ -47,6 +47,11 @@ class TestAutoOxidation:
         with pytest.raises(ValueError):
             AutoOxidation(rate_constant=constant)
 
+    @pytest.mark.parametrize("c_oxid, stoich", [(0, 1), (-1, -1), (2, -0.01)])
+    def test_auto_ox_stoich(self, c_oxid, stoich):
+        with pytest.raises(ValueError):
+            AutoOxidation(rate_constant=0.1, c_oxidant=c_oxid, oxidant_stoich=stoich)
+
     def test_auto_ox_degrade(self):
         test_autoox = AutoOxidation(rate_constant=0.1)
         c_o, c_r = test_autoox.degrade(c_ox=1, c_red=0.5, timestep=0.1)
@@ -60,6 +65,11 @@ class TestAutoReduction:
     def test_auto_red_init(self, constant):
         with pytest.raises(ValueError):
             AutoReduction(rate_constant=constant)
+
+    @pytest.mark.parametrize("c_reduct, stoich", [(0, 5), (-11, -1), (32, -0.61)])
+    def test_auto_red_stoich(self, c_reduct, stoich):
+        with pytest.raises(ValueError):
+            AutoReduction(rate_constant=0.1, c_reductant=c_reduct, reductant_stoich=stoich)
 
     def test_auto_red_degrade(self):
         test_autored = AutoReduction(rate_constant=0.1)
