@@ -76,25 +76,43 @@ class ChemicalDegradation(DegradationMechanism):
 
 class AutoOxidation(DegradationMechanism):
     """
-    Provides a 1st order auto-oxidation mechanism, (red --> ox) with no loss of active material. This can be thought of
-    as a chemical oxidation of the redox-active, balanced by the reduction of some species not of interest to the model
-    i.e., water splitting (HER). This could occur in a low-potential negolyte and be considered a self-discharge.
+    Provides a 1st order auto-oxidation mechanism, (red --> ox) with no loss of active material. This can be thought
+    of as a chemical oxidation of the redox-active, balanced by an oxidant e.g., water splitting (HER). This could
+    occur in a low-potential negolyte and be considered a self-discharge. If it is desired for the concentration of
+    the oxidant to affect the chemical oxidation rate, the initial oxidant concentration and the stoichiometric factor
+    i.e., red + n*oxidant --> ox + ..., can be input. This could simulate the effect of H2 leaving the system.
 
     Parameters
     ----------
     rate_constant : float
         First order rate of auto-oxidation (1/s).
+    c_oxidant : float
+        Initial concentration of oxidant, defaults to 0.0 (M).
+    oxidant_stoich : int
+        Number of oxidants involved in the chemical oxidation of the redox-active species, defaults to 0.
 
     """
-    def __init__(self, rate_constant: float) -> None:
+
+    def __init__(self, rate_constant: float, c_oxidant: float = 0.0, oxidant_stoich: int = 0) -> None:
         self.rate_constant = rate_constant
+        self.c_oxidant = c_oxidant
+        self.oxidant_stoich = oxidant_stoich
 
         if self.rate_constant <= 0.0:
             raise ValueError("'rate_constant' must be > 0.0")
 
+        if self.c_oxidant < 0.0:
+            raise ValueError("'c_oxidant' must be >= 0.0")
+
+        if self.oxidant_stoich < 0:
+            raise ValueError("'oxidant_stoich' must be >= 0")
+
+        if (self.oxidant_stoich > 0 and c_oxidant == 0.0) or (self.oxidant_stoich == 0 and c_oxidant > 0.0):
+            raise ValueError("'c_oxidant' and 'oxidant_stoich' must both be zero, or both be positive")
+
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
-        Assumes first order process: red --> ox.
+        Defaults to first order process: red --> ox.
 
         Parameters
         ----------
@@ -114,34 +132,53 @@ class AutoOxidation(DegradationMechanism):
 
         """
 
-        delta_concentration = timestep * self.rate_constant * c_red
+        delta_concentration = timestep * self.rate_constant * c_red * (self.c_oxidant ** self.oxidant_stoich)
 
         c_ox += delta_concentration
         c_red -= delta_concentration
+        self.c_oxidant -= delta_concentration * self.oxidant_stoich
+        self.c_oxidant = max(self.c_oxidant, 0.0)
         return c_ox, c_red
 
 
 class AutoReduction(DegradationMechanism):
     """
-    Provides a 1st order auto-reduction mechanism, (ox --> red) with no loss of active material. This can be thought of
-    as a chemical reduction of the redox-active, balanced by the oxidation of some species not of interest to the model
-    i.e., water splitting (OER). This could occur in a high-potential posolyte and be considered a self-discharge.
+    Provides a 1st order auto-reduction mechanism, (ox --> red) with no loss of active material. This can be thought
+    of as a chemical reduction of the redox-active, balanced by a reductant e.g., water splitting (OER). This could
+    occur in a high-potential posolyte and be considered a self-discharge. If it is desired for the concentration of
+    the reductant to affect the chemical reduction rate, the initial reductant concentration and the stoichiometric
+    factor i.e., ox + n*reductant --> red + ..., can be input. This could simulate the effect of O2 leaving the system.
 
     Parameters
     ----------
     rate_constant : float
-        First order rate of auto-oxidation (1/s).
+        First order rate of auto-reduction (1/s).
+    c_reductant : float
+        Initial concentration of reductant, defaults to 0.0 (M).
+    reductant_stoich : int
+        Number of reductants involved in the chemical reduction of the redox-active species, defaults to 0.
 
     """
-    def __init__(self, rate_constant: float) -> None:
+    def __init__(self, rate_constant: float, c_reductant: float = 0.0, reductant_stoich: int = 0) -> None:
         self.rate_constant = rate_constant
+        self.c_reductant = c_reductant
+        self.reductant_stoich = reductant_stoich
 
         if self.rate_constant <= 0.0:
             raise ValueError("'rate_constant' must be > 0.0")
 
+        if self.c_reductant < 0.0:
+            raise ValueError("'c_reductant' must be >= 0.0")
+
+        if self.reductant_stoich < 0:
+            raise ValueError("'reductant_stoich' must be >= 0")
+
+        if (self.reductant_stoich > 0 and c_reductant == 0.0) or (self.reductant_stoich == 0 and c_reductant > 0.0):
+            raise ValueError("'c_reductant' and 'reductant_stoich' must both be zero, or both be positive")
+
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
-        Assumes first order process: ox --> red.
+        Defaults to first order process: ox --> red.
 
         Parameters
         ----------
@@ -161,41 +198,48 @@ class AutoReduction(DegradationMechanism):
 
         """
 
-        delta_concentration = timestep * self.rate_constant * c_ox
+        delta_concentration = timestep * self.rate_constant * c_ox * (self.c_reductant ** self.reductant_stoich)
 
         c_ox -= delta_concentration
         c_red += delta_concentration
+        self.c_reductant -= delta_concentration * self.reductant_stoich
+        self.c_reductant = max(self.c_reductant, 0.0)
         return c_ox, c_red
 
 
-class AutoReductionO2Release(DegradationMechanism):
+class Dimerization(DegradationMechanism):
     """
-    Provides a 1st order auto-reduction mechanism, (ox --> red) with no loss of active material, but a rate constant
-    that decreases linearly with time. Similar to a reduction of the redox-active, balanced by the oxidation of some
-    species not of interest to the model, but that can escape i.e., oxygen evolution (OER). This results in a
-    decreasing rate constant over time.
+    Provides a reversible dimerization mechanism: ox + red <--> dimer.
 
     Parameters
     ----------
-    rate_constant : float
-        First order rate of auto-oxidation (1/s).
-    release_factor : float
-        Rate of gas release e.g. (unit/s).
+    forward_rate_constant : float
+        Second order rate constant for forward reaction (1/(M s)).
+    backward_rate_constant : float
+        First order rate constant for backward reaction (1/s).
+    c_dimer : float
+        Initial concentration of dimer, defaults to 0.0 (M).
 
     """
 
-    def __init__(self, rate_constant: float, release_factor: float) -> None:
-        self.rate_constant = rate_constant
-        self.release_factor = release_factor
+    def __init__(self, forward_rate_constant: float, backward_rate_constant: float, c_dimer: float = 0.0) -> None:
+        self.forward_rate_constant = forward_rate_constant
+        self.backward_rate_constant = backward_rate_constant
+        self.c_dimer = c_dimer
 
-        if self.rate_constant < 0.0:
-            raise ValueError("'rate_constant' must be > 0.0")
-        if self.release_factor < 0.0:
-            raise ValueError("'release_factor' must be > 0.0")
+        if self.forward_rate_constant <= 0.0:
+            raise ValueError("'forward_rate_constant' must be > 0.0")
+
+        if self.backward_rate_constant <= 0.0:
+            raise ValueError("'backward_rate_constant' must be > 0.0")
+
+        if self.c_dimer < 0.0:
+            raise ValueError("'c_dimer' must be >= 0.0")
 
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
         """
-        Assumes first order process: ox --> red.
+        Reversible dimerization: ox + red <--> dimer.
+        Returns updated concentrations.
 
         Parameters
         ----------
@@ -209,20 +253,17 @@ class AutoReductionO2Release(DegradationMechanism):
         Returns
         -------
         c_ox : float
-            Updated concentration of oxidized species (M).
+            Concentration of oxidized species (M).
         c_red : float
-            Updated concentration of reduced species (M).
+            Concentration of reduced species (M).
 
         """
 
-        # normal auto-reduction step
-        delta_concentration = timestep * self.rate_constant * c_ox
-        c_ox -= delta_concentration
-        c_red += delta_concentration
+        delta = timestep * ((self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_dimer))
 
-        # now continuously adjust rate constant based on release factor
-        self.rate_constant -= self.rate_constant * self.release_factor * timestep
-        self.rate_constant = max(self.rate_constant, 0.0)
+        self.c_dimer += delta
+        c_red -= delta
+        c_ox -= delta
 
         return c_ox, c_red
 
@@ -271,65 +312,4 @@ class MultiDegradationMechanism(DegradationMechanism):
 
         for mechanism in self.mechanisms:
             c_ox, c_red = mechanism.degrade(c_ox, c_red, timestep)
-        return c_ox, c_red
-
-
-class Dimerization(DegradationMechanism):
-    """
-    Provides a reversible dimerization mechanism: ox + red <--> dimer.
-
-    Parameters
-    ----------
-    forward_rate_constant : float
-        Second order rate constant for forward reaction (1/(M s)).
-    backward_rate_constant : float
-        First order rate constant for backward reaction (1/s).
-    c_dimer : float
-        Initial concentration of dimer, defaults to 0 (M).
-
-    """
-
-    def __init__(self, forward_rate_constant: float, backward_rate_constant: float, c_dimer: float = 0.0) -> None:
-        self.forward_rate_constant = forward_rate_constant
-        self.backward_rate_constant = backward_rate_constant
-        self.c_dimer = c_dimer
-
-        if self.forward_rate_constant <= 0.0:
-            raise ValueError("'forward_rate_constant' must be > 0.0")
-
-        if self.backward_rate_constant <= 0.0:
-            raise ValueError("'backward_rate_constant' must be > 0.0")
-
-        if self.c_dimer < 0.0:
-            raise ValueError("'c_dimer' must be >= 0.0")
-
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
-        """
-        Reversible dimerization: ox + red <--> dimer.
-        Returns updated concentrations.
-
-        Parameters
-        ----------
-        c_ox : float
-            Concentration of oxidized species (M).
-        c_red : float
-            Concentration of reduced species (M).
-        timestep : float
-            Time interval size (s).
-
-        Returns
-        -------
-        c_ox : float
-            Concentration of oxidized species (M).
-        c_red : float
-            Concentration of reduced species (M).
-
-        """
-
-        delta = timestep * ((self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_dimer))
-
-        self.c_dimer += delta
-        c_red -= delta
-        c_ox -= delta
-
         return c_ox, c_red

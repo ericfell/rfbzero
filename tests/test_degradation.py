@@ -2,7 +2,7 @@ import pytest
 #import numpy as np
 
 from rfbzero.degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction,
-                                 MultiDegradationMechanism, AutoReductionO2Release, Dimerization)
+                                 Dimerization, MultiDegradationMechanism)
 
 
 class TestDegradationMechanism:
@@ -47,6 +47,11 @@ class TestAutoOxidation:
         with pytest.raises(ValueError):
             AutoOxidation(rate_constant=constant)
 
+    @pytest.mark.parametrize("c_oxid, stoich", [(0, 1), (-1, -1), (2, -0.01)])
+    def test_auto_ox_stoich(self, c_oxid, stoich):
+        with pytest.raises(ValueError):
+            AutoOxidation(rate_constant=0.1, c_oxidant=c_oxid, oxidant_stoich=stoich)
+
     def test_auto_ox_degrade(self):
         test_autoox = AutoOxidation(rate_constant=0.1)
         c_o, c_r = test_autoox.degrade(c_ox=1, c_red=0.5, timestep=0.1)
@@ -61,26 +66,16 @@ class TestAutoReduction:
         with pytest.raises(ValueError):
             AutoReduction(rate_constant=constant)
 
+    @pytest.mark.parametrize("c_reduct, stoich", [(0, 5), (-11, -1), (32, -0.61)])
+    def test_auto_red_stoich(self, c_reduct, stoich):
+        with pytest.raises(ValueError):
+            AutoReduction(rate_constant=0.1, c_reductant=c_reduct, reductant_stoich=stoich)
+
     def test_auto_red_degrade(self):
         test_autored = AutoReduction(rate_constant=0.1)
         c_o, c_r = test_autored.degrade(c_ox=1, c_red=0.5, timestep=0.1)
         assert c_o == 0.99
         assert c_r == 0.51
-
-
-class TestAutoReductionO2Release:
-
-    @pytest.mark.parametrize("constant,factor", [(-1, -1), (0, -1), (-0.01, 11)])
-    def test_auto_red_o2_init(self, constant, factor):
-        with pytest.raises(ValueError):
-            AutoReductionO2Release(rate_constant=constant, release_factor=factor)
-
-    def test_auto_red_o2_degrade(self):
-        test_autoredo2 = AutoReductionO2Release(rate_constant=0.1, release_factor=0.01)
-        c_o, c_r = test_autoredo2.degrade(c_ox=1, c_red=0.5, timestep=0.1)
-        assert c_o == 0.99
-        assert c_r == 0.51
-        assert test_autoredo2.rate_constant == 0.0999
 
 
 class TestMultiDegradationMechanism:
