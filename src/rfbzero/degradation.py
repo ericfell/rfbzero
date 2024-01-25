@@ -301,11 +301,13 @@ class Dimerization(DegradationMechanism):
 
         """
 
-        delta = timestep * ((self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_dimer))
+        delta_concentration = timestep * (
+                (self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_dimer)
+        )
 
-        self.c_dimer += delta
-        c_red -= delta
-        c_ox -= delta
+        self.c_dimer += delta_concentration
+        c_red -= delta_concentration
+        c_ox -= delta_concentration
 
         return c_ox, c_red
 
