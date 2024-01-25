@@ -1,8 +1,8 @@
 import pytest
 #import numpy as np
 
-from rfbzero.degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction,
-                                 Dimerization, MultiDegradationMechanism)
+from rfbzero.degradation import (DegradationMechanism, ChemicalDegradationOxidized, ChemicalDegradationReduced,
+                                 AutoOxidation, AutoReduction, Dimerization, MultiDegradationMechanism)
 
 
 class TestDegradationMechanism:
@@ -13,28 +13,24 @@ class TestDegradationMechanism:
 
 
 class TestChemicalDegradation:
-    @pytest.mark.parametrize("order,constant,spec",
-                             [(-1, 0.1, 'red'),
-                              ('one', 0.1, 'red'),
-                              (1, -0.1, 'red'),
-                              (1, 0.1, 'blue')])
-    def test_chem_deg_init(self, order, constant, spec):
+    @pytest.mark.parametrize("order,constant",
+                             [(-1, 0.1),
+                              (-1, -0.1),
+                              (1, -0.1,)])
+    def test_chem_deg_init(self, order, constant):
         with pytest.raises(ValueError):
-            ChemicalDegradation(rate_order=order,
-                                rate_constant=constant,
-                                species=spec)
+            ChemicalDegradationReduced(rate_order=order, rate_constant=constant)
+
+        with pytest.raises(ValueError):
+            ChemicalDegradationReduced(rate_order=order, rate_constant=constant)
 
     def test_chem_deg_degrade(self):
-        test_chemdeg = ChemicalDegradation(rate_order=1,
-                                           rate_constant=0.1,
-                                           species='red')
+        test_chemdeg = ChemicalDegradationReduced(rate_order=1, rate_constant=0.1)
         c_o, c_r = test_chemdeg.degrade(c_ox=1, c_red=0.5, timestep=0.1)
         assert c_o == 1
         assert c_r == 0.495
 
-        test_chemdeg2 = ChemicalDegradation(rate_order=1,
-                                            rate_constant=0.1,
-                                            species='ox')
+        test_chemdeg2 = ChemicalDegradationOxidized(rate_order=1, rate_constant=0.1)
         c_ox, c_red = test_chemdeg2.degrade(c_ox=1, c_red=0.5, timestep=0.1)
         assert c_ox == 0.99
         assert c_red == 0.5
