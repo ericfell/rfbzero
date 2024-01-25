@@ -26,18 +26,21 @@ class Crossover:
     """
 
     def __init__(self, membrane_thickness: float, permeability_ox: float, permeability_red: float) -> None:
-        self.membrane_thickness = membrane_thickness / 10000  # convert microns to cm
+        self.membrane_thickness_cm = membrane_thickness / 10000  # convert microns to cm
         self.permeability_ox = permeability_ox
         self.permeability_red = permeability_red
 
-        if self.membrane_thickness <= 0.0:
-            raise ValueError("'membrane_thickness' must be > 0")
+        if self.membrane_thickness_cm <= 0.0:
+            raise ValueError("'membrane_thickness' must be > 0.0")
 
-        if self.permeability_ox < 0.0 or self.permeability_red < 0.0:
-            raise ValueError("'permeability_ox' and 'permeability_red' cannot be negative")
+        if self.permeability_ox < 0.0:
+            raise ValueError("'permeability_ox' must be >= 0.0")
+
+        if self.permeability_red < 0.0:
+            raise ValueError("'permeability_red' must be >= 0.0")
 
         if self.permeability_ox == 0.0 and self.permeability_red == 0.0:
-            raise ValueError("'permeability_ox' and 'permeability_red' cannot both be zero")
+            raise ValueError("'permeability_ox' and 'permeability_red' cannot both be 0.0")
 
     def crossover(
             self,
@@ -46,8 +49,8 @@ class Crossover:
             c_red_cls: float,
             c_ox_ncls: float,
             c_red_ncls: float,
-            vol_cls: float,
-            vol_ncls: float,
+            cls_volume: float,
+            ncls_volume: float,
             timestep: float
     ) -> tuple[float, float, float, float, float, float]:
         """
@@ -65,9 +68,9 @@ class Crossover:
             NCLS concentration of oxidized species (M).
         c_red_ncls : float
             NCLS concentration of reduced species (M).
-        vol_cls : float
+        cls_volume : float
             Volume of CLS reservoir (L).
-        vol_ncls : float
+        ncls_volume : float
             Volume of NCLS reservoir (L).
         timestep : float
             Time interval size (s).
@@ -90,7 +93,7 @@ class Crossover:
         """
 
         # Cell geometric area divided by membrane thickness (cm^2/cm)
-        membrane_constant = geometric_area / self.membrane_thickness
+        membrane_constant = geometric_area / self.membrane_thickness_cm
 
         # driving force from concentration differences (M)
         c_ox_difference = c_ox_cls - c_ox_ncls
@@ -101,10 +104,10 @@ class Crossover:
         delta_red_mols = timestep * self.permeability_red * membrane_constant * (c_red_difference / 1000)
 
         # update concentrations (M)
-        c_ox_cls -= delta_ox_mols / vol_cls
-        c_ox_ncls += delta_ox_mols / vol_ncls
+        c_ox_cls -= delta_ox_mols / cls_volume
+        c_ox_ncls += delta_ox_mols / ncls_volume
 
-        c_red_cls -= delta_red_mols / vol_cls
-        c_red_ncls += delta_red_mols / vol_ncls
+        c_red_cls -= delta_red_mols / cls_volume
+        c_red_ncls += delta_red_mols / ncls_volume
 
         return c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox_mols, delta_red_mols

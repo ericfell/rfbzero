@@ -58,12 +58,12 @@ class CyclingProtocolResults:
         self.c_ox_ncls: list[float] = [0.0] * self.max_steps
         #: The NCLS concentration of reduced species (M), at each time step.
         self.c_red_ncls: list[float] = [0.0] * self.max_steps
-        #: The concentration difference (CLS-NCLS) of oxidized species (M), at each time step.
+        #: Oxidized species crossing at given timestep (mol).
         #: Only meaningful for symmetric cell.
-        self.delta_ox: list[float] = [0.0] * self.max_steps
-        #: The concentration difference (CLS-NCLS) of reduced species (M), at each time step.
+        self.delta_ox_mols: list[float] = [0.0] * self.max_steps
+        #: Reduced species crossing at given timestep (mol).
         #: Only meaningful for symmetric cell.
-        self.delta_red: list[float] = [0.0] * self.max_steps
+        self.delta_red_mols: list[float] = [0.0] * self.max_steps
         #: The CLS state of charge, at each time step.
         self.soc_cls: list[float] = [0.0] * self.max_steps
         #: The NCLS state of charge, at each time step.
@@ -133,8 +133,8 @@ class CyclingProtocolResults:
         self.c_red_cls[self.step] = cls_red
         self.c_ox_ncls[self.step] = ncls_ox
         self.c_red_ncls[self.step] = ncls_red
-        self.delta_ox[self.step] = cell_model.delta_ox
-        self.delta_red[self.step] = cell_model.delta_red
+        self.delta_ox_mols[self.step] = cell_model.delta_ox_mols
+        self.delta_red_mols[self.step] = cell_model.delta_red_mols
 
         # Compute state-of-charge
         if self.compute_soc:
@@ -178,8 +178,8 @@ class CyclingProtocolResults:
         self.c_red_cls = self.c_red_cls[:self.step]
         self.c_ox_ncls = self.c_ox_ncls[:self.step]
         self.c_red_ncls = self.c_red_ncls[:self.step]
-        self.delta_ox = self.delta_ox[:self.step]
-        self.delta_red = self.delta_red[:self.step]
+        self.delta_ox_mols = self.delta_ox_mols[:self.step]
+        self.delta_red_mols = self.delta_red_mols[:self.step]
         self.soc_cls = self.soc_cls[:self.step]
         self.soc_ncls = self.soc_ncls[:self.step]
 
