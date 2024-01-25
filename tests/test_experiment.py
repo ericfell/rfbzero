@@ -26,8 +26,8 @@ class TestConstantCurrent:
                           resistance=1.0,  # ohms
                           k_0_cls=1e-3,  # cm/s
                           k_0_ncls=1e-3,  # cm/s
-                          n_cls=1,  # electrons
-                          n_ncls=1,  # electrons
+                          num_electrons_cls=1,  # electrons
+                          num_electrons_ncls=1,  # electrons
                           )
 
         # define degradation mechanisms
@@ -62,8 +62,8 @@ class TestConstantVoltage:
                           resistance=1.0,  # ohms
                           k_0_cls=1e-3,  # cm/s
                           k_0_ncls=1e-3,  # cm/s
-                          n_cls=1,  # electrons
-                          n_ncls=1,  # electrons
+                          num_electrons_cls=1,  # electrons
+                          num_electrons_ncls=1,  # electrons
                           )
 
         # define degradation mechanisms
@@ -104,8 +104,8 @@ class TestConstantCurrentConstantVoltage:
                               resistance=0.8,  # ohms
                               k_0_cls=1e-3,  # cm/s
                               k_0_ncls=1e-3,  # cm/s
-                              n_cls=1,  # electrons
-                              n_ncls=1,  # electrons
+                              num_electrons_cls=1,  # electrons
+                              num_electrons_ncls=1,  # electrons
                               )
 
             # define degradation mechanisms
@@ -143,8 +143,8 @@ class TestConstantCurrentConstantVoltage:
                           resistance=0.8,  # ohms
                           k_0_cls=1e-3,  # cm/s
                           k_0_ncls=1e-3,  # cm/s
-                          n_cls=1,  # electrons
-                          n_ncls=1,  # electrons
+                          num_electrons_cls=1,  # electrons
+                          num_electrons_ncls=1,  # electrons
                           )
 
         # define degradation mechanisms

@@ -74,7 +74,7 @@ class CyclingProtocolResults:
         #: The combined (CLS+NCLS) mass transport overpotential (V), at each time step.
         self.mt: list[float] = [0.0] * self.max_steps
         #: The total cell overpotential (V), at each time step.
-        self.loss: list[float] = [0.0] * self.max_steps
+        self.total_overpotential: list[float] = [0.0] * self.max_steps
 
         # Total number of cycles is unknown at start, thus list sizes are undetermined
         self.capacity = 0.0
@@ -107,7 +107,7 @@ class CyclingProtocolResults:
             ocv: float,
             n_act: float = 0.0,
             n_mt: float = 0.0,
-            losses: float = 0.0
+            total_overpotential: float = 0.0
     ) -> None:
         """Records simulation data at valid time steps."""
         # Update capacity
@@ -119,10 +119,10 @@ class CyclingProtocolResults:
         self.ocv[self.step] = ocv
         self.step_is_charge[self.step] = charge
 
-        # Record overpotentials and total loss
+        # Record overpotentials and total total_overpotential
         self.act[self.step] = n_act
         self.mt[self.step] = n_mt
-        self.loss[self.step] = losses
+        self.total_overpotential[self.step] = total_overpotential
 
         # Record species concentrations
         cls_ox = cell_model.c_ox_cls
@@ -185,7 +185,7 @@ class CyclingProtocolResults:
 
         self.act = self.act[:self.step]
         self.mt = self.mt[:self.step]
-        self.loss = self.loss[:self.step]
+        self.total_overpotential = self.total_overpotential[:self.step]
 
 
 class CycleStatus(str, Enum):
@@ -317,9 +317,13 @@ class _ConstantCurrentCycleMode(_CycleMode):
         if abs(self.current) >= min(self.current_lim_cls, self.current_lim_ncls):
             return CycleStatus.LIMITING_CURRENT_REACHED
 
-        losses, *_ = self.cell_model._total_overpotential(self.current, self.current_lim_cls, self.current_lim_ncls)
+        total_overpotential, *_ = self.cell_model._total_overpotential(
+            self.current,
+            self.current_lim_cls,
+            self.current_lim_ncls
+        )
         ocv = self.cell_model._open_circuit_voltage()
-        cell_v = self.cell_model._cell_voltage(ocv, losses, self.charge)
+        cell_v = self.cell_model._cell_voltage(ocv, total_overpotential, self.charge)
 
         if self.charge and cell_v >= self.voltage_limit or not self.charge and cell_v <= self.voltage_limit:
             return CycleStatus.VOLTAGE_LIMIT_REACHED
@@ -344,10 +348,10 @@ class _ConstantCurrentCycleMode(_CycleMode):
             return self._check_capacity(CycleStatus.NEGATIVE_CONCENTRATIONS)
 
         # Calculate overpotentials and the resulting cell voltage
-        losses, n_act, n_mt = self.cell_model._total_overpotential(
+        total_overpotential, n_act, n_mt = self.cell_model._total_overpotential(
             self.current, self.current_lim_cls, self.current_lim_ncls)
         ocv = self.cell_model._open_circuit_voltage()
-        cell_v = self.cell_model._cell_voltage(ocv, losses, self.charge)
+        cell_v = self.cell_model._cell_voltage(ocv, total_overpotential, self.charge)
 
         # Check if the voltage limit is reached
         if self.charge and cell_v >= self.voltage_limit or not self.charge and cell_v <= self.voltage_limit:
@@ -356,7 +360,16 @@ class _ConstantCurrentCycleMode(_CycleMode):
                 cycle_status = self._check_capacity(cycle_status)
 
         # Update results
-        self.results._record_step(self.cell_model, self.charge, self.current, cell_v, ocv, n_act, n_mt, losses)
+        self.results._record_step(
+            self.cell_model,
+            self.charge,
+            self.current,
+            cell_v,
+            ocv,
+            n_act,
+            n_mt,
+            total_overpotential
+        )
 
         return self._check_time(cycle_status)
 
@@ -442,7 +455,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
     def __find_min_current(self, ocv: float) -> None:
         """
         Solves the current at a given timestep of constant voltage cycling.
-        Attempts to minimize the difference of voltage, OCV, and losses (function of current).
+        Attempts to minimize the difference of voltage, OCV, and total overpotential (function of current).
 
         """
 
@@ -600,7 +613,7 @@ class ConstantCurrent(CyclingProtocol):
     voltage_limit_discharge : float
         Voltage below which cell will switch to charge (V).
     current : float
-        Instantaneous current flowing (A).
+        Current (A) value used for charging. Negative of this value used for discharging current.
     current_charge : float
         Desired charging current for CC cycling (A).
     current_discharge : float
@@ -823,7 +836,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
     current_cutoff_discharge : float
         Current above which CV discharging will switch to CC portion of CCCV charge (A).
     current : float
-        Instantaneous current flowing (A).
+        Current (A) value used for charging. Negative of this value used for discharging current.
     current_charge : float
         Desired charging current for CC cycling (A).
     current_discharge : float
