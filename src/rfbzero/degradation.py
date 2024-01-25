@@ -314,9 +314,9 @@ class Dimerization(DegradationMechanism):
 
 class MultiDegradationMechanism(DegradationMechanism):
     """
-    Provides option to input multiple degradation mechanisms available within the DegradationMechanism abstract class.
+    Provides usage of multiple degradation mechanisms that implement the DegradationMechanism abstract base class.
     Allows for different and/or multiple mechanisms to be applied to reduced and/or oxidized species. Degradation
-    mechanisms are applied in the same order they are inputted.
+    mechanisms are applied in the same order as the input list.
 
     Parameters
     ----------
