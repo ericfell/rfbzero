@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 
 class DegradationMechanism(ABC):
-    """Base class to be overridden by specific degradation mechanisms."""
+    """Abstract base class to be implemented by specific degradation mechanisms."""
 
     @abstractmethod
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
@@ -34,8 +34,8 @@ class ChemicalDegradation(DegradationMechanism):
         self.rate_constant = rate_constant
         self.species = species
 
-        if not isinstance(self.rate_order, int) or self.rate_order < 0:
-            raise ValueError("'rate_order' must be an integer")
+        if self.rate_order < 0:
+            raise ValueError("'rate_order' must be >= 0")
 
         if self.rate_constant <= 0.0:
             raise ValueError("'rate_constant' must be > 0.0")
