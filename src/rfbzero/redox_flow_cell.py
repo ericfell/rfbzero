@@ -403,11 +403,16 @@ class ZeroDModel:
         delta_cls = ((self.time_increment * current) / (F * self.n_cls * self.cls_volume)) * direction
         delta_ncls = ((self.time_increment * current) / (F * self.n_ncls * self.ncls_volume)) * direction
 
+        self.prev_c_ox_cls = self.c_ox_cls
+        self.prev_c_red_cls = self.c_red_cls
+        self.prev_c_ox_ncls = self.c_ox_ncls
+        self.prev_c_red_ncls = self.c_red_ncls
+
         # update CLS and NCLS concentrations
-        c_ox_cls = self.c_ox_cls - delta_cls
-        c_red_cls = self.c_red_cls + delta_cls
-        c_ox_ncls = self.c_ox_ncls + delta_ncls
-        c_red_ncls = self.c_red_ncls - delta_ncls
+        new_c_ox_cls = self.c_ox_cls - delta_cls
+        new_c_red_cls = self.c_red_cls + delta_cls
+        new_c_ox_ncls = self.c_ox_ncls + delta_ncls
+        new_c_red_ncls = self.c_red_ncls - delta_ncls
 
         # for no crossover situation
         delta_ox = 0.0
@@ -415,25 +420,31 @@ class ZeroDModel:
 
         # Coulomb counting from optional degradation and/or crossover mechanisms
         if cls_degradation is not None:
-            c_ox_cls, c_red_cls = cls_degradation.degrade(c_ox_cls, c_red_cls, self.time_increment)
+            delta_ox_cls, delta_red_cls = cls_degradation.degrade(self.c_ox_cls, self.c_red_cls,
+                                                                  self.time_increment)
+            new_c_ox_cls += delta_ox_cls
+            new_c_red_cls += delta_red_cls
 
         if ncls_degradation is not None:
-            c_ox_ncls, c_red_ncls = ncls_degradation.degrade(c_ox_ncls, c_red_ncls, self.time_increment)
+            delta_ox_ncls, delta_red_ncls = ncls_degradation.degrade(self.c_ox_ncls, self.c_red_ncls,
+                                                                     self.time_increment)
+            new_c_ox_ncls += delta_ox_ncls
+            new_c_red_ncls += delta_red_ncls
 
         if cross_over is not None:
-            (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox,
-             delta_red) = cross_over.crossover(self.geometric_area, c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
-                                               self.cls_volume, self.ncls_volume, self.time_increment)
-        # update concentrations to self
-        self.prev_c_ox_cls = self.c_ox_cls
-        self.prev_c_red_cls = self.c_red_cls
-        self.prev_c_ox_ncls = self.c_ox_ncls
-        self.prev_c_red_ncls = self.c_red_ncls
+            delta_ox_cls, delta_red_cls, delta_ox_ncls, delta_red_ncls, delta_ox_mols, delta_red_mols = \
+                cross_over.crossover(self.geometric_area, self.c_ox_cls, self.c_red_cls, self.c_ox_ncls, self.c_red_ncls,
+                                     self.cls_volume, self.ncls_volume, self.time_increment)
+            new_c_ox_cls += delta_ox_cls
+            new_c_red_cls += delta_red_cls
+            new_c_ox_ncls += delta_ox_ncls
+            new_c_red_ncls += delta_red_ncls
 
-        self.c_ox_cls = c_ox_cls
-        self.c_red_cls = c_red_cls
-        self.c_ox_ncls = c_ox_ncls
-        self.c_red_ncls = c_red_ncls
+        # Update new concentrations to self
+        self.c_ox_cls = new_c_ox_cls
+        self.c_red_cls = new_c_red_cls
+        self.c_ox_ncls = new_c_ox_ncls
+        self.c_red_ncls = new_c_red_ncls
 
         self.delta_ox = delta_ox
         self.delta_red = delta_red
