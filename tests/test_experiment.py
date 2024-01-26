@@ -3,7 +3,7 @@ import numpy as np
 
 from rfbzero.experiment import ConstantCurrent, ConstantCurrentConstantVoltage, ConstantVoltage
 from rfbzero.redox_flow_cell import ZeroDModel
-from rfbzero.degradation import ChemicalDegradation, AutoOxidation, AutoReduction, \
+from rfbzero.degradation import ChemicalDegradationOxidized, ChemicalDegradationReduced, AutoOxidation, AutoReduction, \
     MultiDegradationMechanism  # , Dimerization
 from rfbzero.crossover import Crossover
 
@@ -67,10 +67,9 @@ class TestConstantVoltage:
                           )
 
         # define degradation mechanisms
-        deg = ChemicalDegradation(rate_order=1,
-                                  rate_constant=1e-5,  # 1/s
-                                  species='red',
-                                  )
+        deg = ChemicalDegradationReduced(rate_order=1,
+                                         rate_constant=1e-5,  # 1/s
+                                         )
 
         protocol = ConstantVoltage(
             voltage_limit_charge=0.2,  # volts
@@ -109,7 +108,7 @@ class TestConstantCurrentConstantVoltage:
                               )
 
             # define degradation mechanisms
-            deg1 = ChemicalDegradation(rate_order=2, rate_constant=5e-5, species='red')
+            deg1 = ChemicalDegradationReduced(rate_order=2, rate_constant=5e-5)
 
             deg2 = AutoOxidation(rate_constant=1e-4)
 
@@ -148,7 +147,7 @@ class TestConstantCurrentConstantVoltage:
                           )
 
         # define degradation mechanisms
-        deg1 = ChemicalDegradation(rate_order=2, rate_constant=5e-5, species='red')
+        deg1 = ChemicalDegradationReduced(rate_order=2, rate_constant=5e-5)
 
         deg2 = AutoOxidation(rate_constant=1e-4)
 
@@ -178,7 +177,7 @@ class TestConstantCurrentConstantVoltage:
 
 class TestAsymmetricCurrents:
     def test_cc(self):
-        deg = ChemicalDegradation(rate_order=2, rate_constant=3e-5, species='red')
+        deg = ChemicalDegradationReduced(rate_order=2, rate_constant=3e-5)
 
         cell_1 = ZeroDModel(cls_volume=0.005,  # L
                             ncls_volume=0.03,  # L
@@ -230,7 +229,7 @@ class TestAsymmetricCurrents:
 class TestLowCapacity:
 
     def test_cc(self, capsys):
-        deg = ChemicalDegradation(rate_order=2, rate_constant=10, species='red')
+        deg = ChemicalDegradationReduced(rate_order=2, rate_constant=10)
 
         cell = ZeroDModel(cls_volume=0.005,  # L
                           ncls_volume=0.03,  # L
