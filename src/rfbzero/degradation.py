@@ -6,47 +6,41 @@ from abc import ABC, abstractmethod
 
 
 class DegradationMechanism(ABC):
-    """Base class to be overridden by specific degradation mechanisms."""
+    """Abstract base class to be implemented by specific degradation mechanisms."""
 
     @abstractmethod
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
         """Applies desired degradation mechanisms to oxidized/reduced species at each time step."""
         raise NotImplementedError
 
 
-class ChemicalDegradation(DegradationMechanism):
+class ChemicalDegradationOxidized(DegradationMechanism):
     """
-    Provides an N-th order chemical degradation mechanism.
+    Provides an N-th order chemical degradation mechanism for an oxidized species.
 
     Parameters
     ----------
     rate_order : int
         Rate order for chemical degradation reaction.
     rate_constant : float
-        N-th order rate constant of chemical oxidation (unit is rate order-dependent).
-    species : str
-        Species ('red' or 'ox') undergoing chemical degradation.
+        N-th order rate constant of chemical degradation of oxidized species (unit is rate order-dependent).
 
     """
 
-    def __init__(self, rate_order: int, rate_constant: float, species: str = 'red') -> None:
+    def __init__(self, rate_order: int, rate_constant: float) -> None:
         self.rate_order = rate_order
         self.rate_constant = rate_constant
-        self.species = species
 
-        if not isinstance(self.rate_order, int) or self.rate_order < 0:
-            raise ValueError("'rate_order' must be an integer")
+        if self.rate_order < 0:
+            raise ValueError("'rate_order' must be >= 0")
 
         if self.rate_constant <= 0.0:
             raise ValueError("'rate_constant' must be > 0.0")
 
-        if self.species not in ['red', 'ox']:
-            raise ValueError(f"Invalid value: {self.species}. 'species' options: 'red', 'ox' ")
-
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
         """
-        N-th order chemical degradation of N*[redox-active species] --> [redox-inactive species].
-        Returns updated concentrations. Concentration may be unchanged if species does not degrade.
+        Applies N-th order chemical degradation of N*[redox-active species] --> [redox-inactive species] at each
+        time step. Returns updated concentrations; concentration may be unchanged if species does not degrade.
 
         Parameters
         ----------
@@ -54,23 +48,69 @@ class ChemicalDegradation(DegradationMechanism):
             Concentration of oxidized species (M).
         c_red : float
             Concentration of reduced species (M).
-        timestep : float
+        time_step : float
             Time interval size (s).
 
         Returns
         -------
         c_ox : float
-            Concentration of oxidized species (M).
+            Updated concentration of oxidized species (M).
         c_red : float
-            Concentration of reduced species (M).
+            Unchanged concentration of reduced species (M).
 
         """
 
-        if self.species == 'red':
-            c_red -= (timestep * self.rate_constant * (c_red**self.rate_order))
-        else:
-            c_ox -= (timestep * self.rate_constant * (c_ox**self.rate_order))
+        c_ox -= (time_step * self.rate_constant * (c_ox ** self.rate_order))
+        return c_ox, c_red
 
+
+class ChemicalDegradationReduced(DegradationMechanism):
+    """
+    Provides an N-th order chemical degradation mechanism for a reduced species.
+
+    Parameters
+    ----------
+    rate_order : int
+        Rate order for chemical degradation reaction.
+    rate_constant : float
+        N-th order rate constant of chemical degradation of reduced species (unit is rate order-dependent).
+
+    """
+
+    def __init__(self, rate_order: int, rate_constant: float) -> None:
+        self.rate_order = rate_order
+        self.rate_constant = rate_constant
+
+        if self.rate_order < 0:
+            raise ValueError("'rate_order' must be >= 0")
+
+        if self.rate_constant <= 0.0:
+            raise ValueError("'rate_constant' must be > 0.0")
+
+    def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
+        """
+        Applies N-th order chemical degradation of N*[redox-active species] --> [redox-inactive species] at each
+        time step. Returns updated concentrations; concentration may be unchanged if species does not degrade.
+
+        Parameters
+        ----------
+        c_ox : float
+            Concentration of oxidized species (M).
+        c_red : float
+            Concentration of reduced species (M).
+        time_step : float
+            Time interval size (s).
+
+        Returns
+        -------
+        c_ox : float
+            Unchanged concentration of oxidized species (M).
+        c_red : float
+            Updated concentration of reduced species (M).
+
+        """
+
+        c_red -= (time_step * self.rate_constant * (c_red ** self.rate_order))
         return c_ox, c_red
 
 
@@ -110,8 +150,9 @@ class AutoOxidation(DegradationMechanism):
         if (self.oxidant_stoich > 0 and c_oxidant == 0.0) or (self.oxidant_stoich == 0 and c_oxidant > 0.0):
             raise ValueError("'c_oxidant' and 'oxidant_stoich' must both be zero, or both be positive")
 
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
         """
+        Applies an auto-oxidation mechanism to oxidized/reduced species at each time step.
         Defaults to first order process: red --> ox.
 
         Parameters
@@ -120,7 +161,7 @@ class AutoOxidation(DegradationMechanism):
             Concentration of oxidized species (M).
         c_red : float
             Concentration of reduced species (M).
-        timestep : float
+        time_step : float
             Time interval size (s).
 
         Returns
@@ -132,7 +173,7 @@ class AutoOxidation(DegradationMechanism):
 
         """
 
-        delta_concentration = timestep * self.rate_constant * c_red * (self.c_oxidant ** self.oxidant_stoich)
+        delta_concentration = time_step * self.rate_constant * c_red * (self.c_oxidant ** self.oxidant_stoich)
 
         c_ox += delta_concentration
         c_red -= delta_concentration
@@ -176,8 +217,9 @@ class AutoReduction(DegradationMechanism):
         if (self.reductant_stoich > 0 and c_reductant == 0.0) or (self.reductant_stoich == 0 and c_reductant > 0.0):
             raise ValueError("'c_reductant' and 'reductant_stoich' must both be zero, or both be positive")
 
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
         """
+        Applies an auto-reduction mechanism to oxidized/reduced species at each time step.
         Defaults to first order process: ox --> red.
 
         Parameters
@@ -186,7 +228,7 @@ class AutoReduction(DegradationMechanism):
             Concentration of oxidized species (M).
         c_red : float
             Concentration of reduced species (M).
-        timestep : float
+        time_step : float
             Time interval size (s).
 
         Returns
@@ -198,7 +240,7 @@ class AutoReduction(DegradationMechanism):
 
         """
 
-        delta_concentration = timestep * self.rate_constant * c_ox * (self.c_reductant ** self.reductant_stoich)
+        delta_concentration = time_step * self.rate_constant * c_ox * (self.c_reductant ** self.reductant_stoich)
 
         c_ox -= delta_concentration
         c_red += delta_concentration
@@ -236,9 +278,9 @@ class Dimerization(DegradationMechanism):
         if self.c_dimer < 0.0:
             raise ValueError("'c_dimer' must be >= 0.0")
 
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
         """
-        Reversible dimerization: ox + red <--> dimer.
+        Applies a reversible dimerization mechanism to oxidized/reduced species at each time step.
         Returns updated concentrations.
 
         Parameters
@@ -247,7 +289,7 @@ class Dimerization(DegradationMechanism):
             Concentration of oxidized species (M).
         c_red : float
             Concentration of reduced species (M).
-        timestep : float
+        time_step : float
             Time interval size (s).
 
         Returns
@@ -259,20 +301,22 @@ class Dimerization(DegradationMechanism):
 
         """
 
-        delta = timestep * ((self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_dimer))
+        delta_concentration = time_step * (
+                (self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_dimer)
+        )
 
-        self.c_dimer += delta
-        c_red -= delta
-        c_ox -= delta
+        self.c_dimer += delta_concentration
+        c_red -= delta_concentration
+        c_ox -= delta_concentration
 
         return c_ox, c_red
 
 
 class MultiDegradationMechanism(DegradationMechanism):
     """
-    Provides option to input multiple degradation mechanisms available within the DegradationMechanism abstract class.
+    Provides usage of multiple degradation mechanisms that implement the DegradationMechanism abstract base class.
     Allows for different and/or multiple mechanisms to be applied to reduced and/or oxidized species. Degradation
-    mechanisms are applied in the same order they are inputted.
+    mechanisms are applied in the same order as the input list.
 
     Parameters
     ----------
@@ -287,9 +331,9 @@ class MultiDegradationMechanism(DegradationMechanism):
             if not isinstance(mechanism, DegradationMechanism):
                 raise ValueError(f"Mechanism {mechanism} is not of type DegradationMechanism")
 
-    def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
+    def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
         """
-        Input of different degradation mechanisms.
+        Applies multiple degradation mechanisms to oxidized/reduced species at each time step.
         Concentration may be unchanged if species does not degrade.
 
         Parameters
@@ -298,7 +342,7 @@ class MultiDegradationMechanism(DegradationMechanism):
             Concentration of oxidized species (M).
         c_red : float
             Concentration of reduced species (M).
-        timestep : float
+        time_step : float
             Time interval size (s).
 
         Returns
@@ -311,5 +355,5 @@ class MultiDegradationMechanism(DegradationMechanism):
         """
 
         for mechanism in self.mechanisms:
-            c_ox, c_red = mechanism.degrade(c_ox, c_red, timestep)
+            c_ox, c_red = mechanism.degrade(c_ox, c_red, time_step)
         return c_ox, c_red

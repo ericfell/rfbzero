@@ -1,8 +1,8 @@
 import pytest
 #import numpy as np
 
-from rfbzero.degradation import (DegradationMechanism, ChemicalDegradation, AutoOxidation, AutoReduction,
-                                 Dimerization, MultiDegradationMechanism)
+from rfbzero.degradation import (DegradationMechanism, ChemicalDegradationOxidized, ChemicalDegradationReduced,
+                                 AutoOxidation, AutoReduction, Dimerization, MultiDegradationMechanism)
 
 
 class TestDegradationMechanism:
@@ -13,29 +13,25 @@ class TestDegradationMechanism:
 
 
 class TestChemicalDegradation:
-    @pytest.mark.parametrize("order,constant,spec",
-                             [(-1, 0.1, 'red'),
-                              ('one', 0.1, 'red'),
-                              (1, -0.1, 'red'),
-                              (1, 0.1, 'blue')])
-    def test_chem_deg_init(self, order, constant, spec):
+    @pytest.mark.parametrize("order,constant",
+                             [(-1, 0.1),
+                              (-1, -0.1),
+                              (1, -0.1,)])
+    def test_chem_deg_init(self, order, constant):
         with pytest.raises(ValueError):
-            ChemicalDegradation(rate_order=order,
-                                rate_constant=constant,
-                                species=spec)
+            ChemicalDegradationReduced(rate_order=order, rate_constant=constant)
+
+        with pytest.raises(ValueError):
+            ChemicalDegradationReduced(rate_order=order, rate_constant=constant)
 
     def test_chem_deg_degrade(self):
-        test_chemdeg = ChemicalDegradation(rate_order=1,
-                                           rate_constant=0.1,
-                                           species='red')
-        c_o, c_r = test_chemdeg.degrade(c_ox=1, c_red=0.5, timestep=0.1)
+        test_chemdeg = ChemicalDegradationReduced(rate_order=1, rate_constant=0.1)
+        c_o, c_r = test_chemdeg.degrade(c_ox=1, c_red=0.5, time_step=0.1)
         assert c_o == 1
         assert c_r == 0.495
 
-        test_chemdeg2 = ChemicalDegradation(rate_order=1,
-                                            rate_constant=0.1,
-                                            species='ox')
-        c_ox, c_red = test_chemdeg2.degrade(c_ox=1, c_red=0.5, timestep=0.1)
+        test_chemdeg2 = ChemicalDegradationOxidized(rate_order=1, rate_constant=0.1)
+        c_ox, c_red = test_chemdeg2.degrade(c_ox=1, c_red=0.5, time_step=0.1)
         assert c_ox == 0.99
         assert c_red == 0.5
 
@@ -54,7 +50,7 @@ class TestAutoOxidation:
 
     def test_auto_ox_degrade(self):
         test_autoox = AutoOxidation(rate_constant=0.1)
-        c_o, c_r = test_autoox.degrade(c_ox=1, c_red=0.5, timestep=0.1)
+        c_o, c_r = test_autoox.degrade(c_ox=1, c_red=0.5, time_step=0.1)
         assert c_o == 1.005
         assert c_r == 0.495
 
@@ -73,7 +69,7 @@ class TestAutoReduction:
 
     def test_auto_red_degrade(self):
         test_autored = AutoReduction(rate_constant=0.1)
-        c_o, c_r = test_autored.degrade(c_ox=1, c_red=0.5, timestep=0.1)
+        c_o, c_r = test_autored.degrade(c_ox=1, c_red=0.5, time_step=0.1)
         assert c_o == 0.99
         assert c_r == 0.51
 
@@ -90,7 +86,7 @@ class TestMultiDegradationMechanism:
         mech_2 = AutoOxidation(rate_constant=0.1)
         mech_list = [mech_1, mech_2]
         test_multi = MultiDegradationMechanism(mechanisms=mech_list)
-        c_o, c_r = test_multi.degrade(c_ox=1, c_red=0.5, timestep=0.1)
+        c_o, c_r = test_multi.degrade(c_ox=1, c_red=0.5, time_step=0.1)
         assert c_o == 0.9951
         assert c_r == 0.5049
 
@@ -104,6 +100,6 @@ class TestDimerization:
 
     def test_dimerization_degrade(self):
         test_dimerize = Dimerization(forward_rate_constant=2, backward_rate_constant=1, c_dimer=0.5)
-        c_o, c_r = test_dimerize.degrade(c_ox=1, c_red=0.5, timestep=1)
+        c_o, c_r = test_dimerize.degrade(c_ox=1, c_red=0.5, time_step=1)
         assert c_o == 0.5
         assert c_r == 0.0
