@@ -23,7 +23,7 @@ class ChemicalDegradationOxidized(DegradationMechanism):
     rate_order : int
         Rate order for chemical degradation reaction.
     rate_constant : float
-        N-th order rate constant of chemical oxidation (unit is rate order-dependent).
+        N-th order rate constant of chemical degradation of oxidized species (unit is rate order-dependent).
 
     """
 
@@ -73,7 +73,7 @@ class ChemicalDegradationReduced(DegradationMechanism):
     rate_order : int
         Rate order for chemical degradation reaction.
     rate_constant : float
-        N-th order rate constant of chemical oxidation (unit is rate order-dependent).
+        N-th order rate constant of chemical degradation of reduced species (unit is rate order-dependent).
 
     """
 
@@ -152,7 +152,7 @@ class AutoOxidation(DegradationMechanism):
 
     def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
         """
-        Applies a 1st order auto-oxidation mechanism to oxidized/reduced species at each time step.
+        Applies an auto-oxidation mechanism to oxidized/reduced species at each time step.
         Defaults to first order process: red --> ox.
 
         Parameters
@@ -219,7 +219,7 @@ class AutoReduction(DegradationMechanism):
 
     def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
         """
-        Applies a 1st order auto-reduction mechanism to oxidized/reduced species at each time step.
+        Applies an auto-reduction mechanism to oxidized/reduced species at each time step.
         Defaults to first order process: ox --> red.
 
         Parameters
