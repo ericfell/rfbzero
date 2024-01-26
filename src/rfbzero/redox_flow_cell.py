@@ -402,9 +402,9 @@ class ZeroDModel:
         Returns
         -------
         delta_ox_mols : float
-            Oxidized species crossing at a given time step (mols).
+            Oxidized species crossing, at each time step (mols).
         delta_red_mols : float
-            Reduced species crossing at a given time step (mols).
+            Reduced species crossing, at each time step (mols).
 
         """
 

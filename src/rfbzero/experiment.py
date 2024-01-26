@@ -58,9 +58,9 @@ class CyclingProtocolResults:
         self.c_ox_ncls: list[float] = [0.0] * self.max_steps
         #: The NCLS concentration of reduced species (M), at each time step.
         self.c_red_ncls: list[float] = [0.0] * self.max_steps
-        #: Oxidized species crossing (mols) at given time step. Only meaningful for symmetric cell.
+        #: Oxidized species crossing (mols), at each time step. Only meaningful for symmetric cell.
         self.delta_ox_mols: list[float] = [0.0] * self.max_steps
-        #: Reduced species crossing (mols) at given time step. Only meaningful for symmetric cell.
+        #: Reduced species crossing (mols), at each time step. Only meaningful for symmetric cell.
         self.delta_red_mols: list[float] = [0.0] * self.max_steps
         #: The CLS state of charge, at each time step.
         self.soc_cls: list[float] = [0.0] * self.max_steps
