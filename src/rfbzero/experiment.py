@@ -58,11 +58,9 @@ class CyclingProtocolResults:
         self.c_ox_ncls: list[float] = [0.0] * self.max_steps
         #: The NCLS concentration of reduced species (M), at each time step.
         self.c_red_ncls: list[float] = [0.0] * self.max_steps
-        #: Oxidized species crossing at given timestep (mol).
-        #: Only meaningful for symmetric cell.
+        #: Oxidized species crossing (mols) at given time step. Only meaningful for symmetric cell.
         self.delta_ox_mols: list[float] = [0.0] * self.max_steps
-        #: Reduced species crossing at given timestep (mol).
-        #: Only meaningful for symmetric cell.
+        #: Reduced species crossing (mols) at given time step. Only meaningful for symmetric cell.
         self.delta_red_mols: list[float] = [0.0] * self.max_steps
         #: The CLS state of charge, at each time step.
         self.soc_cls: list[float] = [0.0] * self.max_steps
@@ -454,7 +452,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
 
     def __find_min_current(self, ocv: float) -> None:
         """
-        Solves the current at a given timestep of constant voltage cycling.
+        Solves the current at a given time step of constant voltage cycling.
         Attempts to minimize the difference of voltage, OCV, and total overpotential (function of current).
 
         """
@@ -613,7 +611,7 @@ class ConstantCurrent(CyclingProtocol):
     voltage_limit_discharge : float
         Voltage below which cell will switch to charge (V).
     current : float
-        Current (A) value used for charging. Negative of this value used for discharging current.
+        Current (A) value used for charging. The negative of this value is used for discharging current.
     current_charge : float
         Desired charging current for CC cycling (A).
     current_discharge : float
@@ -836,7 +834,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
     current_cutoff_discharge : float
         Current above which CV discharging will switch to CC portion of CCCV charge (A).
     current : float
-        Current (A) value used for charging. Negative of this value used for discharging current.
+        Current (A) value used for charging. The negative of this value is used for discharging current.
     current_charge : float
         Desired charging current for CC cycling (A).
     current_discharge : float

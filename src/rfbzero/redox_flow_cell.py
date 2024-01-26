@@ -22,17 +22,17 @@ class ZeroDModel:
 
     Parameters
     ----------
-    cls_volume : float
+    volume_cls : float
         Volume of capacity-limiting side (CLS) reservoir (L).
-    ncls_volume : float
+    volume_ncls : float
         Volume of non-capacity-limiting side (NCLS) reservoir (L).
-    cls_start_c_ox : float
+    c_ox_cls : float
         CLS initial concentration of oxidized species (M).
-    cls_start_c_red : float
+    c_red_cls : float
         CLS initial concentration of reduced species (M).
-    ncls_start_c_ox : float
+    c_ox_ncls : float
         NCLS initial concentration of oxidized species (M).
-    ncls_start_c_red : float
+    c_red_ncls : float
         NCLS initial concentration of reduced species (M).
     ocv_50_soc : float
         Cell voltage (formal potentials E_+ - E_-) (V).
@@ -87,12 +87,12 @@ class ZeroDModel:
 
     def __init__(
             self,
-            cls_volume: float,
-            ncls_volume: float,
-            cls_start_c_ox: float,
-            cls_start_c_red: float,
-            ncls_start_c_ox: float,
-            ncls_start_c_red: float,
+            volume_cls: float,
+            volume_ncls: float,
+            c_ox_cls: float,
+            c_red_cls: float,
+            c_ox_ncls: float,
+            c_red_ncls: float,
             ocv_50_soc: float,
             resistance: float,
             k_0_cls: float,
@@ -108,12 +108,12 @@ class ZeroDModel:
             num_electrons_ncls: int = 1,
             temperature: float = 298.0
     ) -> None:
-        self.cls_volume = cls_volume
-        self.ncls_volume = ncls_volume
-        self.c_ox_cls = cls_start_c_ox
-        self.c_red_cls = cls_start_c_red
-        self.c_ox_ncls = ncls_start_c_ox
-        self.c_red_ncls = ncls_start_c_red
+        self.volume_cls = volume_cls
+        self.volume_ncls = volume_ncls
+        self.c_ox_cls = c_ox_cls
+        self.c_red_cls = c_red_cls
+        self.c_ox_ncls = c_ox_ncls
+        self.c_red_ncls = c_red_ncls
         self.ocv_50_soc = ocv_50_soc
         self.resistance = resistance
         self.k_0_cls = k_0_cls
@@ -137,9 +137,11 @@ class ZeroDModel:
 
         self.nernst_const = (R * temperature) / F
 
-        for key, value in {'cls_volume': self.cls_volume, 'ncls_volume': self.ncls_volume,
-                           'cls_start_c_ox': self.c_ox_cls, 'cls_start_c_red': self.c_red_cls,
-                           'ncls_start_c_ox': self.c_ox_ncls, 'ncls_start_c_red': self.c_red_ncls,
+        if not isinstance(self.num_electrons_cls, int) or not isinstance(self.num_electrons_ncls, int):
+            raise ValueError("'num_electrons_cls' and 'num_electrons_ncls' must be non-zero integers")
+
+        for key, value in {'volume_cls': self.volume_cls, 'volume_ncls': self.volume_ncls, 'c_ox_cls': self.c_ox_cls,
+                           'c_red_cls': self.c_red_cls, 'c_ox_ncls': self.c_ox_ncls, 'c_red_ncls': self.c_red_ncls,
                            'ocv_50_soc': self.ocv_50_soc, 'resistance': self.resistance, 'k_0_cls': self.k_0_cls,
                            'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
                            'time_increment': self.time_increment, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
@@ -147,8 +149,8 @@ class ZeroDModel:
                            'temperature': temperature}.items():
 
             if key not in ['ocv_50_soc', 'resistance',
-                           'cls_start_c_ox', 'cls_start_c_red',
-                           'ncls_start_c_ox', 'ncls_start_c_red'] and value <= 0.0:
+                           'c_ox_cls', 'c_red_cls',
+                           'c_ox_ncls', 'c_red_ncls'] and value <= 0.0:
                 raise ValueError(f"'{key}' must be > 0.0")
 
             if value < 0.0:
@@ -157,24 +159,27 @@ class ZeroDModel:
         if not 0.0 < self.alpha_cls < 1.0 or not 0.0 < self.alpha_ncls < 1.0:
             raise ValueError("Alpha parameters must be between 0.0 and 1.0")
 
-        if not isinstance(self.num_electrons_cls, int) or not isinstance(self.num_electrons_ncls, int):
-            raise ValueError("'num_electrons_cls' and 'num_electrons_ncls' must be >= 1")
+        if self.num_electrons_cls < 1:
+            raise ValueError("'num_electrons_cls' must be >= 1")
 
-        if self.ocv_50_soc == 0.0 and self.cls_volume >= self.ncls_volume:
-            raise ValueError("'cls_volume' must be < 'ncls_volume' in a symmetric cell")
+        if self.num_electrons_ncls < 1:
+            raise ValueError("'num_electrons_ncls' must be >= 1")
+
+        if self.ocv_50_soc == 0.0 and self.volume_cls >= self.volume_ncls:
+            raise ValueError("'volume_cls' must be < 'volume_ncls' in a symmetric cell")
 
         if self.ocv_50_soc == 0.0 and self.num_electrons_cls != self.num_electrons_ncls:
             raise ValueError("Symmetric cell ('ocv_50_soc' = 0) requires 'num_electrons_cls' and 'num_electrons_ncls' "
                              "to be equal (same species)")
 
-        self.init_cls_capacity = self.cls_volume * self.num_electrons_cls * (self.c_ox_cls + self.c_red_cls)
-        init_ncls_capacity = self.ncls_volume * self.num_electrons_ncls * (self.c_ox_ncls + self.c_red_ncls)
+        self.init_cls_capacity = self.volume_cls * self.num_electrons_cls * (self.c_ox_cls + self.c_red_cls)
+        init_ncls_capacity = self.volume_ncls * self.num_electrons_ncls * (self.c_ox_ncls + self.c_red_ncls)
         if self.init_cls_capacity >= init_ncls_capacity:
             raise ValueError("Initial capacity of CLS must be less than initial capacity of NCLS")
 
         if self.time_increment >= 1.0:
             print("WARNING: 'time_increment' >= 1 second will result in very coarse data.\
-                  \nzero-D model approaches theory as timestep decreases.")
+                  \nzero-D model approaches theory as time step decreases.")
 
     def _exchange_current(self) -> tuple[float, float]:
         """
@@ -183,9 +188,9 @@ class ZeroDModel:
         Returns
         -------
         i_0_cls : float
-            Exchange current of CLS redox couple at a given timestep (A).
+            Exchange current of CLS redox couple at a given time step (A).
         i_0_ncls : float
-            Exchange current of NCLS redox couple at a given timestep (A).
+            Exchange current of NCLS redox couple at a given time step (A).
 
         """
         # division by 1000 for conversion from L to cm^3
@@ -217,9 +222,9 @@ class ZeroDModel:
         Returns
         -------
         i_lim_cls : float
-            Limiting current of CLS redox couple at a given timestep (A).
+            Limiting current of CLS redox couple at a given time step (A).
         i_lim_ncls : float
-            Limiting current of NCLS redox couple at a given timestep (A).
+            Limiting current of NCLS redox couple at a given time step (A).
 
         """
         if self.cls_negolyte == charge:
@@ -241,9 +246,9 @@ class ZeroDModel:
         current : float
             Instantaneous current flowing (A). Positive if charging, negative if discharging.
         i_0_cls : float
-            Exchange current of CLS redox couple at a given timestep (A).
+            Exchange current of CLS redox couple at a given time step (A).
         i_0_ncls : float
-            Exchange current of NCLS redox couple at a given timestep (A).
+            Exchange current of NCLS redox couple at a given time step (A).
 
         Returns
         -------
@@ -272,9 +277,9 @@ class ZeroDModel:
         current : float
             Instantaneous current flowing (A). Positive if charging, negative if discharging.
          i_lim_cls : float
-            Limiting current of CLS redox couple at a given timestep (A).
+            Limiting current of CLS redox couple at a given time step (A).
         i_lim_ncls : float
-            Limiting current of NCLS redox couple at a given timestep (A).
+            Limiting current of NCLS redox couple at a given time step (A).
 
         Returns
         -------
@@ -319,9 +324,9 @@ class ZeroDModel:
         current : float
             Instantaneous current flowing (A). Positive if charging, negative if discharging.
         i_lim_cls : float
-            Limiting current of CLS redox couple at a given timestep (A).
+            Limiting current of CLS redox couple at a given time step (A).
         i_lim_ncls : float
-            Limiting current of NCLS redox couple at a given timestep (A).
+            Limiting current of NCLS redox couple at a given time step (A).
 
         Returns
         -------
@@ -362,9 +367,9 @@ class ZeroDModel:
         direction = 1 if self.cls_negolyte else -1
 
         ocv = (self.ocv_50_soc
-               + direction * (((self.nernst_const / self.num_electrons_cls) * log(self.c_red_cls / self.c_ox_cls))
-                              + ((self.nernst_const / self.num_electrons_ncls) * log(
-                            self.c_ox_ncls / self.c_red_ncls))))
+               + direction
+               * (((self.nernst_const / self.num_electrons_cls) * log(self.c_red_cls / self.c_ox_cls))
+                  + ((self.nernst_const / self.num_electrons_ncls) * log(self.c_ox_ncls / self.c_red_ncls))))
         return ocv
 
     @staticmethod
@@ -380,7 +385,7 @@ class ZeroDModel:
             cross_over: Crossover = None
     ) -> None:
         """
-        Updates all species' concentrations at each timestep. Contributions from faradaic current, (optional)
+        Updates all species' concentrations at each time step. Contributions from faradaic current, (optional)
         degradation mechanisms, and (optional) crossover mechanism.
 
         Parameters
@@ -397,16 +402,16 @@ class ZeroDModel:
         Returns
         -------
         delta_ox_mols : float
-            Oxidized species crossing at given timestep (mol).
+            Oxidized species crossing at a given time step (mols).
         delta_red_mols : float
-            Reduced species crossing at given timestep (mol).
+            Reduced species crossing at a given time step (mols).
 
         """
 
         # Change in concentration from coulomb counting based solely on current
         direction = 1 if self.cls_negolyte else -1
-        delta_cls = ((self.time_increment * current) / (F * self.num_electrons_cls * self.cls_volume)) * direction
-        delta_ncls = ((self.time_increment * current) / (F * self.num_electrons_ncls * self.ncls_volume)) * direction
+        delta_cls = ((self.time_increment * current) / (F * self.num_electrons_cls * self.volume_cls)) * direction
+        delta_ncls = ((self.time_increment * current) / (F * self.num_electrons_ncls * self.volume_ncls)) * direction
 
         # update CLS and NCLS concentrations
         c_ox_cls = self.c_ox_cls - delta_cls
@@ -428,7 +433,7 @@ class ZeroDModel:
         if cross_over is not None:
             (c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox_mols,
              delta_red_mols) = cross_over.crossover(self.geometric_area, c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls,
-                                                    self.cls_volume, self.ncls_volume, self.time_increment)
+                                                    self.volume_cls, self.volume_ncls, self.time_increment)
         # update concentrations to self
         self.prev_c_ox_cls = self.c_ox_cls
         self.prev_c_red_cls = self.c_red_cls

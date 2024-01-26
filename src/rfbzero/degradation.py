@@ -10,7 +10,7 @@ class DegradationMechanism(ABC):
 
     @abstractmethod
     def degrade(self, c_ox: float, c_red: float, timestep: float) -> tuple[float, float]:
-        """Applies desired degradation mechanisms to oxidized/reduced species at each timestep."""
+        """Applies desired degradation mechanisms to oxidized/reduced species at each time step."""
         raise NotImplementedError
 
 

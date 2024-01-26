@@ -16,12 +16,12 @@ class TestConstantCurrent:
 
     def test_cc(self):
         # define the battery design parameters
-        cell = ZeroDModel(cls_volume=0.005,  # L
-                          ncls_volume=0.05,  # L
-                          cls_start_c_ox=0.01,  # M
-                          cls_start_c_red=0.01,  # M
-                          ncls_start_c_ox=0.01,  # M
-                          ncls_start_c_red=0.01,  # M
+        cell = ZeroDModel(volume_cls=0.005,  # L
+                          volume_ncls=0.05,  # L
+                          c_ox_cls=0.01,  # M
+                          c_red_cls=0.01,  # M
+                          c_ox_ncls=0.01,  # M
+                          c_red_ncls=0.01,  # M
                           ocv_50_soc=0.0,  # V
                           resistance=1.0,  # ohms
                           k_0_cls=1e-3,  # cm/s
@@ -52,12 +52,12 @@ class TestConstantVoltage:
 
     def test_cv1(self):
         # define the battery design parameters
-        cell = ZeroDModel(cls_volume=0.005,  # L
-                          ncls_volume=0.05,  # L
-                          cls_start_c_ox=0.01,  # M
-                          cls_start_c_red=0.01,  # M
-                          ncls_start_c_ox=0.01,  # M
-                          ncls_start_c_red=0.01,  # M
+        cell = ZeroDModel(volume_cls=0.005,  # L
+                          volume_ncls=0.05,  # L
+                          c_ox_cls=0.01,  # M
+                          c_red_cls=0.01,  # M
+                          c_ox_ncls=0.01,  # M
+                          c_red_ncls=0.01,  # M
                           ocv_50_soc=0.0,  # V
                           resistance=1.0,  # ohms
                           k_0_cls=1e-3,  # cm/s
@@ -94,12 +94,12 @@ class TestConstantCurrentConstantVoltage:
 
     def test_cccv_full_cell(self):
         with pytest.raises(ValueError):
-            cell = ZeroDModel(cls_volume=0.005,  # L
-                              ncls_volume=0.03,  # L
-                              cls_start_c_ox=0.01,  # M
-                              cls_start_c_red=0.01,  # M
-                              ncls_start_c_ox=0.01,  # M
-                              ncls_start_c_red=0.01,  # M
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
                               ocv_50_soc=1.1,  # V
                               resistance=0.8,  # ohms
                               k_0_cls=1e-3,  # cm/s
@@ -133,12 +133,12 @@ class TestConstantCurrentConstantVoltage:
                                        )
 
     def test_cccv_symmetric_cell(self):
-        cell = ZeroDModel(cls_volume=0.005,  # L
-                          ncls_volume=0.03,  # L
-                          cls_start_c_ox=0.01,  # M
-                          cls_start_c_red=0.01,  # M
-                          ncls_start_c_ox=0.01,  # M
-                          ncls_start_c_red=0.01,  # M
+        cell = ZeroDModel(volume_cls=0.005,  # L
+                          volume_ncls=0.03,  # L
+                          c_ox_cls=0.01,  # M
+                          c_red_cls=0.01,  # M
+                          c_ox_ncls=0.01,  # M
+                          c_red_ncls=0.01,  # M
                           ocv_50_soc=0.0,  # V
                           resistance=0.8,  # ohms
                           k_0_cls=1e-3,  # cm/s
@@ -180,12 +180,12 @@ class TestAsymmetricCurrents:
     def test_cc(self):
         deg = ChemicalDegradation(rate_order=2, rate_constant=3e-5, species='red')
 
-        cell_1 = ZeroDModel(cls_volume=0.005,  # L
-                            ncls_volume=0.03,  # L
-                            cls_start_c_ox=0.01,  # M
-                            cls_start_c_red=0.01,  # M
-                            ncls_start_c_ox=0.01,  # M
-                            ncls_start_c_red=0.01,  # M
+        cell_1 = ZeroDModel(volume_cls=0.005,  # L
+                            volume_ncls=0.03,  # L
+                            c_ox_cls=0.01,  # M
+                            c_red_cls=0.01,  # M
+                            c_ox_ncls=0.01,  # M
+                            c_red_ncls=0.01,  # M
                             ocv_50_soc=0.0,  # V
                             resistance=0.8,  # ohms
                             k_0_cls=1e-3,  # cm/s
@@ -202,12 +202,12 @@ class TestAsymmetricCurrents:
         vals_1 = all_results_1.half_cycle_capacity[:5]
 
         # make identical cell, but define currents for charge and discharge separately
-        cell_2 = ZeroDModel(cls_volume=0.005,  # L
-                            ncls_volume=0.03,  # L
-                            cls_start_c_ox=0.01,  # M
-                            cls_start_c_red=0.01,  # M
-                            ncls_start_c_ox=0.01,  # M
-                            ncls_start_c_red=0.01,  # M
+        cell_2 = ZeroDModel(volume_cls=0.005,  # L
+                            volume_ncls=0.03,  # L
+                            c_ox_cls=0.01,  # M
+                            c_red_cls=0.01,  # M
+                            c_ox_ncls=0.01,  # M
+                            c_red_ncls=0.01,  # M
                             ocv_50_soc=0.0,  # V
                             resistance=0.8,  # ohms
                             k_0_cls=1e-3,  # cm/s
@@ -232,12 +232,12 @@ class TestLowCapacity:
     def test_cc(self, capsys):
         deg = ChemicalDegradation(rate_order=2, rate_constant=10, species='red')
 
-        cell = ZeroDModel(cls_volume=0.005,  # L
-                          ncls_volume=0.03,  # L
-                          cls_start_c_ox=0.01,  # M
-                          cls_start_c_red=0.01,  # M
-                          ncls_start_c_ox=0.01,  # M
-                          ncls_start_c_red=0.01,  # M
+        cell = ZeroDModel(volume_cls=0.005,  # L
+                          volume_ncls=0.03,  # L
+                          c_ox_cls=0.01,  # M
+                          c_red_cls=0.01,  # M
+                          c_ox_ncls=0.01,  # M
+                          c_red_ncls=0.01,  # M
                           ocv_50_soc=0.0,  # V
                           resistance=0.8,  # ohms
                           k_0_cls=1e-3,  # cm/s

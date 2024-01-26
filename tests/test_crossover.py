@@ -34,8 +34,8 @@ class TestClassCrossover:
             c_red_cls=1,
             c_ox_ncls=1.5,
             c_red_ncls=0.5,
-            cls_volume=1,
-            ncls_volume=2,
+            volume_cls=1,
+            volume_ncls=2,
             timestep=1,
         )
 
