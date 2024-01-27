@@ -37,7 +37,7 @@ class CyclingResults:
         #: The number of time steps that were desired from the simulation.
         self.max_steps: int = int(duration / time_increment)
         #: The number of time steps that were actually performed before the simulation terminated.
-        self.step: int = 0
+        self.steps: int = 0
         #: The simulation time (s), at each time step.
         self.step_time: list[float] = [0.0] * self.max_steps
         #: Whether the half cycle was charge (True) or discharge (False), at each time step.
@@ -112,43 +112,43 @@ class CyclingResults:
         self.capacity += abs(current) * cell_model.time_increment
 
         # Record current, voltages, and charge
-        self.current[self.step] = current
-        self.cell_v[self.step] = cell_v
-        self.ocv[self.step] = ocv
-        self.step_is_charge[self.step] = charge
+        self.current[self.steps] = current
+        self.cell_v[self.steps] = cell_v
+        self.ocv[self.steps] = ocv
+        self.step_is_charge[self.steps] = charge
 
         # Record overpotentials and total total_overpotential
-        self.act[self.step] = n_act
-        self.mt[self.step] = n_mt
-        self.total_overpotential[self.step] = total_overpotential
+        self.act[self.steps] = n_act
+        self.mt[self.steps] = n_mt
+        self.total_overpotential[self.steps] = total_overpotential
 
         # Record species concentrations
         cls_ox = cell_model.c_ox_cls
         cls_red = cell_model.c_red_cls
         ncls_ox = cell_model.c_ox_ncls
         ncls_red = cell_model.c_red_ncls
-        self.c_ox_cls[self.step] = cls_ox
-        self.c_red_cls[self.step] = cls_red
-        self.c_ox_ncls[self.step] = ncls_ox
-        self.c_red_ncls[self.step] = ncls_red
-        self.delta_ox_mols[self.step] = cell_model.delta_ox_mols
-        self.delta_red_mols[self.step] = cell_model.delta_red_mols
+        self.c_ox_cls[self.steps] = cls_ox
+        self.c_red_cls[self.steps] = cls_red
+        self.c_ox_ncls[self.steps] = ncls_ox
+        self.c_red_ncls[self.steps] = ncls_red
+        self.delta_ox_mols[self.steps] = cell_model.delta_ox_mols
+        self.delta_red_mols[self.steps] = cell_model.delta_red_mols
 
         # Compute state-of-charge
         if self.compute_soc:
             if cls_ox + cls_red == 0.0 or ncls_ox + ncls_red == 0.0:
                 self.compute_soc = False
             else:
-                self.soc_cls[self.step] = (cls_red / (cls_ox + cls_red)) * 100
-                self.soc_ncls[self.step] = (ncls_red / (ncls_ox + ncls_red)) * 100
+                self.soc_cls[self.steps] = (cls_red / (cls_ox + cls_red)) * 100
+                self.soc_ncls[self.steps] = (ncls_red / (ncls_ox + ncls_red)) * 100
 
         # Record time and increment the step
-        self.step_time[self.step] = self.time_increment * (self.step + 1)
-        self.step += 1
+        self.step_time[self.steps] = self.time_increment * (self.steps + 1)
+        self.steps += 1
 
     def _record_half_cycle(self, charge: bool) -> None:
         """Records charge and discharge half-cycle times and capacities, and resets capacity after each half-cycle."""
-        time = self.step * self.time_increment
+        time = self.steps * self.time_increment
         self.half_cycle_capacity.append(self.capacity)
         self.half_cycle_time.append(time)
         self.half_cycle_is_charge.append(charge)
@@ -165,25 +165,25 @@ class CyclingResults:
 
     def _finalize(self) -> None:
         """Trims empty simulation values (initialized zeroes) if simulation ends earlier than desired."""
-        self.step_time = self.step_time[:self.step]
-        self.step_is_charge = self.step_is_charge[:self.step]
+        self.step_time = self.step_time[:self.steps]
+        self.step_is_charge = self.step_is_charge[:self.steps]
 
-        self.current = self.current[:self.step]
-        self.cell_v = self.cell_v[:self.step]
-        self.ocv = self.ocv[:self.step]
+        self.current = self.current[:self.steps]
+        self.cell_v = self.cell_v[:self.steps]
+        self.ocv = self.ocv[:self.steps]
 
-        self.c_ox_cls = self.c_ox_cls[:self.step]
-        self.c_red_cls = self.c_red_cls[:self.step]
-        self.c_ox_ncls = self.c_ox_ncls[:self.step]
-        self.c_red_ncls = self.c_red_ncls[:self.step]
-        self.delta_ox_mols = self.delta_ox_mols[:self.step]
-        self.delta_red_mols = self.delta_red_mols[:self.step]
-        self.soc_cls = self.soc_cls[:self.step]
-        self.soc_ncls = self.soc_ncls[:self.step]
+        self.c_ox_cls = self.c_ox_cls[:self.steps]
+        self.c_red_cls = self.c_red_cls[:self.steps]
+        self.c_ox_ncls = self.c_ox_ncls[:self.steps]
+        self.c_red_ncls = self.c_red_ncls[:self.steps]
+        self.delta_ox_mols = self.delta_ox_mols[:self.steps]
+        self.delta_red_mols = self.delta_red_mols[:self.steps]
+        self.soc_cls = self.soc_cls[:self.steps]
+        self.soc_ncls = self.soc_ncls[:self.steps]
 
-        self.act = self.act[:self.step]
-        self.mt = self.mt[:self.step]
-        self.total_overpotential = self.total_overpotential[:self.step]
+        self.act = self.act[:self.steps]
+        self.mt = self.mt[:self.steps]
+        self.total_overpotential = self.total_overpotential[:self.steps]
 
 
 class CyclingStatus(str, Enum):
@@ -263,7 +263,7 @@ class _CycleMode(ABC):
             return cycling_status
 
         # End the simulation if the time limit is reached
-        if self.results.step >= self.results.max_steps:
+        if self.results.steps >= self.results.max_steps:
             return CyclingStatus.TIME_DURATION_REACHED
 
         return CyclingStatus.NORMAL
@@ -594,7 +594,7 @@ class CyclingProtocol(ABC):
     @staticmethod
     def _end_protocol(results: CyclingResults, end_status: CyclingStatus) -> CyclingResults:
         """Records the status that ended the simulation and logs the time."""
-        print(f'Simulation stopped after {results.step} time steps: {end_status}.')
+        print(f'Simulation stopped after {results.steps} time steps: {end_status}.')
         results.end_status = end_status
         results._finalize()
         return results
