@@ -757,7 +757,8 @@ class ConstantVoltage(CyclingProtocol):
             crossover: Crossover = None
     ) -> CyclingResults:
         """
-        Applies the constant voltage (CV) cycling protocol and (optional) degradation/crossover mechanisms to a cell model.
+        Applies the constant voltage (CV) cycling protocol and (optional) degradation/crossover mechanisms to a cell
+        model.
 
         Parameters
         ----------
