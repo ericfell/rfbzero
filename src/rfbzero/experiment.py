@@ -34,7 +34,7 @@ class CyclingResults:
         self.charge_first = charge_first
         self.compute_soc = True
 
-        #: The desired number of time steps to be performed by the simulation.
+        #: The number of time steps that were desired from the simulation.
         self.max_steps: int = int(duration / time_increment)
         #: The number of time steps that were actually performed before the simulation terminated.
         self.step: int = 0
@@ -93,7 +93,7 @@ class CyclingResults:
         #: The last time step, for each discharge half cycle.
         self.discharge_cycle_time: list[float] = []
 
-        #: The reason for the simulation's termination
+        #: The reason for the simulation's termination.
         self.end_status: CyclingStatus = CyclingStatus.NORMAL
 
     def _record_step(
@@ -206,7 +206,7 @@ class _CycleMode(ABC):
     charge : bool
         True if charging, False if discharging.
     cell_model : ZeroDModel
-        Defined cell parameters for simulating.
+        Defined cell parameters for simulation.
     results : CyclingResults
         Container for the simulation result data.
     update_concentrations : Callable[[float], None]
@@ -278,7 +278,7 @@ class _ConstantCurrentCycleMode(_CycleMode):
     charge : bool
         True if charging, False if discharging.
     cell_model : ZeroDModel
-        Defined cell parameters for simulating.
+        Defined cell parameters for simulation.
     results : CyclingResults
         Container for the simulation result data.
     update_concentrations : Callable[[float], None]
@@ -381,7 +381,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
     charge : bool
         True if charging, False if discharging.
     cell_model : ZeroDModel
-        Defined cell parameters for simulating.
+        Defined cell parameters for simulation.
     results : CyclingResults
         Container for the simulation result data.
     update_concentrations : Callable[[float], None]
@@ -501,20 +501,20 @@ class CyclingProtocol(ABC):
             crossover: Crossover = None,
     ) -> CyclingResults:
         """
-        Applies a cycling protocol and (optional) degradation mechanisms to a cell model.
+        Applies a cycling protocol and (optional) degradation/crossover mechanisms to a cell model.
 
         Parameters
         ----------
         duration : int
             Simulation time (s).
         cell_model : ZeroDModel
-            Defined cell parameters for simulating.
+            Defined cell parameters for simulation.
         degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to CLS and NCLS.
+            Degradation mechanism applied to CLS and NCLS.
         cls_degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to CLS.
+            Degradation mechanism applied to CLS.
         ncls_degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to NCLS.
+            Degradation mechanism applied to NCLS.
         crossover : Crossover, optional
             Crossover mechanism applied to cell.
 
@@ -646,20 +646,20 @@ class ConstantCurrent(CyclingProtocol):
             crossover: Crossover = None
     ) -> CyclingResults:
         """
-        Applies the constant current (CC) protocol and (optional) degradation mechanisms to a cell model.
+        Applies the constant current (CC) protocol and (optional) degradation/crossover mechanisms to a cell model.
 
         Parameters
         ----------
         duration : int
             Simulation time (s).
         cell_model : ZeroDModel
-            Defined cell parameters for simulating.
+            Defined cell parameters for simulation.
         degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to CLS and NCLS.
+            Degradation mechanism applied to CLS and NCLS.
         cls_degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to CLS.
+            Degradation mechanism applied to CLS.
         ncls_degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to NCLS.
+            Degradation mechanism applied to NCLS.
         crossover : Crossover, optional
             Crossover mechanism applied to cell.
 
@@ -757,20 +757,20 @@ class ConstantVoltage(CyclingProtocol):
             crossover: Crossover = None
     ) -> CyclingResults:
         """
-        Applies the constant voltage (CV) cycling protocol and (optional) degradation mechanisms to a cell model.
+        Applies the constant voltage (CV) cycling protocol and (optional) degradation/crossover mechanisms to a cell model.
 
         Parameters
         ----------
         duration : int
             Simulation time (s).
         cell_model : ZeroDModel
-            Defined cell parameters for simulating.
+            Defined cell parameters for simulation.
         degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to CLS and NCLS.
+            Degradation mechanism applied to CLS and NCLS.
         cls_degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to CLS.
+            Degradation mechanism applied to CLS.
         ncls_degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to NCLS.
+            Degradation mechanism applied to NCLS.
         crossover : Crossover, optional
             Crossover mechanism applied to cell.
 
@@ -827,8 +827,8 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
     voltage_limit_discharge : float
         Voltage below which cell will switch to CV mode, discharging (V).
     current_cutoff : float
-        Current below which cell will switch to charge, and
-        above (the negative of this value) which will switch to discharge (A).
+        Current below which CV charging will switch to CC portion of CCCV discharge (A), and
+        above (the negative of this value) which CV discharging will switch to CC portion of CCCV charge (A).
     current_cutoff_charge : float
         Current below which CV charging will switch to CC portion of CCCV discharge (A).
     current_cutoff_discharge : float
@@ -875,21 +875,21 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             crossover: Crossover = None
     ) -> CyclingResults:
         """
-        Applies the constant current constant voltage (CCCV) cycling protocol and (optional) degradation mechanisms to 
-        a cell model.
+        Applies the constant current constant voltage (CCCV) cycling protocol and (optional) degradation/crossover
+        mechanisms to a cell model.
 
         Parameters
         ----------
         duration : int
             Simulation time (s).
         cell_model : ZeroDModel
-            Defined cell parameters for simulating.
+            Defined cell parameters for simulation.
         degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to CLS and NCLS.
+            Degradation mechanism applied to CLS and NCLS.
         cls_degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to CLS.
+            Degradation mechanism applied to CLS.
         ncls_degradation : DegradationMechanism, optional
-            Degradation mechanism(s) applied to NCLS.
+            Degradation mechanism applied to NCLS.
         crossover : Crossover, optional
             Crossover mechanism applied to cell.
 
