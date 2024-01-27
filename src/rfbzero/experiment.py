@@ -561,7 +561,7 @@ class CyclingProtocol(ABC):
             raise ValueError("Ensure that 'voltage_limit_discharge' < 'ocv_50_soc' < 'voltage_limit_charge'")
 
         if cell_model.ocv_50_soc > 0.0 > self.voltage_limit_discharge:
-            raise ValueError("Ensure that 'voltage_limit_discharge' >= 0.0 when 'ocv_50_soc' > 0.0")
+            raise ValueError("Ensure that 'voltage_limit_discharge' >= 0.0 for a full cell ('ocv_50_soc' > 0.0)")
 
         if crossover and cell_model.ocv_50_soc > 0.0:
             raise ValueError("Cannot use crossover mechanism for a full cell ('ocv_50_soc' > 0.0)")

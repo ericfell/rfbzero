@@ -166,11 +166,11 @@ class ZeroDModel:
             raise ValueError("'num_electrons_ncls' must be >= 1")
 
         if self.ocv_50_soc == 0.0 and self.volume_cls >= self.volume_ncls:
-            raise ValueError("'volume_cls' must be < 'volume_ncls' in a symmetric cell")
+            raise ValueError("'volume_cls' must be < 'volume_ncls' in a symmetric cell ('ocv_50_soc' = 0.0)")
 
         if self.ocv_50_soc == 0.0 and self.num_electrons_cls != self.num_electrons_ncls:
-            raise ValueError("Symmetric cell ('ocv_50_soc' = 0) requires 'num_electrons_cls' and 'num_electrons_ncls' "
-                             "to be equal (same species)")
+            raise ValueError("'num_electrons_cls' and 'num_electrons_ncls' must be equal (same species) "
+                             "in a symmetric cell ('ocv_50_soc' = 0.0)")
 
         self.init_cls_capacity = self.volume_cls * self.num_electrons_cls * (self.c_ox_cls + self.c_red_cls)
         init_ncls_capacity = self.volume_ncls * self.num_electrons_ncls * (self.c_ox_ncls + self.c_red_ncls)
