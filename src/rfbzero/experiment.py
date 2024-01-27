@@ -13,7 +13,7 @@ from .degradation import DegradationMechanism
 from .redox_flow_cell import ZeroDModel
 
 
-class CyclingProtocolResults:
+class CyclingResults:
     """
     A container of the simulation result data.
 
@@ -207,7 +207,7 @@ class _CycleMode(ABC):
         True if charging, False if discharging.
     cell_model : ZeroDModel
         Defined cell parameters for simulating.
-    results : CyclingProtocolResults
+    results : CyclingResults
         Container for the simulation result data.
     update_concentrations : Callable[[float], None]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
@@ -223,7 +223,7 @@ class _CycleMode(ABC):
             self,
             charge: bool,
             cell_model: ZeroDModel,
-            results: CyclingProtocolResults,
+            results: CyclingResults,
             update_concentrations: Callable[[float], None],
             current: float,
             current_lim_cls: float = None,
@@ -279,7 +279,7 @@ class _ConstantCurrentCycleMode(_CycleMode):
         True if charging, False if discharging.
     cell_model : ZeroDModel
         Defined cell parameters for simulating.
-    results : CyclingProtocolResults
+    results : CyclingResults
         Container for the simulation result data.
     update_concentrations : Callable[[float], None]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
@@ -295,7 +295,7 @@ class _ConstantCurrentCycleMode(_CycleMode):
             self,
             charge: bool,
             cell_model: ZeroDModel,
-            results: CyclingProtocolResults,
+            results: CyclingResults,
             update_concentrations: Callable[[float], None],
             current: float,
             voltage_limit: float,
@@ -382,7 +382,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
         True if charging, False if discharging.
     cell_model : ZeroDModel
         Defined cell parameters for simulating.
-    results : CyclingProtocolResults
+    results : CyclingResults
         Container for the simulation result data.
     update_concentrations : Callable[[float], None]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
@@ -402,7 +402,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
             self,
             charge: bool,
             cell_model: ZeroDModel,
-            results: CyclingProtocolResults,
+            results: CyclingResults,
             update_concentrations: Callable[[float], None],
             current_cutoff: float,
             voltage_limit: float,
@@ -499,7 +499,7 @@ class CyclingProtocol(ABC):
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
             crossover: Crossover = None,
-    ) -> CyclingProtocolResults:
+    ) -> CyclingResults:
         """
         Applies a cycling protocol and (optional) degradation mechanisms to a cell model.
 
@@ -555,7 +555,7 @@ class CyclingProtocol(ABC):
             cls_degradation: Optional[DegradationMechanism],
             ncls_degradation: Optional[DegradationMechanism],
             crossover: Optional[Crossover]
-    ) -> tuple[CyclingProtocolResults, Callable[[float], None]]:
+    ) -> tuple[CyclingResults, Callable[[float], None]]:
         """Checks validity of user inputs for voltage limits and optional degradation and crossover mechanisms."""
         if not self.voltage_limit_discharge < cell_model.ocv_50_soc < self.voltage_limit_charge:
             raise ValueError("Ensure that 'voltage_limit_discharge' < 'ocv_50_soc' < 'voltage_limit_charge'")
@@ -586,13 +586,13 @@ class CyclingProtocol(ABC):
             cell_model._coulomb_counter(i, cls_degradation, ncls_degradation, crossover)
 
         # Initialize data results object to be sent to user
-        results = CyclingProtocolResults(duration, cell_model.time_increment, self.charge_first)
+        results = CyclingResults(duration, cell_model.time_increment, self.charge_first)
 
         print(f'{duration} sec of cycling, time steps: {cell_model.time_increment} sec')
         return results, update_concentrations
 
     @staticmethod
-    def _end_protocol(results: CyclingProtocolResults, end_status: CyclingStatus) -> CyclingProtocolResults:
+    def _end_protocol(results: CyclingResults, end_status: CyclingStatus) -> CyclingResults:
         """Records the status that ended the simulation and logs the time."""
         print(f'Simulation stopped after {results.step} time steps: {end_status}.')
         results.end_status = end_status
@@ -644,7 +644,7 @@ class ConstantCurrent(CyclingProtocol):
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
             crossover: Crossover = None
-    ) -> CyclingProtocolResults:
+    ) -> CyclingResults:
         """
         Applies the constant current (CC) protocol and (optional) degradation mechanisms to a cell model.
 
@@ -665,7 +665,7 @@ class ConstantCurrent(CyclingProtocol):
 
         Returns
         -------
-        results : CyclingProtocolResults
+        results : CyclingResults
             Container of simulation results.
 
         """
@@ -755,7 +755,7 @@ class ConstantVoltage(CyclingProtocol):
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
             crossover: Crossover = None
-    ) -> CyclingProtocolResults:
+    ) -> CyclingResults:
         """
         Applies the constant voltage (CV) cycling protocol and (optional) degradation mechanisms to a cell model.
 
@@ -776,7 +776,7 @@ class ConstantVoltage(CyclingProtocol):
 
         Returns
         -------
-        results : CyclingProtocolResults
+        results : CyclingResults
             Container of simulation results.
 
         """
@@ -873,7 +873,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
             crossover: Crossover = None
-    ) -> CyclingProtocolResults:
+    ) -> CyclingResults:
         """
         Applies the constant current constant voltage (CCCV) cycling protocol and (optional) degradation mechanisms to 
         a cell model.
@@ -895,7 +895,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         Returns
         -------
-        results : CyclingProtocolResults
+        results : CyclingResults
             Container of simulation results.
 
         """
