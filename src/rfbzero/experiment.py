@@ -21,21 +21,21 @@ class CyclingResults:
     ----------
     duration : float
         Simulation time (s).
-    time_increment : float
+    time_step : float
         Simulation time step (s).
     charge_first : bool
         True if CLS charges first, False if CLS discharges first.
 
     """
 
-    def __init__(self, duration: float, time_increment: float, charge_first: bool = True) -> None:
+    def __init__(self, duration: float, time_step: float, charge_first: bool = True) -> None:
         self.duration = duration
-        self.time_increment = time_increment
+        self.time_step = time_step
         self.charge_first = charge_first
         self.compute_soc = True
 
         #: The number of time steps that were desired from the simulation.
-        self.max_steps: int = int(duration / time_increment)
+        self.max_steps: int = int(duration / time_step)
         #: The number of time steps that were actually performed before the simulation terminated.
         self.steps: int = 0
         #: The simulation time (s), at each time step.
@@ -109,7 +109,7 @@ class CyclingResults:
     ) -> None:
         """Records simulation data at valid time steps."""
         # Update capacity
-        self.capacity += abs(current) * cell_model.time_increment
+        self.capacity += abs(current) * cell_model.time_step
 
         # Record current, voltages, and charge
         self.current[self.steps] = current
@@ -143,12 +143,12 @@ class CyclingResults:
                 self.soc_ncls[self.steps] = (ncls_red / (ncls_ox + ncls_red)) * 100
 
         # Record time and increment the step
-        self.step_time[self.steps] = self.time_increment * (self.steps + 1)
+        self.step_time[self.steps] = self.time_step * (self.steps + 1)
         self.steps += 1
 
     def _record_half_cycle(self, charge: bool) -> None:
         """Records charge and discharge half-cycle times and capacities, and resets capacity after each half-cycle."""
-        time = self.steps * self.time_increment
+        time = self.steps * self.time_step
         self.half_cycle_capacity.append(self.capacity)
         self.half_cycle_time.append(time)
         self.half_cycle_is_charge.append(charge)
@@ -586,9 +586,9 @@ class CyclingProtocol(ABC):
             cell_model._coulomb_counter(i, cls_degradation, ncls_degradation, crossover)
 
         # Initialize data results object to be sent to user
-        results = CyclingResults(duration, cell_model.time_increment, self.charge_first)
+        results = CyclingResults(duration, cell_model.time_step, self.charge_first)
 
-        print(f'{duration} sec of cycling, time steps: {cell_model.time_increment} sec')
+        print(f'{duration} sec of cycling, time steps: {cell_model.time_step} sec')
         return results, update_concentrations
 
     @staticmethod

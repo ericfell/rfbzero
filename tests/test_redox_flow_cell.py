@@ -60,10 +60,10 @@ class TestClassRedoxFlowCell:
                    resistance=res,
                    k_0_cls=k_c,
                    k_0_ncls=k_n,
-                   time_increment=time_i
+                   time_step=time_i
                    )
 
-        warn_out = "WARNING: 'time_increment' >= 1 second will result in very coarse data.\
+        warn_out = "WARNING: 'time_step' >= 1 second will result in very coarse data.\
                   \nzero-D model approaches theory as time step decreases."
         captured = capsys.readouterr()
         assert captured.out.strip() == warn_out
