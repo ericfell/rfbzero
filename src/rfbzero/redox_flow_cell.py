@@ -56,7 +56,7 @@ class ZeroDModel:
     cls_negolyte : bool
         True if negolyte is the CLS, False if posolyte is the CLS.
         Default is True.
-    time_increment : float
+    time_step : float
         Simulation time step (s).
         Default is 0.01, providing adequate balance of accuracy vs compute time.
     k_mt : float
@@ -101,7 +101,7 @@ class ZeroDModel:
             alpha_ncls: float = 0.5,
             geometric_area: float = 5.0,
             cls_negolyte: bool = True,
-            time_increment: float = 0.01,
+            time_step: float = 0.01,
             k_mt: float = 0.8,
             roughness_factor: float = 26.0,
             num_electrons_cls: int = 1,
@@ -122,7 +122,7 @@ class ZeroDModel:
         self.alpha_ncls = alpha_ncls
         self.geometric_area = geometric_area
         self.cls_negolyte = cls_negolyte
-        self.time_increment = time_increment
+        self.time_step = time_step
         self.k_mt = k_mt
         self.const_i_ex = F * roughness_factor * self.geometric_area
         self.num_electrons_cls = num_electrons_cls
@@ -144,7 +144,7 @@ class ZeroDModel:
                            'c_red_cls': self.c_red_cls, 'c_ox_ncls': self.c_ox_ncls, 'c_red_ncls': self.c_red_ncls,
                            'ocv_50_soc': self.ocv_50_soc, 'resistance': self.resistance, 'k_0_cls': self.k_0_cls,
                            'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
-                           'time_increment': self.time_increment, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
+                           'time_step': self.time_step, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
                            'num_electrons_cls': self.num_electrons_cls, 'num_electrons_ncls': self.num_electrons_ncls,
                            'temperature': temperature}.items():
 
@@ -166,19 +166,19 @@ class ZeroDModel:
             raise ValueError("'num_electrons_ncls' must be >= 1")
 
         if self.ocv_50_soc == 0.0 and self.volume_cls >= self.volume_ncls:
-            raise ValueError("'volume_cls' must be < 'volume_ncls' in a symmetric cell")
+            raise ValueError("'volume_cls' must be < 'volume_ncls' in a symmetric cell ('ocv_50_soc' = 0.0)")
 
         if self.ocv_50_soc == 0.0 and self.num_electrons_cls != self.num_electrons_ncls:
-            raise ValueError("Symmetric cell ('ocv_50_soc' = 0) requires 'num_electrons_cls' and 'num_electrons_ncls' "
-                             "to be equal (same species)")
+            raise ValueError("'num_electrons_cls' and 'num_electrons_ncls' must be equal (same species) "
+                             "in a symmetric cell ('ocv_50_soc' = 0.0)")
 
         self.init_cls_capacity = self.volume_cls * self.num_electrons_cls * (self.c_ox_cls + self.c_red_cls)
         init_ncls_capacity = self.volume_ncls * self.num_electrons_ncls * (self.c_ox_ncls + self.c_red_ncls)
         if self.init_cls_capacity >= init_ncls_capacity:
             raise ValueError("Initial capacity of CLS must be less than initial capacity of NCLS")
 
-        if self.time_increment >= 1.0:
-            print("WARNING: 'time_increment' >= 1 second will result in very coarse data.\
+        if self.time_step >= 1.0:
+            print("WARNING: 'time_step' >= 1 second will result in very coarse data.\
                   \nzero-D model approaches theory as time step decreases.")
 
     def _exchange_current(self) -> tuple[float, float]:
@@ -410,8 +410,8 @@ class ZeroDModel:
 
         # Change in concentration from coulomb counting based solely on current
         direction = 1 if self.cls_negolyte else -1
-        delta_cls = ((self.time_increment * current) / (F * self.num_electrons_cls * self.volume_cls)) * direction
-        delta_ncls = ((self.time_increment * current) / (F * self.num_electrons_ncls * self.volume_ncls)) * direction
+        delta_cls = ((self.time_step * current) / (F * self.num_electrons_cls * self.volume_cls)) * direction
+        delta_ncls = ((self.time_step * current) / (F * self.num_electrons_ncls * self.volume_ncls)) * direction
 
         self.prev_c_ox_cls = self.c_ox_cls
         self.prev_c_red_cls = self.c_red_cls
@@ -431,20 +431,20 @@ class ZeroDModel:
         # Coulomb counting from optional degradation and/or crossover mechanisms
         if cls_degradation is not None:
             delta_ox_cls, delta_red_cls = cls_degradation.degrade(self.c_ox_cls, self.c_red_cls,
-                                                                  self.time_increment)
+                                                                  self.time_step)
             new_c_ox_cls += delta_ox_cls
             new_c_red_cls += delta_red_cls
 
         if ncls_degradation is not None:
             delta_ox_ncls, delta_red_ncls = ncls_degradation.degrade(self.c_ox_ncls, self.c_red_ncls,
-                                                                     self.time_increment)
+                                                                     self.time_step)
             new_c_ox_ncls += delta_ox_ncls
             new_c_red_ncls += delta_red_ncls
 
         if cross_over is not None:
             delta_ox_cls, delta_red_cls, delta_ox_ncls, delta_red_ncls, delta_ox_mols, delta_red_mols = \
                 cross_over.crossover(self.geometric_area, self.c_ox_cls, self.c_red_cls, self.c_ox_ncls, self.c_red_ncls,
-                                     self.volume_cls, self.volume_ncls, self.time_increment)
+                                     self.volume_cls, self.volume_ncls, self.time_step)
             new_c_ox_cls += delta_ox_cls
             new_c_red_cls += delta_red_cls
             new_c_ox_ncls += delta_ox_ncls

@@ -49,7 +49,7 @@ class TestClassRedoxFlowCell:
                               (0.01, 0.05, 0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3, 5.0),
                               (0.01, 0.05, 0.01, 0.01, 0.01, 0.01, 1, 1, 1e-3, 1e-3, 11.2),
                               ])
-    def test_timestep_warning(self,v_cls,v_ncls,ox_cls,red_cls,ox_ncls,red_ncls,ocv,res,k_c,k_n,time_i,capsys):
+    def test_time_step_warning(self,v_cls,v_ncls,ox_cls,red_cls,ox_ncls,red_ncls,ocv,res,k_c,k_n,time_i,capsys):
         ZeroDModel(volume_cls=v_cls,
                    volume_ncls=v_ncls,
                    c_ox_cls=ox_cls,
@@ -60,10 +60,10 @@ class TestClassRedoxFlowCell:
                    resistance=res,
                    k_0_cls=k_c,
                    k_0_ncls=k_n,
-                   time_increment=time_i
+                   time_step=time_i
                    )
 
-        warn_out = "WARNING: 'time_increment' >= 1 second will result in very coarse data.\
+        warn_out = "WARNING: 'time_step' >= 1 second will result in very coarse data.\
                   \nzero-D model approaches theory as time step decreases."
         captured = capsys.readouterr()
         assert captured.out.strip() == warn_out

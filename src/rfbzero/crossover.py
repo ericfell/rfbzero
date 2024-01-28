@@ -51,7 +51,7 @@ class Crossover:
             c_red_ncls: float,
             volume_cls: float,
             volume_ncls: float,
-            timestep: float
+            time_step: float
     ) -> tuple[float, float, float, float, float, float]:
         """
         Calculation of crossover species, considering permeabilities of oxidized/reduced species.
@@ -72,7 +72,7 @@ class Crossover:
             Volume of CLS reservoir (L).
         volume_ncls : float
             Volume of NCLS reservoir (L).
-        timestep : float
+        time_step : float
             Time interval size (s).
 
         Returns
@@ -100,8 +100,8 @@ class Crossover:
         c_red_difference = c_red_cls - c_red_ncls
 
         # amount of species (mols) added/subtracted, divide by 1000 for L to cm^3 conversion
-        delta_ox_mols = timestep * self.permeability_ox * membrane_constant * (c_ox_difference / 1000)
-        delta_red_mols = timestep * self.permeability_red * membrane_constant * (c_red_difference / 1000)
+        delta_ox_mols = time_step * self.permeability_ox * membrane_constant * (c_ox_difference / 1000)
+        delta_red_mols = time_step * self.permeability_red * membrane_constant * (c_red_difference / 1000)
 
         # update concentrations (M)
         c_ox_cls -= delta_ox_mols / volume_cls
