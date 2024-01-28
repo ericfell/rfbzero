@@ -383,7 +383,7 @@ class ZeroDModel:
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
             cross_over: Crossover = None
-    ) -> None:
+    ) -> tuple[dict[str, float], dict[str, float]]:
         """
         Updates all species' concentrations at each time step. Contributions from faradaic current, (optional)
         degradation mechanisms, and (optional) crossover mechanism.
@@ -401,10 +401,10 @@ class ZeroDModel:
 
         Returns
         -------
-        delta_ox_mols : float
-            Oxidized species crossing, at each time step (mols).
-        delta_red_mols : float
-            Reduced species crossing, at each time step (mols).
+        c_products_cls : dict[str, float]
+            Updated concentrations of all CLS product species (M).
+        c_products_ncls : dict[str, float]
+            Updated concentrations of all NCLS product species (M).
 
         """
 
@@ -429,17 +429,21 @@ class ZeroDModel:
         delta_red_mols = 0.0
 
         # Coulomb counting from optional degradation and/or crossover mechanisms
+        c_products_cls = {}
         if cls_degradation is not None:
             delta_ox_cls, delta_red_cls = cls_degradation.degrade(self.c_ox_cls, self.c_red_cls,
                                                                   self.time_step)
             new_c_ox_cls += delta_ox_cls
             new_c_red_cls += delta_red_cls
+            c_products_cls = cls_degradation.c_products
 
+        c_products_ncls = {}
         if ncls_degradation is not None:
             delta_ox_ncls, delta_red_ncls = ncls_degradation.degrade(self.c_ox_ncls, self.c_red_ncls,
                                                                      self.time_step)
             new_c_ox_ncls += delta_ox_ncls
             new_c_red_ncls += delta_red_ncls
+            c_products_ncls = ncls_degradation.c_products
 
         if cross_over is not None:
             delta_ox_cls, delta_red_cls, delta_ox_ncls, delta_red_ncls, delta_ox_mols, delta_red_mols = \
@@ -458,6 +462,8 @@ class ZeroDModel:
 
         self.delta_ox_mols = delta_ox_mols
         self.delta_red_mols = delta_red_mols
+
+        return c_products_cls, c_products_ncls
 
     def _revert_concentrations(self) -> None:
         """Resets concentrations to previous value if a (invalid) negative concentration is calculated."""
