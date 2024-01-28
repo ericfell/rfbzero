@@ -36,6 +36,6 @@ class TestClassCrossover:
             c_red_ncls=0.5,
             volume_cls=1,
             volume_ncls=2,
-            timestep=1,
+            time_step=1,
         )
 
