@@ -447,8 +447,8 @@ class ZeroDModel:
 
         if cross_over is not None:
             delta_ox_cls, delta_red_cls, delta_ox_ncls, delta_red_ncls, delta_ox_mols, delta_red_mols = \
-                cross_over.crossover(self.geometric_area, self.c_ox_cls, self.c_red_cls, self.c_ox_ncls, self.c_red_ncls,
-                                     self.volume_cls, self.volume_ncls, self.time_step)
+                cross_over.crossover(self.geometric_area, self.c_ox_cls, self.c_red_cls, self.c_ox_ncls,
+                                     self.c_red_ncls, self.volume_cls, self.volume_ncls, self.time_step)
             new_c_ox_cls += delta_ox_cls
             new_c_red_cls += delta_red_cls
             new_c_ox_ncls += delta_ox_ncls

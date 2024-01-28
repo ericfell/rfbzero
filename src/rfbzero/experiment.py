@@ -74,11 +74,11 @@ class CyclingResults:
 
         #: The CLS concentrations of any product species (M), at each time step.
         self.c_products_cls: dict[str, list[float]] = {
-            species: [0.0] * self.max_steps for species in products_cls
+            species: [0.0] * self.max_steps for species in self.products_cls
         }
         #: The NCLS concentrations of any product species (M), at each time step.
         self.c_products_ncls: dict[str, list[float]] = {
-            species: [0.0] * self.max_steps for species in products_ncls
+            species: [0.0] * self.max_steps for species in self.products_ncls
         }
         print(self.c_products_ncls)
 
@@ -619,8 +619,8 @@ class CyclingProtocol(ABC):
         # the passed in instances can be reused across protocol runs.
         cls_degradation = copy.deepcopy(cls_degradation)
         ncls_degradation = copy.deepcopy(ncls_degradation)
-        c_products_cls = cls_degradation.c_products if cls_degradation else None
-        c_products_ncls = ncls_degradation.c_products if ncls_degradation else None
+        c_products_cls = cls_degradation.c_products if cls_degradation else {}
+        c_products_ncls = ncls_degradation.c_products if ncls_degradation else {}
 
         if cell_model._negative_concentrations():
             raise ValueError('Negative concentration detected')
@@ -630,7 +630,8 @@ class CyclingProtocol(ABC):
             return cell_model._coulomb_counter(i, cls_degradation, ncls_degradation, crossover)
 
         # Initialize data results object to be sent to user
-        results = CyclingResults(duration, cell_model.time_step, self.charge_first, c_products_cls, c_products_ncls)
+        results = CyclingResults(duration, cell_model.time_step, self.charge_first,
+                                 list(c_products_cls.keys()), list(c_products_ncls.keys()))
 
         print(f'{duration} sec of cycling, time steps: {cell_model.time_step} sec')
         return results, update_concentrations
