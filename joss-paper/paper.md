@@ -73,16 +73,16 @@ from experiment import ConstantCurrent
 
 # 1. define symmetric cell and electrolyte parameters
 cell = ZeroDModel(
-    cls_volume=0.005,       # liters
-    ncls_volume=0.050,      # liters
-    cls_start_c_ox=0.01,    # molar
-    cls_start_c_red=0.01,   # molar
-    ncls_start_c_ox=0.01,   # molar
-    ncls_start_c_red=0.01,  # molar
-    ocv_50_soc=0.0,         # volts
-    resistance=0.5,         # ohms
-    k_0_cls=1e-3,           # cm/s
-    k_0_ncls=1e-3,          # cm/s
+    volume_cls=0.005,   # liters
+    volume_ncls=0.050,  # liters
+    c_ox_cls=0.01,      # molar
+    c_red_cls=0.01,     # molar
+    c_ox_ncls=0.01,     # molar
+    c_red_ncls=0.01,    # molar
+    ocv_50_soc=0.0,     # volts
+    resistance=0.5,     # ohms
+    k_0_cls=1e-3,       # cm/s
+    k_0_ncls=1e-3,      # cm/s
 )
 
 # 2. define cycling protocol
@@ -109,16 +109,16 @@ from degradation import AutoReduction
 
 # 1. define symmetric cell and electrolyte parameters
 cell = ZeroDModel(
-    cls_volume=0.005,       # liters
-    ncls_volume=0.010,      # liters
-    cls_start_c_ox=0.01,    # molar
-    cls_start_c_red=0.01,   # molar
-    ncls_start_c_ox=0.01,   # molar
-    ncls_start_c_red=0.01,  # molar
-    ocv_50_soc=0.0,         # volts
-    resistance=0.5,         # ohms
-    k_0_cls=1e-3,           # cm/s
-    k_0_ncls=1e-3,          # cm/s
+    volume_cls=0.005,   # liters
+    volume_ncls=0.010,  # liters
+    c_ox_cls=0.01,      # molar
+    c_red_cls=0.01,     # molar
+    c_ox_ncls=0.01,     # molar
+    c_red_ncls=0.01,    # molar
+    ocv_50_soc=0.0,     # volts
+    resistance=0.5,     # ohms
+    k_0_cls=1e-3,       # cm/s
+    k_0_ncls=1e-3,      # cm/s
 )
 
 # 2. define cycling protocol
