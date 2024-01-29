@@ -1,10 +1,11 @@
+import itertools
 import pytest
 import numpy as np
 
 from rfbzero.experiment import ConstantCurrent, ConstantCurrentConstantVoltage, ConstantVoltage
 from rfbzero.redox_flow_cell import ZeroDModel
 from rfbzero.degradation import ChemicalDegradationOxidized, ChemicalDegradationReduced, AutoOxidation, AutoReduction, \
-    MultiDegradationMechanism  # , Dimerization
+    MultiDegradationMechanism, Dimerization
 from rfbzero.crossover import Crossover
 
 
@@ -256,3 +257,47 @@ class TestLowCapacity:
 
         cyclestatus = captured.out.strip().rsplit('time steps: ', 1)[1]
         assert cyclestatus == warn_out
+
+
+class TestDegradationCommutativity:
+    degradations = [
+        ChemicalDegradationOxidized(rate_order=1, rate_constant=0.1),
+        ChemicalDegradationReduced(rate_order=1, rate_constant=0.1),
+        AutoOxidation(rate_constant=0.1),
+        AutoReduction(rate_constant=0.1),
+        Dimerization(forward_rate_constant=2, backward_rate_constant=1, c_dimer=0.5)
+    ]
+
+    @pytest.mark.parametrize("degradation1,degradation2", itertools.combinations(degradations, 2))
+    def test_degradations_are_commutative(self, degradation1, degradation2):
+        mechanism1 = MultiDegradationMechanism([degradation1, degradation2])
+        mechanism2 = MultiDegradationMechanism([degradation2, degradation1])
+
+        cell1, cell2 = [
+            ZeroDModel(volume_cls=0.005,  # L
+                       volume_ncls=0.05,  # L
+                       c_ox_cls=0.01,  # M
+                       c_red_cls=0.01,  # M
+                       c_ox_ncls=0.01,  # M
+                       c_red_ncls=0.01,  # M
+                       ocv_50_soc=0.0,  # V
+                       resistance=1.0,  # ohms
+                       k_0_cls=1e-3,  # cm/s
+                       k_0_ncls=1e-3,  # cm/s
+                       num_electrons_cls=1,  # electrons
+                       num_electrons_ncls=1,  # electrons
+                       )
+            for _ in range(2)
+        ]
+
+        protocol = ConstantCurrent(voltage_limit_charge=0.2,  # V
+                                   voltage_limit_discharge=-0.2,  # V
+                                   current=0.05,  # A
+                                   )
+
+        results1 = protocol.run(cell_model=cell1, duration=1000, degradation=mechanism1)
+        results2 = protocol.run(cell_model=cell2, duration=1000, degradation=mechanism2)
+        assert results1.c_ox_cls == results2.c_ox_cls
+        assert results1.c_red_cls == results2.c_red_cls
+        assert results1.c_ox_ncls == results2.c_ox_ncls
+        assert results1.c_red_ncls == results2.c_red_ncls
