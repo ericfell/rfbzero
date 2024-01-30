@@ -425,8 +425,8 @@ class ZeroDModel:
         new_c_red_ncls = self.c_red_ncls - delta_ncls
 
         # for no crossover situation
-        delta_ox_mols = 0.0
-        delta_red_mols = 0.0
+        crossed_ox_mols = 0.0
+        crossed_red_mols = 0.0
 
         # Coulomb counting from optional degradation and/or crossover mechanisms
         c_products_cls = {}
@@ -446,7 +446,7 @@ class ZeroDModel:
             c_products_ncls = ncls_degradation.c_products
 
         if cross_over is not None:
-            delta_ox_cls, delta_red_cls, delta_ox_ncls, delta_red_ncls, delta_ox_mols, delta_red_mols = \
+            delta_ox_cls, delta_red_cls, delta_ox_ncls, delta_red_ncls, crossed_ox_mols, crossed_red_mols = \
                 cross_over.crossover(self.geometric_area, self.c_ox_cls, self.c_red_cls, self.c_ox_ncls,
                                      self.c_red_ncls, self.volume_cls, self.volume_ncls, self.time_step)
             new_c_ox_cls += delta_ox_cls
@@ -460,8 +460,8 @@ class ZeroDModel:
         self.c_ox_ncls = new_c_ox_ncls
         self.c_red_ncls = new_c_red_ncls
 
-        self.delta_ox_mols = delta_ox_mols
-        self.delta_red_mols = delta_red_mols
+        self.delta_ox_mols = crossed_ox_mols
+        self.delta_red_mols = crossed_red_mols
 
         return c_products_cls, c_products_ncls
 

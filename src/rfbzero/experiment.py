@@ -82,9 +82,9 @@ class CyclingResults:
         }
 
         #: Oxidized species crossing (mols), at each time step. Only meaningful for symmetric cell.
-        self.delta_ox_mols: list[float] = [0.0] * self.max_steps
+        self.crossed_ox_mols: list[float] = [0.0] * self.max_steps
         #: Reduced species crossing (mols), at each time step. Only meaningful for symmetric cell.
-        self.delta_red_mols: list[float] = [0.0] * self.max_steps
+        self.crossed_red_mols: list[float] = [0.0] * self.max_steps
         #: The CLS state of charge, at each time step.
         self.soc_cls: list[float] = [0.0] * self.max_steps
         #: The NCLS state of charge, at each time step.
@@ -162,8 +162,8 @@ class CyclingResults:
         for species in self.products_ncls:
             self.c_products_ncls[species][self.steps] = c_products_ncls[species]
 
-        self.delta_ox_mols[self.steps] = cell_model.delta_ox_mols
-        self.delta_red_mols[self.steps] = cell_model.delta_red_mols
+        self.crossed_ox_mols[self.steps] = cell_model.delta_ox_mols
+        self.crossed_red_mols[self.steps] = cell_model.delta_red_mols
 
         # Compute state-of-charge
         if self.compute_soc:
@@ -207,8 +207,8 @@ class CyclingResults:
         self.c_red_cls = self.c_red_cls[:self.steps]
         self.c_ox_ncls = self.c_ox_ncls[:self.steps]
         self.c_red_ncls = self.c_red_ncls[:self.steps]
-        self.delta_ox_mols = self.delta_ox_mols[:self.steps]
-        self.delta_red_mols = self.delta_red_mols[:self.steps]
+        self.crossed_ox_mols = self.crossed_ox_mols[:self.steps]
+        self.crossed_red_mols = self.crossed_red_mols[:self.steps]
         self.soc_cls = self.soc_cls[:self.steps]
         self.soc_ncls = self.soc_ncls[:self.steps]
 

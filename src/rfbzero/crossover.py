@@ -100,14 +100,14 @@ class Crossover:
         c_red_difference = c_red_cls - c_red_ncls
 
         # amount of species (mols) added/subtracted, divide by 1000 for L to cm^3 conversion
-        delta_ox_mols = time_step * self.permeability_ox * membrane_constant * (c_ox_difference / 1000)
-        delta_red_mols = time_step * self.permeability_red * membrane_constant * (c_red_difference / 1000)
+        crossed_ox_mols = time_step * self.permeability_ox * membrane_constant * (c_ox_difference / 1000)
+        crossed_red_mols = time_step * self.permeability_red * membrane_constant * (c_red_difference / 1000)
 
         # update concentrations (M)
-        c_ox_cls -= delta_ox_mols / volume_cls
-        c_ox_ncls += delta_ox_mols / volume_ncls
+        delta_ox_cls = -(crossed_ox_mols / volume_cls)
+        delta_ox_ncls = crossed_ox_mols / volume_ncls
 
-        c_red_cls -= delta_red_mols / volume_cls
-        c_red_ncls += delta_red_mols / volume_ncls
+        delta_red_cls = -(crossed_red_mols / volume_cls)
+        delta_red_ncls = crossed_red_mols / volume_ncls
 
-        return c_ox_cls, c_red_cls, c_ox_ncls, c_red_ncls, delta_ox_mols, delta_red_mols
+        return delta_ox_cls, delta_red_cls, delta_ox_ncls, delta_red_ncls, crossed_ox_mols, crossed_red_mols
