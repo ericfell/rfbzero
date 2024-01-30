@@ -77,17 +77,17 @@ class Crossover:
 
         Returns
         -------
-        c_ox_cls : float
-            Updated CLS concentration of oxidized species (M).
-        c_red_cls : float
-            Updated CLS concentration of reduced species (M).
-        c_ox_ncls : float
-            Updated NCLS concentration of oxidized species (M).
-        c_red_ncls : float
-            Updated NCLS concentration of reduced species (M).
-        delta_ox_mols : float
+        delta_ox_cls : float
+            Change in concentration of oxidized species (M) in the CLS.
+        delta_red_cls : float
+            Change in concentration of reduced species (M) in the CLS.
+        delta_ox_ncls : float
+            Change in concentration of oxidized species (M) in the NCLS.
+        delta_red_ncls : float
+            Change in concentration of reduced species (M) in the NCLS.
+        crossed_ox_mols : float
             Oxidized species crossing at given time step (mol).
-        delta_red_mols : float
+        crossed_red_mols : float
             Reduced species crossing at given time step (mol).
 
         """
@@ -103,7 +103,7 @@ class Crossover:
         crossed_ox_mols = time_step * self.permeability_ox * membrane_constant * (c_ox_difference / 1000)
         crossed_red_mols = time_step * self.permeability_red * membrane_constant * (c_red_difference / 1000)
 
-        # update concentrations (M)
+        # changes in concentrations (M)
         delta_ox_cls = -(crossed_ox_mols / volume_cls)
         delta_ox_ncls = crossed_ox_mols / volume_ncls
 
