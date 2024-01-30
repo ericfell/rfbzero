@@ -80,7 +80,6 @@ class CyclingResults:
         self.c_products_ncls: dict[str, list[float]] = {
             species: [0.0] * self.max_steps for species in self.products_ncls
         }
-        print(self.c_products_ncls)
 
         #: Oxidized species crossing (mols), at each time step. Only meaningful for symmetric cell.
         self.delta_ox_mols: list[float] = [0.0] * self.max_steps
