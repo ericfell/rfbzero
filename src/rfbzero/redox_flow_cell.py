@@ -106,7 +106,7 @@ class ZeroDModel:
             roughness_factor: float = 26.0,
             num_electrons_cls: int = 1,
             num_electrons_ncls: int = 1,
-            temperature: float = 298.0
+            temperature: float = 298.0,
     ) -> None:
         self.volume_cls = volume_cls
         self.volume_ncls = volume_ncls
@@ -381,7 +381,7 @@ class ZeroDModel:
             current: float,
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
-            cross_over: Crossover = None
+            cross_over: Crossover = None,
     ) -> tuple[dict[str, float], dict[str, float]]:
         """
         Updates all species' concentrations at each time step. Contributions from faradaic current, (optional)

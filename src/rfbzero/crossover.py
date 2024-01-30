@@ -51,7 +51,7 @@ class Crossover:
             c_red_ncls: float,
             volume_cls: float,
             volume_ncls: float,
-            time_step: float
+            time_step: float,
     ) -> tuple[float, float, float, float, float, float]:
         """
         Calculation of crossover species, considering permeabilities of oxidized/reduced species.
