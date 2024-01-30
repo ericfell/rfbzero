@@ -145,7 +145,6 @@ class ZeroDModel:
                            'ocv_50_soc': self.ocv_50_soc, 'resistance': self.resistance, 'k_0_cls': self.k_0_cls,
                            'k_0_ncls': self.k_0_ncls, 'geometric_area': self.geometric_area,
                            'time_step': self.time_step, 'k_mt': self.k_mt, 'const_i_ex': self.const_i_ex,
-                           'num_electrons_cls': self.num_electrons_cls, 'num_electrons_ncls': self.num_electrons_ncls,
                            'temperature': temperature}.items():
 
             if key not in ['ocv_50_soc', 'resistance',

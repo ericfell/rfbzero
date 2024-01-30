@@ -1,5 +1,5 @@
 import pytest
-#import numpy as np
+import numpy as np
 
 from rfbzero.degradation import (DegradationMechanism, ChemicalDegradationOxidized, ChemicalDegradationReduced,
                                  AutoOxidation, AutoReduction, Dimerization, MultiDegradationMechanism)
@@ -22,18 +22,18 @@ class TestChemicalDegradation:
             ChemicalDegradationReduced(rate_order=order, rate_constant=constant)
 
         with pytest.raises(ValueError):
-            ChemicalDegradationReduced(rate_order=order, rate_constant=constant)
+            ChemicalDegradationOxidized(rate_order=order, rate_constant=constant)
 
     def test_chem_deg_degrade(self):
         test_chemdeg = ChemicalDegradationReduced(rate_order=1, rate_constant=0.1)
-        c_o, c_r = test_chemdeg.degrade(c_ox=1, c_red=0.5, time_step=0.1)
-        assert c_o == 1
-        assert c_r == 0.495
+        delta_c_o, delta_c_r = test_chemdeg.degrade(c_ox=1, c_red=0.5, time_step=0.1)
+        assert np.isclose(delta_c_o, 0.0)
+        assert np.isclose(delta_c_r, -0.005)
 
         test_chemdeg2 = ChemicalDegradationOxidized(rate_order=1, rate_constant=0.1)
-        c_ox, c_red = test_chemdeg2.degrade(c_ox=1, c_red=0.5, time_step=0.1)
-        assert c_ox == 0.99
-        assert c_red == 0.5
+        delta_c_ox, delta_c_red = test_chemdeg2.degrade(c_ox=1, c_red=0.5, time_step=0.1)
+        assert np.isclose(delta_c_ox, -0.01)
+        assert np.isclose(delta_c_red, 0.0)
 
 
 class TestAutoOxidation:
@@ -50,9 +50,9 @@ class TestAutoOxidation:
 
     def test_auto_ox_degrade(self):
         test_autoox = AutoOxidation(rate_constant=0.1)
-        c_o, c_r = test_autoox.degrade(c_ox=1, c_red=0.5, time_step=0.1)
-        assert c_o == 1.005
-        assert c_r == 0.495
+        delta_c_o, delta_c_r = test_autoox.degrade(c_ox=1, c_red=0.5, time_step=0.1)
+        assert np.isclose(delta_c_o, 0.005)
+        assert np.isclose(delta_c_r, -0.005)
 
 
 class TestAutoReduction:
@@ -69,26 +69,9 @@ class TestAutoReduction:
 
     def test_auto_red_degrade(self):
         test_autored = AutoReduction(rate_constant=0.1)
-        c_o, c_r = test_autored.degrade(c_ox=1, c_red=0.5, time_step=0.1)
-        assert c_o == 0.99
-        assert c_r == 0.51
-
-
-class TestMultiDegradationMechanism:
-
-    @pytest.mark.parametrize("mech", [(1, True)])
-    def test_multi_deg_init(self, mech):
-        with pytest.raises(ValueError):
-            MultiDegradationMechanism(mechanisms=mech)
-        #raise NotImplementedError
-    def test_multi_deg_degrade(self):
-        mech_1 = AutoReduction(rate_constant=0.1)
-        mech_2 = AutoOxidation(rate_constant=0.1)
-        mech_list = [mech_1, mech_2]
-        test_multi = MultiDegradationMechanism(mechanisms=mech_list)
-        c_o, c_r = test_multi.degrade(c_ox=1, c_red=0.5, time_step=0.1)
-        assert c_o == 0.9951
-        assert c_r == 0.5049
+        delta_c_o, delta_c_r = test_autored.degrade(c_ox=1, c_red=0.5, time_step=0.1)
+        assert np.isclose(delta_c_o, -0.01)
+        assert np.isclose(delta_c_r, 0.01)
 
 
 class TestDimerization:
@@ -100,6 +83,23 @@ class TestDimerization:
 
     def test_dimerization_degrade(self):
         test_dimerize = Dimerization(forward_rate_constant=2, backward_rate_constant=1, c_dimer=0.5)
-        c_o, c_r = test_dimerize.degrade(c_ox=1, c_red=0.5, time_step=1)
-        assert c_o == 0.5
-        assert c_r == 0.0
+        delta_c_o, delta_c_r = test_dimerize.degrade(c_ox=1, c_red=0.5, time_step=1)
+        assert np.isclose(delta_c_o, -0.5)
+        assert np.isclose(delta_c_r, -0.5)
+
+
+class TestMultiDegradationMechanism:
+
+    @pytest.mark.parametrize("mech", [(1, True)])
+    def test_multi_deg_init(self, mech):
+        with pytest.raises(ValueError):
+            MultiDegradationMechanism(mechanisms=mech)
+
+    def test_multi_deg_degrade(self):
+        mech_1 = AutoReduction(rate_constant=0.1)
+        mech_2 = AutoOxidation(rate_constant=0.1)
+        mech_list = [mech_1, mech_2]
+        test_multi = MultiDegradationMechanism(mechanisms=mech_list)
+        delta_c_o, delta_c_r = test_multi.degrade(c_ox=1, c_red=0.5, time_step=0.1)
+        assert np.isclose(delta_c_o, -0.005)
+        assert np.isclose(delta_c_r, 0.005)

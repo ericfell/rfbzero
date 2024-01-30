@@ -175,6 +175,283 @@ class TestConstantCurrentConstantVoltage:
         vals = all_results.half_cycle_capacity[:5]
         assert np.isclose(vals, expected).all()
 
+    def test_cccv_current_inputs(self):
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
+                              ocv_50_soc=1.1,  # V
+                              resistance=0.8,  # ohms
+                              k_0_cls=1e-3,  # cm/s
+                              k_0_ncls=1e-3,  # cm/s
+                              )
+
+            # define cycling protocol
+            protocol = ConstantCurrentConstantVoltage(
+                voltage_limit_charge=1.45,
+                voltage_limit_discharge=0.8,
+                current_cutoff_charge=0.005,
+                current_cutoff_discharge=-0.005,
+                current=0.1,
+                current_charge=0.01,
+                current_discharge=-0.1,
+            )
+
+            # putting it all together
+            all_results = protocol.run(cell_model=cell,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       )
+
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
+                              ocv_50_soc=1.1,  # V
+                              resistance=0.8,  # ohms
+                              k_0_cls=1e-3,  # cm/s
+                              k_0_ncls=1e-3,  # cm/s
+                              )
+
+            # define cycling protocol
+            protocol = ConstantCurrentConstantVoltage(
+                voltage_limit_charge=1.45,
+                voltage_limit_discharge=0.8,
+                current_cutoff_charge=0.005,
+                current_cutoff_discharge=-0.005,
+                current=0.1,
+                current_charge=0.01,
+            )
+
+            # putting it all together
+            all_results = protocol.run(cell_model=cell,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       )
+
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
+                              ocv_50_soc=1.1,  # V
+                              resistance=0.8,  # ohms
+                              k_0_cls=1e-3,  # cm/s
+                              k_0_ncls=1e-3,  # cm/s
+                              )
+
+            # define cycling protocol
+            protocol = ConstantCurrentConstantVoltage(
+                voltage_limit_charge=1.45,
+                voltage_limit_discharge=0.8,
+                current_cutoff_charge=0.005,
+                current_cutoff_discharge=-0.005,
+                current_charge=-0.01,
+                current_discharge=0.1,
+            )
+
+            # putting it all together
+            all_results = protocol.run(cell_model=cell,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       )
+
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
+                              ocv_50_soc=1.1,  # V
+                              resistance=0.8,  # ohms
+                              k_0_cls=1e-3,  # cm/s
+                              k_0_ncls=1e-3,  # cm/s
+                              )
+
+            # define cycling protocol
+            protocol = ConstantCurrentConstantVoltage(
+                voltage_limit_charge=1.45,
+                voltage_limit_discharge=0.8,
+                current_cutoff_charge=0.005,
+                current_cutoff_discharge=-0.005,
+                current_charge=0.01,
+                current_discharge=0.1,
+            )
+
+            # putting it all together
+            all_results = protocol.run(cell_model=cell,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       )
+
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
+                              ocv_50_soc=1.1,  # V
+                              resistance=0.8,  # ohms
+                              k_0_cls=1e-3,  # cm/s
+                              k_0_ncls=1e-3,  # cm/s
+                              )
+
+            # define cycling protocol
+            protocol = ConstantCurrentConstantVoltage(
+                voltage_limit_charge=1.45,
+                voltage_limit_discharge=0.8,
+                current=0.1,
+                current_cutoff=-0.01,
+            )
+
+            # putting it all together
+            all_results = protocol.run(cell_model=cell,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       )
+
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
+                              ocv_50_soc=1.1,  # V
+                              resistance=0.8,  # ohms
+                              k_0_cls=1e-3,  # cm/s
+                              k_0_ncls=1e-3,  # cm/s
+                              )
+
+            # define cycling protocol
+            protocol = ConstantCurrentConstantVoltage(
+                voltage_limit_charge=1.45,
+                voltage_limit_discharge=0.8,
+                current_cutoff_charge=0.005,
+                current_charge=0.01,
+            )
+
+            # putting it all together
+            all_results = protocol.run(cell_model=cell,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       )
+
+    def test_cccv_voltage_inputs(self):
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
+                              ocv_50_soc=0.0,  # V
+                              resistance=0.8,  # ohms
+                              k_0_cls=1e-3,  # cm/s
+                              k_0_ncls=1e-3,  # cm/s
+                              )
+
+            # define cycling protocol
+            protocol = ConstantCurrentConstantVoltage(
+                voltage_limit_charge=0.4,
+                voltage_limit_discharge=0.2,
+                current_cutoff_charge=0.005,
+                current_cutoff_discharge=-0.005,
+                current=0.1,
+            )
+
+            # putting it all together
+            all_results = protocol.run(cell_model=cell,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       )
+
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
+                              ocv_50_soc=1.0,  # V
+                              resistance=0.8,  # ohms
+                              k_0_cls=1e-3,  # cm/s
+                              k_0_ncls=1e-3,  # cm/s
+                              )
+
+            # define cycling protocol
+            protocol = ConstantCurrentConstantVoltage(
+                voltage_limit_charge=0.4,
+                voltage_limit_discharge=1.2,
+                current_cutoff_charge=0.005,
+                current_cutoff_discharge=-0.005,
+                current=0.1,
+            )
+
+            # putting it all together
+            all_results = protocol.run(cell_model=cell,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       )
+
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
+                              ocv_50_soc=1.0,  # V
+                              resistance=0.8,  # ohms
+                              k_0_cls=1e-3,  # cm/s
+                              k_0_ncls=1e-3,  # cm/s
+                              )
+
+            # define cycling protocol
+            protocol = ConstantCurrentConstantVoltage(
+                voltage_limit_charge=1.4,
+                voltage_limit_discharge=-0.2,
+                current_cutoff_charge=0.005,
+                current_cutoff_discharge=-0.005,
+                current=0.1,
+            )
+
+            # putting it all together
+            all_results = protocol.run(cell_model=cell,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       )
+
+        with pytest.raises(ValueError):
+            cell = ZeroDModel(volume_cls=0.005,  # L
+                              volume_ncls=0.03,  # L
+                              c_ox_cls=0.01,  # M
+                              c_red_cls=0.01,  # M
+                              c_ox_ncls=0.01,  # M
+                              c_red_ncls=0.01,  # M
+                              ocv_50_soc=1.0,  # V
+                              resistance=0.8,  # ohms
+                              k_0_cls=1e-3,  # cm/s
+                              k_0_ncls=1e-3,  # cm/s
+                              )
+
+            # define cycling protocol
+            protocol = ConstantCurrentConstantVoltage(
+                voltage_limit_charge=1.4,
+                voltage_limit_discharge=-0.2,
+                current_cutoff_charge=0.005,
+                current_cutoff_discharge=-0.005,
+                current=0.1,
+            )
+
+            # putting it all together
+            all_results = protocol.run(cell_model=cell,
+                                       duration=1000,  # cycle time to simulate (s)
+                                       degradation=AutoReduction(rate_constant=1e-4),
+                                       ncls_degradation=ChemicalDegradationReduced(rate_order=1, rate_constant=3e-3),
+                                       )
+
 
 class TestAsymmetricCurrents:
     def test_cc(self):
