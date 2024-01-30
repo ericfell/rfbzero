@@ -436,6 +436,7 @@ disable=raw-checker-failed,
         too-many-arguments,
         too-many-locals,
         too-many-statements,
+        too-many-lines,
         protected-access
 
 # Enable the message, report, category or checker with the given id(s). You can

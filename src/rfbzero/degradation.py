@@ -8,6 +8,9 @@ from abc import ABC, abstractmethod
 class DegradationMechanism(ABC):
     """Abstract base class to be implemented by specific degradation mechanisms."""
 
+    def __init__(self, **c_products: float):
+        self.c_products = c_products
+
     @abstractmethod
     def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
         """Applies desired degradation mechanisms to oxidized/reduced species at each time step."""
@@ -28,6 +31,7 @@ class ChemicalDegradationOxidized(DegradationMechanism):
     """
 
     def __init__(self, rate_order: int, rate_constant: float) -> None:
+        super().__init__()
         self.rate_order = rate_order
         self.rate_constant = rate_constant
 
@@ -53,15 +57,16 @@ class ChemicalDegradationOxidized(DegradationMechanism):
 
         Returns
         -------
-        c_ox : float
-            Updated concentration of oxidized species (M).
-        c_red : float
-            Unchanged concentration of reduced species (M).
+        delta_ox : float
+            Change in concentration of oxidized species (M).
+        delta_red : float
+            Change in concentration of reduced species (M). This will always be zero.
 
         """
 
-        c_ox -= (time_step * self.rate_constant * (c_ox ** self.rate_order))
-        return c_ox, c_red
+        delta_ox = -(time_step * self.rate_constant * (c_ox ** self.rate_order))
+        delta_red = 0.0
+        return delta_ox, delta_red
 
 
 class ChemicalDegradationReduced(DegradationMechanism):
@@ -78,6 +83,7 @@ class ChemicalDegradationReduced(DegradationMechanism):
     """
 
     def __init__(self, rate_order: int, rate_constant: float) -> None:
+        super().__init__()
         self.rate_order = rate_order
         self.rate_constant = rate_constant
 
@@ -103,15 +109,16 @@ class ChemicalDegradationReduced(DegradationMechanism):
 
         Returns
         -------
-        c_ox : float
-            Unchanged concentration of oxidized species (M).
-        c_red : float
-            Updated concentration of reduced species (M).
+        delta_ox : float
+            Change in concentration of oxidized species (M). This will always be zero.
+        delta_red : float
+            Change in concentration of reduced species (M).
 
         """
 
-        c_red -= (time_step * self.rate_constant * (c_red ** self.rate_order))
-        return c_ox, c_red
+        delta_ox = 0.0
+        delta_red = -(time_step * self.rate_constant * (c_red ** self.rate_order))
+        return delta_ox, delta_red
 
 
 class AutoOxidation(DegradationMechanism):
@@ -134,6 +141,7 @@ class AutoOxidation(DegradationMechanism):
     """
 
     def __init__(self, rate_constant: float, c_oxidant: float = 0.0, oxidant_stoich: int = 0) -> None:
+        super().__init__()
         self.rate_constant = rate_constant
         self.c_oxidant = c_oxidant
         self.oxidant_stoich = oxidant_stoich
@@ -166,20 +174,21 @@ class AutoOxidation(DegradationMechanism):
 
         Returns
         -------
-        c_ox : float
-            Updated concentration of oxidized species (M).
-        c_red : float
-            Updated concentration of reduced species (M).
+        delta_ox : float
+            Change in concentration of oxidized species (M).
+        delta_red : float
+            Change in concentration of reduced species (M).
 
         """
 
         delta_concentration = time_step * self.rate_constant * c_red * (self.c_oxidant ** self.oxidant_stoich)
 
-        c_ox += delta_concentration
-        c_red -= delta_concentration
+        delta_ox = delta_concentration
+        delta_red = -delta_concentration
         self.c_oxidant -= delta_concentration * self.oxidant_stoich
         self.c_oxidant = max(self.c_oxidant, 0.0)
-        return c_ox, c_red
+
+        return delta_ox, delta_red
 
 
 class AutoReduction(DegradationMechanism):
@@ -201,6 +210,7 @@ class AutoReduction(DegradationMechanism):
 
     """
     def __init__(self, rate_constant: float, c_reductant: float = 0.0, reductant_stoich: int = 0) -> None:
+        super().__init__()
         self.rate_constant = rate_constant
         self.c_reductant = c_reductant
         self.reductant_stoich = reductant_stoich
@@ -233,20 +243,21 @@ class AutoReduction(DegradationMechanism):
 
         Returns
         -------
-        c_ox : float
-            Updated concentration of oxidized species (M).
-        c_red : float
-            Updated concentration of reduced species (M).
+        delta_ox : float
+            Change in concentration of oxidized species (M).
+        delta_red : float
+            Change in concentration of reduced species (M).
 
         """
 
         delta_concentration = time_step * self.rate_constant * c_ox * (self.c_reductant ** self.reductant_stoich)
 
-        c_ox -= delta_concentration
-        c_red += delta_concentration
+        delta_ox = -delta_concentration
+        delta_red = delta_concentration
         self.c_reductant -= delta_concentration * self.reductant_stoich
         self.c_reductant = max(self.c_reductant, 0.0)
-        return c_ox, c_red
+
+        return delta_ox, delta_red
 
 
 class Dimerization(DegradationMechanism):
@@ -265,9 +276,9 @@ class Dimerization(DegradationMechanism):
     """
 
     def __init__(self, forward_rate_constant: float, backward_rate_constant: float, c_dimer: float = 0.0) -> None:
+        super().__init__(c_dimer=c_dimer)
         self.forward_rate_constant = forward_rate_constant
         self.backward_rate_constant = backward_rate_constant
-        self.c_dimer = c_dimer
 
         if self.forward_rate_constant <= 0.0:
             raise ValueError("'forward_rate_constant' must be > 0.0")
@@ -275,7 +286,7 @@ class Dimerization(DegradationMechanism):
         if self.backward_rate_constant <= 0.0:
             raise ValueError("'backward_rate_constant' must be > 0.0")
 
-        if self.c_dimer < 0.0:
+        if c_dimer < 0.0:
             raise ValueError("'c_dimer' must be >= 0.0")
 
     def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
@@ -294,22 +305,22 @@ class Dimerization(DegradationMechanism):
 
         Returns
         -------
-        c_ox : float
-            Concentration of oxidized species (M).
-        c_red : float
-            Concentration of reduced species (M).
+        delta_ox : float
+            Change in concentration of oxidized species (M).
+        delta_red : float
+            Change in concentration of reduced species (M).
 
         """
 
         delta_concentration = time_step * (
-                (self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_dimer)
+                (self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_products['c_dimer'])
         )
 
-        self.c_dimer += delta_concentration
-        c_red -= delta_concentration
-        c_ox -= delta_concentration
+        delta_ox = -delta_concentration
+        delta_red = -delta_concentration
+        self.c_products['c_dimer'] += delta_concentration
 
-        return c_ox, c_red
+        return delta_ox, delta_red
 
 
 class MultiDegradationMechanism(DegradationMechanism):
@@ -325,6 +336,7 @@ class MultiDegradationMechanism(DegradationMechanism):
 
     """
     def __init__(self, mechanisms: list[DegradationMechanism]) -> None:
+        super().__init__()
         self.mechanisms = mechanisms
 
         for mechanism in self.mechanisms:
@@ -347,13 +359,13 @@ class MultiDegradationMechanism(DegradationMechanism):
 
         Returns
         -------
-        c_ox : float
-            Concentration of oxidized species (M).
-        c_red : float
-            Concentration of reduced species (M).
+        delta_ox : float
+            Change in concentration of oxidized species (M).
+        delta_red : float
+            Change in concentration of reduced species (M).
 
         """
 
-        for mechanism in self.mechanisms:
-            c_ox, c_red = mechanism.degrade(c_ox, c_red, time_step)
-        return c_ox, c_red
+        deltas = [mechanism.degrade(c_ox, c_red, time_step) for mechanism in self.mechanisms]
+        delta_ox, delta_red = (sum(x) for x in zip(*deltas))
+        return delta_ox, delta_red

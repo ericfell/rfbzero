@@ -23,15 +23,28 @@ class CyclingResults:
         Simulation time (s).
     time_step : float
         Simulation time step (s).
-    charge_first : bool
-        True if CLS charges first, False if CLS discharges first.
+    charge_first : bool, optional
+        True if CLS charges first, False if CLS discharges first. Defaults to True.
+    products_cls : list[str], optional
+        The names of any additional product species in the CLS.
+    products_ncls : list[str], optional
+        The names of any additional product species in the NCLS.
 
     """
 
-    def __init__(self, duration: float, time_step: float, charge_first: bool = True) -> None:
+    def __init__(
+            self,
+            duration: float,
+            time_step: float,
+            charge_first: bool = True,
+            products_cls: list[str] = None,
+            products_ncls: list[str] = None,
+    ) -> None:
         self.duration = duration
         self.time_step = time_step
         self.charge_first = charge_first
+        self.products_cls = products_cls or []
+        self.products_ncls = products_ncls or []
         self.compute_soc = True
 
         #: The number of time steps that were desired from the simulation.
@@ -58,10 +71,20 @@ class CyclingResults:
         self.c_ox_ncls: list[float] = [0.0] * self.max_steps
         #: The NCLS concentration of reduced species (M), at each time step.
         self.c_red_ncls: list[float] = [0.0] * self.max_steps
+
+        #: The CLS concentrations of any product species (M), at each time step.
+        self.c_products_cls: dict[str, list[float]] = {
+            species: [0.0] * self.max_steps for species in self.products_cls
+        }
+        #: The NCLS concentrations of any product species (M), at each time step.
+        self.c_products_ncls: dict[str, list[float]] = {
+            species: [0.0] * self.max_steps for species in self.products_ncls
+        }
+
         #: Oxidized species crossing (mols), at each time step. Only meaningful for symmetric cell.
-        self.delta_ox_mols: list[float] = [0.0] * self.max_steps
+        self.crossed_ox_mols: list[float] = [0.0] * self.max_steps
         #: Reduced species crossing (mols), at each time step. Only meaningful for symmetric cell.
-        self.delta_red_mols: list[float] = [0.0] * self.max_steps
+        self.crossed_red_mols: list[float] = [0.0] * self.max_steps
         #: The CLS state of charge, at each time step.
         self.soc_cls: list[float] = [0.0] * self.max_steps
         #: The NCLS state of charge, at each time step.
@@ -99,13 +122,15 @@ class CyclingResults:
     def _record_step(
             self,
             cell_model: ZeroDModel,
+            c_products_cls: dict[str, float],
+            c_products_ncls: dict[str, float],
             charge: bool,
             current: float,
             cell_v: float,
             ocv: float,
             n_act: float = 0.0,
             n_mt: float = 0.0,
-            total_overpotential: float = 0.0
+            total_overpotential: float = 0.0,
     ) -> None:
         """Records simulation data at valid time steps."""
         # Update capacity
@@ -131,8 +156,14 @@ class CyclingResults:
         self.c_red_cls[self.steps] = cls_red
         self.c_ox_ncls[self.steps] = ncls_ox
         self.c_red_ncls[self.steps] = ncls_red
-        self.delta_ox_mols[self.steps] = cell_model.delta_ox_mols
-        self.delta_red_mols[self.steps] = cell_model.delta_red_mols
+
+        for species in self.products_cls:
+            self.c_products_cls[species][self.steps] = c_products_cls[species]
+        for species in self.products_ncls:
+            self.c_products_ncls[species][self.steps] = c_products_ncls[species]
+
+        self.crossed_ox_mols[self.steps] = cell_model.delta_ox_mols
+        self.crossed_red_mols[self.steps] = cell_model.delta_red_mols
 
         # Compute state-of-charge
         if self.compute_soc:
@@ -176,8 +207,8 @@ class CyclingResults:
         self.c_red_cls = self.c_red_cls[:self.steps]
         self.c_ox_ncls = self.c_ox_ncls[:self.steps]
         self.c_red_ncls = self.c_red_ncls[:self.steps]
-        self.delta_ox_mols = self.delta_ox_mols[:self.steps]
-        self.delta_red_mols = self.delta_red_mols[:self.steps]
+        self.crossed_ox_mols = self.crossed_ox_mols[:self.steps]
+        self.crossed_red_mols = self.crossed_red_mols[:self.steps]
         self.soc_cls = self.soc_cls[:self.steps]
         self.soc_ncls = self.soc_ncls[:self.steps]
 
@@ -209,7 +240,7 @@ class _CycleMode(ABC):
         Defined cell parameters for simulation.
     results : CyclingResults
         Container for the simulation result data.
-    update_concentrations : Callable[[float], None]
+    update_concentrations : Callable[[float], tuple[dict[str, float], dict[str, float]]]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
     current : float
         Desired initial current for cycling.
@@ -224,10 +255,10 @@ class _CycleMode(ABC):
             charge: bool,
             cell_model: ZeroDModel,
             results: CyclingResults,
-            update_concentrations: Callable[[float], None],
+            update_concentrations: Callable[[float], tuple[dict[str, float], dict[str, float]]],
             current: float,
             current_lim_cls: float = None,
-            current_lim_ncls: float = None
+            current_lim_ncls: float = None,
     ) -> None:
         self.charge = charge
         self.cell_model = cell_model
@@ -281,7 +312,7 @@ class _ConstantCurrentCycleMode(_CycleMode):
         Defined cell parameters for simulation.
     results : CyclingResults
         Container for the simulation result data.
-    update_concentrations : Callable[[float], None]
+    update_concentrations : Callable[[float], tuple[dict[str, float], dict[str, float]]]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
     current : float
         Desired current for CC cycling during cycling mode (A).
@@ -296,10 +327,10 @@ class _ConstantCurrentCycleMode(_CycleMode):
             charge: bool,
             cell_model: ZeroDModel,
             results: CyclingResults,
-            update_concentrations: Callable[[float], None],
+            update_concentrations: Callable[[float], tuple[dict[str, float], dict[str, float]]],
             current: float,
             voltage_limit: float,
-            voltage_limit_capacity_check: bool = True
+            voltage_limit_capacity_check: bool = True,
     ) -> None:
         super().__init__(charge, cell_model, results, update_concentrations, current)
         self.voltage_limit = voltage_limit
@@ -338,7 +369,7 @@ class _ConstantCurrentCycleMode(_CycleMode):
         cycling_status = CyclingStatus.NORMAL
 
         # Calculate species' concentrations
-        self.update_concentrations(self.current)
+        c_products_cls, c_products_ncls = self.update_concentrations(self.current)
 
         # Handle edge case where the voltage limits are never reached
         if self.cell_model._negative_concentrations():
@@ -360,13 +391,15 @@ class _ConstantCurrentCycleMode(_CycleMode):
         # Update results
         self.results._record_step(
             self.cell_model,
+            c_products_cls,
+            c_products_ncls,
             self.charge,
             self.current,
             cell_v,
             ocv,
             n_act,
             n_mt,
-            total_overpotential
+            total_overpotential,
         )
 
         return self._check_time(cycling_status)
@@ -384,7 +417,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
         Defined cell parameters for simulation.
     results : CyclingResults
         Container for the simulation result data.
-    update_concentrations : Callable[[float], None]
+    update_concentrations : Callable[[float], tuple[dict[str, float], dict[str, float]]]
         Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms.
     current_cutoff : float
         Current cutoff for CV mode. Below it, simulation switches from charge to discharge and vice versa (A).
@@ -403,12 +436,12 @@ class _ConstantVoltageCycleMode(_CycleMode):
             charge: bool,
             cell_model: ZeroDModel,
             results: CyclingResults,
-            update_concentrations: Callable[[float], None],
+            update_concentrations: Callable[[float], tuple[dict[str, float], dict[str, float]]],
             current_cutoff: float,
             voltage_limit: float,
             current_estimate: float,
             current_lim_cls: float = None,
-            current_lim_ncls: float = None
+            current_lim_ncls: float = None,
     ) -> None:
         super().__init__(charge, cell_model, results, update_concentrations, current_estimate,
                          current_lim_cls, current_lim_ncls)
@@ -431,7 +464,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
         # Adapting the solver's guess to the updated current
         self.__find_min_current(ocv)
 
-        self.update_concentrations(self.current)
+        c_products_cls, c_products_ncls = self.update_concentrations(self.current)
 
         # Check if any reactant remains
         if self.cell_model._negative_concentrations():
@@ -439,7 +472,15 @@ class _ConstantVoltageCycleMode(_CycleMode):
             return self._check_capacity(CyclingStatus.NEGATIVE_CONCENTRATIONS)
 
         # Update results
-        self.results._record_step(self.cell_model, self.charge, self.current, self.voltage_limit, ocv)
+        self.results._record_step(
+            self.cell_model,
+            c_products_cls,
+            c_products_ncls,
+            self.charge,
+            self.current,
+            self.voltage_limit,
+            ocv,
+        )
 
         if abs(self.current) <= abs(self.current_cutoff):
             return self._check_capacity(CyclingStatus.CURRENT_CUTOFF_REACHED)
@@ -462,7 +503,7 @@ class _ConstantVoltageCycleMode(_CycleMode):
             loss_solve, *_ = self.cell_model._total_overpotential(
                 current.item(),
                 self.current_lim_cls,
-                self.current_lim_ncls
+                self.current_lim_ncls,
             )
             return self.voltage_limit - ocv - self.__current_direction() * loss_solve
 
@@ -526,7 +567,7 @@ class CyclingProtocol(ABC):
             value: Optional[float],
             value_charge: Optional[float],
             value_discharge: Optional[float],
-            name: str
+            name: str,
     ) -> tuple[float, float]:
         """Checks validity of user inputs for current limits and/or cutoffs."""
         if value is not None and (value_charge is not None or value_discharge is not None):
@@ -554,8 +595,8 @@ class CyclingProtocol(ABC):
             degradation: Optional[DegradationMechanism],
             cls_degradation: Optional[DegradationMechanism],
             ncls_degradation: Optional[DegradationMechanism],
-            crossover: Optional[Crossover]
-    ) -> tuple[CyclingResults, Callable[[float], None]]:
+            crossover: Optional[Crossover],
+    ) -> tuple[CyclingResults, Callable[[float], tuple[dict[str, float], dict[str, float]]]]:
         """Checks validity of user inputs for voltage limits and optional degradation and crossover mechanisms."""
         if not self.voltage_limit_discharge < cell_model.ocv_50_soc < self.voltage_limit_charge:
             raise ValueError("Ensure that 'voltage_limit_discharge' < 'ocv_50_soc' < 'voltage_limit_charge'")
@@ -577,16 +618,19 @@ class CyclingProtocol(ABC):
         # the passed in instances can be reused across protocol runs.
         cls_degradation = copy.deepcopy(cls_degradation)
         ncls_degradation = copy.deepcopy(ncls_degradation)
+        c_products_cls = cls_degradation.c_products if cls_degradation else {}
+        c_products_ncls = ncls_degradation.c_products if ncls_degradation else {}
 
         if cell_model._negative_concentrations():
             raise ValueError('Negative concentration detected')
 
-        def update_concentrations(i: float) -> None:
+        def update_concentrations(i: float) -> tuple[dict[str, float], dict[str, float]]:
             # Performs coulomb counting, concentration updates via (optional) degradation and crossover mechanisms
-            cell_model._coulomb_counter(i, cls_degradation, ncls_degradation, crossover)
+            return cell_model._coulomb_counter(i, cls_degradation, ncls_degradation, crossover)
 
         # Initialize data results object to be sent to user
-        results = CyclingResults(duration, cell_model.time_step, self.charge_first)
+        results = CyclingResults(duration, cell_model.time_step, self.charge_first,
+                                 list(c_products_cls.keys()), list(c_products_ncls.keys()))
 
         print(f'{duration} sec of cycling, time steps: {cell_model.time_step} sec')
         return results, update_concentrations
@@ -633,7 +677,7 @@ class ConstantCurrent(CyclingProtocol):
     ) -> None:
         super().__init__(voltage_limit_charge, voltage_limit_discharge, charge_first)
         self.current_charge, self.current_discharge = self._validate_cycle_values(
-            current, current_charge, current_discharge, 'current'
+            current, current_charge, current_discharge, 'current',
         )
 
     def run(
@@ -643,7 +687,7 @@ class ConstantCurrent(CyclingProtocol):
             degradation: DegradationMechanism = None,
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
-            crossover: Crossover = None
+            crossover: Crossover = None,
     ) -> CyclingResults:
         """
         Applies the constant current (CC) protocol and (optional) degradation/crossover mechanisms to a cell model.
@@ -671,7 +715,7 @@ class ConstantCurrent(CyclingProtocol):
         """
 
         results, update_concentrations = self._validate_protocol(
-            duration, cell_model, degradation, cls_degradation, ncls_degradation, crossover
+            duration, cell_model, degradation, cls_degradation, ncls_degradation, crossover,
         )
 
         def get_cycle_mode(charge: bool) -> _ConstantCurrentCycleMode:
@@ -682,7 +726,7 @@ class ConstantCurrent(CyclingProtocol):
                 results,
                 update_concentrations,
                 self.current_charge if charge else self.current_discharge,
-                self.voltage_limit_charge if charge else self.voltage_limit_discharge
+                self.voltage_limit_charge if charge else self.voltage_limit_discharge,
             )
 
         cycle_mode = get_cycle_mode(self.charge_first)
@@ -744,7 +788,7 @@ class ConstantVoltage(CyclingProtocol):
     ) -> None:
         super().__init__(voltage_limit_charge, voltage_limit_discharge, charge_first)
         self.current_cutoff_charge, self.current_cutoff_discharge = self._validate_cycle_values(
-            current_cutoff, current_cutoff_charge, current_cutoff_discharge, 'current_cutoff'
+            current_cutoff, current_cutoff_charge, current_cutoff_discharge, 'current_cutoff',
         )
 
     def run(
@@ -754,7 +798,7 @@ class ConstantVoltage(CyclingProtocol):
             degradation: DegradationMechanism = None,
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
-            crossover: Crossover = None
+            crossover: Crossover = None,
     ) -> CyclingResults:
         """
         Applies the constant voltage (CV) cycling protocol and (optional) degradation/crossover mechanisms to a cell
@@ -783,7 +827,7 @@ class ConstantVoltage(CyclingProtocol):
         """
 
         results, update_concentrations = self._validate_protocol(
-            duration, cell_model, degradation, cls_degradation, ncls_degradation, crossover
+            duration, cell_model, degradation, cls_degradation, ncls_degradation, crossover,
         )
 
         def get_cycle_mode(charge: bool) -> _ConstantVoltageCycleMode:
@@ -794,7 +838,7 @@ class ConstantVoltage(CyclingProtocol):
                 update_concentrations,
                 self.current_cutoff_charge if charge else self.current_cutoff_discharge,
                 self.voltage_limit_charge if charge else self.voltage_limit_discharge,
-                0.0
+                0.0,
             )
 
         cycle_mode = get_cycle_mode(self.charge_first)
@@ -860,10 +904,10 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
     ) -> None:
         super().__init__(voltage_limit_charge, voltage_limit_discharge, charge_first)
         self.current_cutoff_charge, self.current_cutoff_discharge = self._validate_cycle_values(
-            current_cutoff, current_cutoff_charge, current_cutoff_discharge, 'current_cutoff'
+            current_cutoff, current_cutoff_charge, current_cutoff_discharge, 'current_cutoff',
         )
         self.current_charge, self.current_discharge = self._validate_cycle_values(
-            current, current_charge, current_discharge, 'current'
+            current, current_charge, current_discharge, 'current',
         )
 
     def run(
@@ -873,7 +917,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             degradation: DegradationMechanism = None,
             cls_degradation: DegradationMechanism = None,
             ncls_degradation: DegradationMechanism = None,
-            crossover: Crossover = None
+            crossover: Crossover = None,
     ) -> CyclingResults:
         """
         Applies the constant current constant voltage (CCCV) cycling protocol and (optional) degradation/crossover
@@ -901,7 +945,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
 
         """
         results, update_concentrations = self._validate_protocol(
-            duration, cell_model, degradation, cls_degradation, ncls_degradation, crossover
+            duration, cell_model, degradation, cls_degradation, ncls_degradation, crossover,
         )
 
         def get_cc_cycle_mode(charge: bool) -> _ConstantCurrentCycleMode:
@@ -912,7 +956,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 update_concentrations,
                 self.current_charge if charge else self.current_discharge,
                 self.voltage_limit_charge if charge else self.voltage_limit_discharge,
-                voltage_limit_capacity_check=False
+                voltage_limit_capacity_check=False,
             )
 
         def get_cv_cycle_mode(
@@ -930,7 +974,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
                 self.voltage_limit_charge if charge else self.voltage_limit_discharge,
                 current_estimate,
                 current_lim_cls,
-                current_lim_ncls
+                current_lim_ncls,
             )
 
         cycle_mode: _CycleMode = get_cc_cycle_mode(self.charge_first)
@@ -950,8 +994,11 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
             if is_cc_mode:
                 if cycling_status == CyclingStatus.VOLTAGE_LIMIT_REACHED:
                     is_cc_mode = False
-                    cycle_mode = get_cv_cycle_mode(cycle_mode.charge, cycle_mode.current,
-                                                   cycle_mode.current_lim_cls, cycle_mode.current_lim_ncls)
+                    cycle_mode = get_cv_cycle_mode(cycle_mode.charge,
+                                                   cycle_mode.current,
+                                                   cycle_mode.current_lim_cls,
+                                                   cycle_mode.current_lim_ncls,
+                                                   )
                     cycling_status = CyclingStatus.NORMAL
                 elif cycling_status == CyclingStatus.NEGATIVE_CONCENTRATIONS:
                     # Record info for the half cycle
