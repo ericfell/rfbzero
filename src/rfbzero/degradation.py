@@ -65,7 +65,8 @@ class ChemicalDegradationOxidized(DegradationMechanism):
         """
 
         delta_ox = -(time_step * self.rate_constant * (c_ox ** self.rate_order))
-        return delta_ox, 0.0
+        delta_red = 0.0
+        return delta_ox, delta_red
 
 
 class ChemicalDegradationReduced(DegradationMechanism):
@@ -115,8 +116,9 @@ class ChemicalDegradationReduced(DegradationMechanism):
 
         """
 
+        delta_ox = 0.0
         delta_red = -(time_step * self.rate_constant * (c_red ** self.rate_order))
-        return 0.0, delta_red
+        return delta_ox, delta_red
 
 
 class AutoOxidation(DegradationMechanism):
@@ -181,9 +183,12 @@ class AutoOxidation(DegradationMechanism):
 
         delta_concentration = time_step * self.rate_constant * c_red * (self.c_oxidant ** self.oxidant_stoich)
 
+        delta_ox = delta_concentration
+        delta_red = -delta_concentration
         self.c_oxidant -= delta_concentration * self.oxidant_stoich
         self.c_oxidant = max(self.c_oxidant, 0.0)
-        return delta_concentration, -delta_concentration
+
+        return delta_ox, delta_red
 
 
 class AutoReduction(DegradationMechanism):
@@ -247,9 +252,12 @@ class AutoReduction(DegradationMechanism):
 
         delta_concentration = time_step * self.rate_constant * c_ox * (self.c_reductant ** self.reductant_stoich)
 
+        delta_ox = -delta_concentration
+        delta_red = delta_concentration
         self.c_reductant -= delta_concentration * self.reductant_stoich
         self.c_reductant = max(self.c_reductant, 0.0)
-        return -delta_concentration, delta_concentration
+
+        return delta_ox, delta_red
 
 
 class Dimerization(DegradationMechanism):
@@ -308,8 +316,11 @@ class Dimerization(DegradationMechanism):
                 (self.forward_rate_constant * c_ox * c_red) - (self.backward_rate_constant * self.c_products['c_dimer'])
         )
 
+        delta_ox = -delta_concentration
+        delta_red = -delta_concentration
         self.c_products['c_dimer'] += delta_concentration
-        return -delta_concentration, -delta_concentration
+
+        return delta_ox, delta_red
 
 
 class MultiDegradationMechanism(DegradationMechanism):
@@ -356,4 +367,5 @@ class MultiDegradationMechanism(DegradationMechanism):
         """
 
         deltas = [mechanism.degrade(c_ox, c_red, time_step) for mechanism in self.mechanisms]
-        return sum(delta_ox for delta_ox, _ in deltas), sum(delta_red for _, delta_red in deltas)
+        delta_ox, delta_red = (sum(x) for x in zip(*deltas))
+        return delta_ox, delta_red
