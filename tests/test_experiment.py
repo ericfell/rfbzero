@@ -4,8 +4,8 @@ import numpy as np
 
 from rfbzero.experiment import ConstantCurrent, ConstantCurrentConstantVoltage, ConstantVoltage
 from rfbzero.redox_flow_cell import ZeroDModel
-from rfbzero.degradation import ChemicalDegradationOxidized, ChemicalDegradationReduced, AutoOxidation, AutoReduction, \
-    MultiDegradationMechanism, Dimerization
+from rfbzero.degradation import (ChemicalDegradationOxidized, ChemicalDegradationReduced, AutoOxidation, AutoReduction,
+                                 MultiDegradationMechanism, Dimerization)
 from rfbzero.crossover import Crossover
 
 
