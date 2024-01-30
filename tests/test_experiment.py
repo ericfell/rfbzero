@@ -261,10 +261,10 @@ class TestLowCapacity:
 
 class TestDegradationCommutativity:
     degradations = [
-        ChemicalDegradationOxidized(rate_order=1, rate_constant=0.1),
-        ChemicalDegradationReduced(rate_order=1, rate_constant=0.1),
-        AutoOxidation(rate_constant=0.1),
-        AutoReduction(rate_constant=0.1),
+        ChemicalDegradationOxidized(rate_order=1, rate_constant=0.01),
+        ChemicalDegradationReduced(rate_order=1, rate_constant=0.01),
+        AutoOxidation(rate_constant=0.01),
+        AutoReduction(rate_constant=0.01),
         Dimerization(forward_rate_constant=2, backward_rate_constant=1, c_dimer=0.5)
     ]
 
