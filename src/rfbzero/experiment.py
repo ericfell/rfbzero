@@ -162,8 +162,8 @@ class CyclingResults:
         for species in self.products_ncls:
             self.c_products_ncls[species][self.steps] = c_products_ncls[species]
 
-        self.crossed_ox_mols[self.steps] = cell_model.delta_ox_mols
-        self.crossed_red_mols[self.steps] = cell_model.delta_red_mols
+        self.crossed_ox_mols[self.steps] = cell_model.crossed_ox_mols
+        self.crossed_red_mols[self.steps] = cell_model.crossed_red_mols
 
         # Compute state-of-charge
         if self.compute_soc:

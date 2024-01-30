@@ -132,8 +132,8 @@ class ZeroDModel:
         self.prev_c_red_cls = self.c_red_cls
         self.prev_c_ox_ncls = self.c_ox_ncls
         self.prev_c_red_ncls = self.c_red_ncls
-        self.delta_ox_mols = 0.0
-        self.delta_red_mols = 0.0
+        self.crossed_ox_mols = 0.0
+        self.crossed_red_mols = 0.0
 
         self.nernst_const = (R * temperature) / F
 
@@ -459,8 +459,8 @@ class ZeroDModel:
         self.c_ox_ncls = new_c_ox_ncls
         self.c_red_ncls = new_c_red_ncls
 
-        self.delta_ox_mols = crossed_ox_mols
-        self.delta_red_mols = crossed_red_mols
+        self.crossed_ox_mols = crossed_ox_mols
+        self.crossed_red_mols = crossed_red_mols
 
         return c_products_cls, c_products_ncls
 
