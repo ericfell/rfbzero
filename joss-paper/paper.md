@@ -64,7 +64,7 @@ Crossover of redox-active species through the ion-exchange membrane, driven by c
 Multiple model outputs can be accessed from the simulation results including: temporal profiles for voltage, current, capacity, SOC, and overpotentials. Half-cycle capacities and duration of cycles can also be accessed.
 
 # An Example of the `rfbzero.py` API
-The documentation for `rfbzero.py` includes a [getting started guide](https://ericfell-rfbzero.readthedocs.io/en/latest/getting-started.html) and examples of RFB cells cycled under different protocols. An example for CC cycling at &plusmn;100 mA for a symmetric cell with OCV = 0.0 V, charging voltage = 0.2 V, discharging voltage = -0.2 V, and cycled for 500 seconds, is shown below:
+The documentation for `rfbzero.py` includes a [getting started guide](https://rfbzero.readthedocs.io/en/latest/getting-started.html) and examples of RFB cells cycled under different protocols. An example for CC cycling at &plusmn;100 mA for a symmetric cell with OCV = 0.0 V, charging voltage = 0.2 V, discharging voltage = -0.2 V, and cycled for 500 seconds, is shown below:
 
 ```python
 from redox_flow_cell import ZeroDModel
