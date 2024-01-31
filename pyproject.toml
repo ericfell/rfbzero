@@ -23,7 +23,7 @@ keywords = ["electrochemistry", "batteries", "redox flow"]
 
 [project.urls]
 Homepage = "https://github.com/ericfell/rfbzero"
-Documentation = "https://ericfell-rfbzero.readthedocs.io/en/latest/index.html#"
+Documentation = "https://rfbzero.readthedocs.io/en/latest/index.html#"
 
 
 [tool.pytest.ini_options]

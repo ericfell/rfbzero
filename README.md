@@ -1,4 +1,4 @@
-[![Documentation Status](https://readthedocs.org/projects/ericfell-rfbzero/badge/?version=latest)](https://ericfell-rfbzero.readthedocs.io/en/latest/?badge=latest)  [![codecov](https://codecov.io/github/ericfell/rfbzero/graph/badge.svg)](https://codecov.io/github/ericfell/rfbzero)  [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)  [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
+[![Documentation Status](https://readthedocs.org/projects/rfbzero/badge/?version=latest)](https://rfbzero.readthedocs.io/en/latest/?badge=latest)  [![codecov](https://codecov.io/github/ericfell/rfbzero/graph/badge.svg)](https://codecov.io/github/ericfell/rfbzero)  [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)  [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
 
 
 
@@ -16,6 +16,19 @@ This package includes modules to describe the initial flow cell setup, chemical 
 ```bash
 git clone git@github.com:ericfell/rfbzero.git
 ```
+
+See [Getting started with `rfbzero.py`](https://rfbzero.readthedocs.io/en/latest/getting-started.html) for instructions on simulating RFBs.
+
+### Dependencies
+
+`rfbzero.py` requires:
+
+- Python (>=3.10)
+- SciPy
+
+### Examples and Documentation
+
+Several simulated RFB examples can be found in a notebook in `docs/source/examples` (requires Jupyter notebook/lab). The documentation can be found at [rfbzero.readthedocs](https://rfbzero.readthedocs.io/en/latest/index.html).
 
 ##  Package Structure
 
