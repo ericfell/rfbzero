@@ -341,7 +341,7 @@ class MultiDegradationMechanism(DegradationMechanism):
     def __init__(self, mechanisms: list[DegradationMechanism]) -> None:
         self.mechanisms = mechanisms
 
-        c_products = {}
+        c_products: dict[str, float] = {}
         for mechanism in self.mechanisms:
             if not isinstance(mechanism, DegradationMechanism):
                 raise ValueError(f"Mechanism {mechanism} is not of type DegradationMechanism")
