@@ -3,6 +3,8 @@ Classes for defining capacity fade mechanisms.
 """
 
 from abc import ABC, abstractmethod
+from functools import reduce
+from operator import ior
 
 
 class DegradationMechanism(ABC):
@@ -332,16 +334,21 @@ class MultiDegradationMechanism(DegradationMechanism):
     Parameters
     ----------
     mechanisms : list[DegradationMechanism]
-        List of degradation mechanism subclass instances.
+        List of degradation mechanism subclass instances. Note that multiple instances of the same mechanism type cannot
+        be used in the same MultiDegradationMechanism.
 
     """
     def __init__(self, mechanisms: list[DegradationMechanism]) -> None:
-        super().__init__()
         self.mechanisms = mechanisms
 
+        c_products = {}
         for mechanism in self.mechanisms:
             if not isinstance(mechanism, DegradationMechanism):
                 raise ValueError(f"Mechanism {mechanism} is not of type DegradationMechanism")
+            # Compute the union of c_products across all mechanisms
+            c_products |= mechanism.c_products
+
+        super().__init__(**c_products)
 
     def degrade(self, c_ox: float, c_red: float, time_step: float) -> tuple[float, float]:
         """
@@ -368,4 +375,8 @@ class MultiDegradationMechanism(DegradationMechanism):
 
         deltas = [mechanism.degrade(c_ox, c_red, time_step) for mechanism in self.mechanisms]
         delta_ox, delta_red = (sum(x) for x in zip(*deltas))
+
+        # Update the c_products dictionary to be the union of all mechanisms' dictionaries
+        self.c_products = reduce(ior, [mechanism.c_products for mechanism in self.mechanisms], {})
+
         return delta_ox, delta_red
