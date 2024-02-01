@@ -11,10 +11,10 @@ This package includes modules to describe the initial flow cell setup, chemical 
 
 ## Installation
 
-`rfbzero` can be installed from GitHub:
+`rfbzero` can be installed from [PyPI](https://pypi.org/project/rfbzero/) using pip.
 
 ```bash
-git clone git@github.com:ericfell/rfbzero.git
+pip install rfbzero
 ```
 
 See [Getting started with `rfbzero.py`](https://rfbzero.readthedocs.io/en/latest/getting-started.html) for instructions on simulating RFBs.
