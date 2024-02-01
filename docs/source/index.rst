@@ -23,13 +23,11 @@ or contribute code improvements and
 Installation
 ------------
 
-The easiest way to install :code:`rfbzero.py` is
-from PyPI https ????
-using pip:
+:code:`rfbzero.py` can be installed from `PyPI <https://pypi.org/project/rfbzero/>`_ with pip:
 
 .. code-block:: bash
 
-   pip install ??
+   pip install rfbzero
 
 
 
