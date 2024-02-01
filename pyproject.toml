@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rfbzero"
-version = "1.0.0"
+version = "1.0.0.post1"
 authors = [
     { name="Eric Fell", email="efell@g.harvard.edu" },
     { name="Jeremy Fell", email="jfell@sfu.ca"},

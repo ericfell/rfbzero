@@ -43,8 +43,8 @@ Several simulated RFB examples can be found in a notebook in `docs/source/exampl
 To simulate a full cell with constant current (CC) cycling:
 
 ```python
-from redox_flow_cell import ZeroDModel
-from experiment import ConstantCurrent
+from rfbzero.redox_flow_cell import ZeroDModel
+from rfbzero.experiment import ConstantCurrent
 
 
 # define full cell and electrolyte parameters
@@ -75,9 +75,9 @@ results = protocol.run(cell_model=cell, duration=1000)
 or a symmetric cell with constant current constant voltage (CCCV) cycling, with an electrolyte undergoing a first order chemical degradation in the reduced form:
 
 ```python
-from redox_flow_cell import ZeroDModel
-from degradation import ChemicalDegradationReduced
-from experiment import ConstantCurrentConstantVoltage
+from rfbzero.redox_flow_cell import ZeroDModel
+from rfbzero.degradation import ChemicalDegradationReduced
+from rfbzero.experiment import ConstantCurrentConstantVoltage
 
 
 # define symmetric cell and electrolyte parameters
