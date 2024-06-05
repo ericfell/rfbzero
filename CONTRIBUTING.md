@@ -7,7 +7,7 @@ This document outlines the guidelines for contributing to the various aspects of
 
 # Contributing
 
-If you find a bug in the code, a mistake in the [documentation](https://rfbzero.readthedocs.io/en/latest/index.html), or would like to see a new feature, please help us by creating [an issue in our repository](https://github.com/ericfell/rfbzero/issues), or even submit a pull request.
+If you find a bug in the code, a mistake in the [documentation](https://rfbzero.readthedocs.io/en/latest/index.html), or would like to see a new feature, please help us by creating [an issue in our repository](https://github.com/ericfell/rfbzero/issues), or even creating a pull request.
 
 > And if you like the project, but just don't have time to contribute, there are other ways to support the project and show your appreciation, which we would also be very happy about:
 > - Star the project
@@ -15,15 +15,13 @@ If you find a bug in the code, a mistake in the [documentation](https://rfbzero.
 > - Refer this project in your project's readme
 > - Tell your friends/colleagues about the project
 
-
-
 # Development Guide
 
 ## Repository Setup
 
 1.  To work on the rfbzero.py package, you should first fork the rfbzero repository.
 
-2.  You can then clone the fork to your computer
+2.  You can then clone the fork to your computer.
 
 ```bash
 git clone https://github.com/<GitHubUsername>/rfbzero.py
@@ -32,7 +30,6 @@ git clone https://github.com/<GitHubUsername>/rfbzero.py
 3.  Make your changes and commit them to your fork.
 
 4.  [Submit a Pull Request](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/about-pull-requests) (make sure to write an informative message so the reviewer can understand what you're adding!) via GitHub.
-
 
 ## Continuous Integration
 
@@ -69,7 +66,6 @@ pip install pytest pytest-cov
 pytest --cov
 ```
 :warning: if there is any output here, fix the errors and/or add tests before running pytest again.
-
 
 ## Acknowledgements
 
