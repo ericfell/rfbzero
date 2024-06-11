@@ -638,7 +638,7 @@ class CyclingProtocol(ABC):
     @staticmethod
     def _end_protocol(results: CyclingResults, end_status: CyclingStatus) -> CyclingResults:
         """Records the status that ended the simulation and logs the time."""
-        print(f'Simulation stopped after {results.steps} time steps: {end_status}.')
+        print(f'Simulation stopped after {results.steps} time steps: {end_status.value}.')
         results.end_status = end_status
         results._finalize()
         return results
@@ -738,7 +738,7 @@ class ConstantCurrent(CyclingProtocol):
                 raise ValueError(cycling_status)
 
             cycle_name = 'charge' if self.charge_first else 'discharge'
-            print(f'Skipping to {cycle_name} cycle: {cycling_status}')
+            print(f'Skipping to {cycle_name} cycle: {cycling_status.value}')
             cycling_status = CyclingStatus.NORMAL
 
         while cycling_status == CyclingStatus.NORMAL:
@@ -983,7 +983,7 @@ class ConstantCurrentConstantVoltage(CyclingProtocol):
         cycling_status = cycle_mode.validate()
         is_cc_mode = cycling_status == CyclingStatus.NORMAL
         if not is_cc_mode:
-            print(f'Skipping to CV cycling: {cycling_status}')
+            print(f'Skipping to CV cycling: {cycling_status.value}')
             cv_current = self.current_charge if self.charge_first else self.current_discharge
             cycle_mode = get_cv_cycle_mode(self.charge_first, cv_current)
             cycling_status = cycle_mode.validate()
