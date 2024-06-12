@@ -1,5 +1,5 @@
 [![Documentation Status](https://readthedocs.org/projects/rfbzero/badge/?version=latest)](https://rfbzero.readthedocs.io/en/latest/?badge=latest)  [![codecov](https://codecov.io/github/ericfell/rfbzero/graph/badge.svg)](https://codecov.io/github/ericfell/rfbzero)  [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)  [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
-
+[![DOI](https://zenodo.org/badge/667614807.svg)](https://zenodo.org/doi/10.5281/zenodo.11594955)
 
 
 RFBzero
