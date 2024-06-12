@@ -5,10 +5,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rfbzero"
-version = "1.0.0.post1"
+version = "1.0.1"
 authors = [
     { name="Eric Fell", email="efell@g.harvard.edu" },
     { name="Jeremy Fell", email="jfell@sfu.ca"},
+    { name="Michael Aziz", email="maziz@harvard.edu"},
 ]
 description = "A package for zero dimensional simulation of electrochemical cycling in redox flow batteries"
 readme = "README.md"
