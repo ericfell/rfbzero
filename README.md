@@ -1,4 +1,4 @@
-[![Documentation Status](https://readthedocs.org/projects/rfbzero/badge/?version=latest)](https://rfbzero.readthedocs.io/en/latest/?badge=latest)  [![codecov](https://codecov.io/github/ericfell/rfbzero/graph/badge.svg)](https://codecov.io/github/ericfell/rfbzero)  [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)  [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
+[![Documentation Status](https://readthedocs.org/projects/rfbzero/badge/?version=latest)](https://rfbzero.readthedocs.io/en/latest/?badge=latest)  [![codecov](https://codecov.io/github/ericfell/rfbzero/graph/badge.svg)](https://codecov.io/github/ericfell/rfbzero)  [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)  [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint) [![pypi](https://img.shields.io/pypi/v/rfbzero?color=orange)](https://pypi.org/project/rfbzero/)
 
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.06537/status.svg)](https://doi.org/10.21105/joss.06537) [![DOI](https://zenodo.org/badge/667614807.svg)](https://zenodo.org/doi/10.5281/zenodo.11594955)
 
@@ -115,7 +115,7 @@ results = protocol.run(cell_model=cell, degradation=chem_deg, duration=1000)
 
 If you use RFBzero in your work, please cite our paper
 
-> Fell, E. M., Fell, J. A. & Aziz, M. J. (2024). RFBzero: A Python package for zero-dimensional simulation of redox flow battery cycling. _Journal of Open Source Software_, **9**, 6537.
+> Fell, E. M., Fell, J. A., & Aziz, M. J. (2024). RFBzero: A Python package for zero-dimensional simulation of redox flow battery cycling. _Journal of Open Source Software_, **9**, 6537.
 
 You can use the BibTeX
 
