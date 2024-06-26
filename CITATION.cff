@@ -1,0 +1,46 @@
+cff-version: "1.2.0"
+authors:
+- email: efell@g.harvard.edu
+  family-names: Fell
+  given-names: Eric M.
+  orcid: "https://orcid.org/0000-0003-2046-1480"
+- email: jfell@sfu.ca
+  family-names: Fell
+  given-names: Jeremy A.
+  orcid: "https://orcid.org/0009-0001-0968-8564"
+- email: maziz@harvard.edu
+  family-names: Aziz
+  given-names: Michael J.
+  orcid: "https://orcid.org/0000-0001-9657-9456"
+doi: 10.5281/zenodo.11594955
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - email: efell@g.harvard.edu
+    family-names: Fell
+    given-names: Eric M.
+    orcid: "https://orcid.org/0000-0003-2046-1480"
+  - email: jfell@sfu.ca
+    family-names: Fell
+    given-names: Jeremy A.
+    orcid: "https://orcid.org/0009-0001-0968-8564"
+  - email: maziz@harvard.edu
+    family-names: Aziz
+    given-names: Michael J.
+    orcid: "https://orcid.org/0000-0001-9657-9456"
+  date-published: 2024-06-25
+  doi: 10.21105/joss.06537
+  issn: 2475-9066
+  issue: 98
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 6537
+  title: "RFBzero: A Python package for zero-dimensional simulation of
+    redox flow battery cycling"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.06537"
+  volume: 9
+title: "RFBzero: A Python package for zero-dimensional simulation of
+  redox flow battery cycling"

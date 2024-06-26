@@ -1,5 +1,6 @@
-[![Documentation Status](https://readthedocs.org/projects/rfbzero/badge/?version=latest)](https://rfbzero.readthedocs.io/en/latest/?badge=latest)  [![codecov](https://codecov.io/github/ericfell/rfbzero/graph/badge.svg)](https://codecov.io/github/ericfell/rfbzero)  [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)  [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
-[![DOI](https://zenodo.org/badge/667614807.svg)](https://zenodo.org/doi/10.5281/zenodo.11594955)
+[![Documentation Status](https://readthedocs.org/projects/rfbzero/badge/?version=latest)](https://rfbzero.readthedocs.io/en/latest/?badge=latest)  [![codecov](https://codecov.io/github/ericfell/rfbzero/graph/badge.svg)](https://codecov.io/github/ericfell/rfbzero)  [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)  [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint) [![pypi](https://img.shields.io/pypi/v/rfbzero?color=orange)](https://pypi.org/project/rfbzero/)
+
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.06537/status.svg)](https://doi.org/10.21105/joss.06537) [![DOI](https://zenodo.org/badge/667614807.svg)](https://zenodo.org/doi/10.5281/zenodo.11594955)
 
 
 RFBzero
@@ -110,6 +111,28 @@ chem_deg = ChemicalDegradationReduced(rate_order=1, rate_constant=1e-5)
 results = protocol.run(cell_model=cell, degradation=chem_deg, duration=1000)
 ```
 
+## 📖 Citing RFBzero
+
+If you use RFBzero in your work, please cite our paper
+
+> Fell, E. M., Fell, J. A., & Aziz, M. J. (2024). RFBzero: A Python package for zero-dimensional simulation of redox flow battery cycling. _Journal of Open Source Software_, **9**, 6537.
+
+You can use the BibTeX
+
+```
+@article{Fell2024,
+  title = {{RFBzero: A Python package for zero-dimensional simulation of redox flow battery cycling}},
+  author = {Fell, Eric M. and Fell, Jeremy A. and Aziz, Michael J.},
+  doi = {10.21105/joss.06537}, 
+  journal = {Journal of Open Source Software},
+  publisher = {The Open Journal},
+  volume = {9}, 
+  number = {98}, 
+  pages = {6537},
+  year = {2024},
+  url = {https://doi.org/10.21105/joss.06537},
+}
+```
 
 
 ## License
